@@ -32,7 +32,7 @@ const registerSchema = Joi.object({
   first_name: Joi.string()
     .min(2)
     .max(100)
-    .pattern(/^[a-zA-ZÀ-ỹ\s]+$/)
+    .pattern(/^[a-zA-ZÀ-ỹ\s'-]+$/)
     .required()
     .trim()
     .messages({
@@ -46,7 +46,7 @@ const registerSchema = Joi.object({
   last_name: Joi.string()
     .min(2)
     .max(50)
-    .pattern(/^[a-zA-ZÀ-ỹ\s]+$/)
+    .pattern(/^[a-zA-ZÀ-ỹ\s'-]+$/)
     .required()
     .trim()
     .messages({
@@ -65,7 +65,7 @@ const registerSchema = Joi.object({
     }),
 
   phone: Joi.string()
-    .pattern(/^[0-9+\-\s()]{10,15}$/)
+    .pattern(/^[\d\s+()-]{10,20}$/)
     .optional()
     .allow('', null)
     .trim()

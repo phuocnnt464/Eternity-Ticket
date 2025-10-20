@@ -51,7 +51,8 @@ const authenticateToken = async (req, res, next) => {
       first_name: user.first_name,
       last_name: user.last_name,
       is_email_verified: user.is_email_verified,
-      membership_tier: user.membership_tier || 'basic'
+      membership_tier: user.role === 'participant' 
+        ? (user.membership_tier || 'basic') : null
     };
 
     next();

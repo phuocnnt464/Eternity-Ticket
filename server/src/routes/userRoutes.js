@@ -15,6 +15,8 @@ const {
   updateProfileSchema
 } = require('../validations/authValidation')
 
+const { logActivity } = require('../middleware/activityLogger');
+
 const { uploadUserAvatar, processUserAvatar } = require('../middleware/uploadMiddleware');
 
 const router = express.Router();
@@ -112,6 +114,7 @@ router.put('/:userId',
   validateUUIDParam('userId'),
   authorizeOwnerOrAdmin('userId'),
   validate(updateProfileSchema),
+  logActivity('UPDATE_PROFILE', 'USER'),
   UserController.updateProfile
 );
 
@@ -174,6 +177,7 @@ router.delete('/:userId',
   sensitiveOperationsLimiter,
   validateUUIDParam('userId'),
   authorizeOwnerOrAdmin('userId'),
+  logActivity('DEACTIVATE_PROFILE', 'USER'),
   UserController.deactivateAccount
 );
 

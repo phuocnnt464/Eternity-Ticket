@@ -21,6 +21,25 @@ class AuthController {
     try {
       const { email, password, role, first_name, last_name, phone } = req.body;
 
+      // ✅ Kiểm tra email đã tồn tại với ANY role
+      const existingUser = await UserModel.findByEmailAnyRole(email);
+    
+      if (existingUser) {
+        if (existingUser.role === role) {
+          return res.status(409).json(
+            createResponse(false, 'An account with this email already exists.')
+          );
+        } else {
+          // Email exists with different role - NOT ALLOWED
+          return res.status(409).json(
+            createResponse(
+              false, 
+              `This email is already registered as ${existingUser.role}. You cannot register as ${role} with the same email.`
+            )
+          );
+        }
+      }
+
       console.log(`📝 Registration attempt for email: ${email}`);
 
       // Validate role (only participant or organizer can self-register)

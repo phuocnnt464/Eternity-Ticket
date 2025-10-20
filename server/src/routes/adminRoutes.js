@@ -122,7 +122,8 @@ router.get('/dashboard/stats', async (req, res) => {
  * @desc    Update user role
  * @access  Private (Admin only)
  */
-router.patch('/users/:userId/role', async (req, res) => {
+router.patch('/users/:userId/role', logActivity('UPDATE_USER_ROLE', 'USER'),
+ async (req, res) => {
   try {
     const { userId } = req.params;
     const { role } = req.body;
@@ -169,7 +170,8 @@ router.patch('/users/:userId/role', async (req, res) => {
  * @desc    Reactivate user account
  * @access  Private (Admin only)
  */
-router.post('/users/:userId/reactivate', async (req, res) => {
+router.post('/users/:userId/reactivate',  logActivity('REACTIVATE_ACCOUNT', 'USER'),
+ async (req, res) => {
   try {
     const { userId } = req.params;
     

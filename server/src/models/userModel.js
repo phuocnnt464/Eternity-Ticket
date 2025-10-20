@@ -58,6 +58,7 @@ class UserModel {
         const membershipQuery = `
           INSERT INTO memberships (user_id, tier, is_active)
           VALUES ($1, 'basic', true)
+          ON CONFLICT (user_id) DO NOTHING
         `;
         await client.query(membershipQuery, [userResult.rows[0].id]);
       }
@@ -103,6 +104,20 @@ class UserModel {
     } catch (error) {
       throw new Error(`Error finding user by email: ${error.message}`);
     }
+  }
+
+  static async findByEmailAnyRole(email) {
+    const query = `
+      SELECT id, email, role, is_active
+      FROM users
+      WHERE email = $1  -- Không filter by is_active để check toàn bộ
+    `;
+    try {
+    const result = await pool.query(query, [email.toLowerCase().trim()]);
+    return result.rows[0] || null;
+  } catch (error) {
+    throw new Error(`Error finding user by email: ${error.message}`);
+  }
   }
 
   /**
