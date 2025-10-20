@@ -232,7 +232,7 @@ const generateSlug = (text) => {
   if (!text) return '';
 
   return text
-    .toString
+    .toString()
     .toLowerCase()
     .trim()
     .replace(/[áàảãạăắằẳẵặâấầẩẫậ]/g, 'a')

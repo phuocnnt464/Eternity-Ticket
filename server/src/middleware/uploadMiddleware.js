@@ -28,11 +28,6 @@ const ensureDirectoryExists = (dir) => {
   }
 };
 
-// Create all directories
-// Object.values(UPLOAD_DIRS.events).forEach(ensureDirectoryExists);
-// Object.values(UPLOAD_DIRS.users).forEach(ensureDirectoryExists);
-// ensureDirectoryExists(UPLOAD_DIRS.temp);
-
 // Create all upload directories on startup
 const initializeUploadDirectories = () => {
   try {

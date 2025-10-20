@@ -7,6 +7,7 @@ const {
   authorizeRoles 
 } = require('../middleware/authMiddleware');
 const { validatePagination } = require('../middleware/validationMiddleware');
+const { logActivity } = require('../middleware/activityLogger');
 
 // All admin routes require authentication and admin role
 router.use(authenticateToken);
