@@ -9,6 +9,10 @@ const {
 const { validatePagination } = require('../middleware/validationMiddleware');
 const { logActivity } = require('../middleware/activityLogger');
 
+const UserModel = require('../models/userModel');
+const { createResponse } = require('../utils/helpers');
+const pool = require('../config/database');
+
 // All admin routes require authentication and admin role
 router.use(authenticateToken);
 router.use(authorizeRoles('admin', 'sub_admin'));
@@ -39,9 +43,6 @@ router.get('/users/search', async (req, res) => {
       });
     }
 
-    const UserModel = require('../models/userModel');
-    const { createResponse } = require('../utils/helpers');
-    
     const users = await UserModel.searchUsers(q, parseInt(limit));
     
     res.json(createResponse(
@@ -52,7 +53,6 @@ router.get('/users/search', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Search users error:', error);
-    const { createResponse } = require('../utils/helpers');
     res.status(500).json(createResponse(false, 'Search failed'));
   }
 });
@@ -64,10 +64,6 @@ router.get('/users/search', async (req, res) => {
  */
 router.get('/dashboard/stats', async (req, res) => {
   try {
-    const UserModel = require('../models/userModel');
-    const { createResponse } = require('../utils/helpers');
-    const pool = require('../config/database');
-    
     // Get user counts by role
     const userCounts = await UserModel.getUserCountByRole();
     
@@ -113,7 +109,6 @@ router.get('/dashboard/stats', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Dashboard stats error:', error);
-    const { createResponse } = require('../utils/helpers');
     res.status(500).json(createResponse(false, 'Failed to retrieve statistics'));
   }
 });
@@ -135,9 +130,6 @@ router.patch('/users/:userId/role', logActivity('UPDATE_USER_ROLE', 'USER'),
         error: { message: 'Role is required' }
       });
     }
-
-    const UserModel = require('../models/userModel');
-    const { createResponse } = require('../utils/helpers');
     
     const updatedUser = await UserModel.updateUserRole(userId, role);
     
@@ -149,8 +141,7 @@ router.patch('/users/:userId/role', logActivity('UPDATE_USER_ROLE', 'USER'),
     
   } catch (error) {
     console.error('❌ Update user role error:', error);
-    const { createResponse } = require('../utils/helpers');
-    
+
     let statusCode = 500;
     let message = 'Failed to update user role';
     
@@ -176,9 +167,6 @@ router.post('/users/:userId/reactivate',  logActivity('REACTIVATE_ACCOUNT', 'USE
   try {
     const { userId } = req.params;
     
-    const UserModel = require('../models/userModel');
-    const { createResponse } = require('../utils/helpers');
-    
     const success = await UserModel.reactivateAccount(userId);
     
     if (!success) {
@@ -194,7 +182,6 @@ router.post('/users/:userId/reactivate',  logActivity('REACTIVATE_ACCOUNT', 'USE
     
   } catch (error) {
     console.error('❌ Reactivate account error:', error);
-    const { createResponse } = require('../utils/helpers');
     res.status(500).json(createResponse(false, 'Failed to reactivate account'));
   }
 });
