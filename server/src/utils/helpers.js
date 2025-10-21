@@ -253,7 +253,7 @@ const generateSlug = (text) => {
  * @param {Date|String} date - Date to format
  * @param {String} locale - Locale (default: 'vi-VN')
  * @returns {String} Formatted date
- */
+ */ 
 const formatDate = (date, locale = 'vi-VN') => {
   return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
