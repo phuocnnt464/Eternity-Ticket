@@ -2,7 +2,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const UserController = require('../controllers/userController');
-const { authenticateToken, requireEmailVerification, authorizeOwnerOrAdmin, authorizeRoles } = require('../middleware/authMiddleware');
+const { authenticateToken, authorizeOwnerOrAdmin, authorizeRoles } = require('../middleware/authMiddleware');
 const { validate, validateUUIDParam, validatePagination } = require('../middleware/validationMiddleware');
 // const {
 //   updateProfileSchema,

@@ -141,7 +141,11 @@ class EventModel {
 
       // Parse JSON fields
       if (event.additional_info && typeof event.additional_info === 'string') {
-        event.additional_info = JSON.parse(event.additional_info);
+        try {
+          event.additional_info = JSON.parse(event.additional_info);
+        } catch (error) {
+          console.warn('Failed to parse additional_info: ', error);
+        }
       }
       if (event.payment_account_info && typeof event.payment_account_info === 'string') {
         event.payment_account_info = JSON.parse(event.payment_account_info);
@@ -182,7 +186,11 @@ class EventModel {
       let paramCount = 1;
 
       // Only add status filter if explicitly provided
-      if (status) {
+      if (!status && !organizer_id) {
+        // Public listing - only show active events
+        whereConditions.push(`e.status = 'active'`);
+      } else if (status) {
+        // Explicit status filter
         whereConditions.push(`e.status = $${paramCount}`);
         queryParams.push(status);
         paramCount++;
@@ -217,7 +225,7 @@ class EventModel {
         whereConditions.push(`(
           LOWER(e.title) LIKE LOWER($${paramCount}) OR 
           LOWER(e.description) LIKE LOWER($${paramCount + 1}) OR
-          LOWER(e.organizer_name) LIKE LOWER(${paramCount + 2})
+          LOWER(e.organizer_name) LIKE LOWER($${paramCount + 2})
         )`);
         queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
         paramCount += 3;
@@ -550,6 +558,333 @@ static async update(eventId, updateData, userId) {
     } catch (error) {
       throw new Error(`Failed to fetch categories: ${error.message}`);
     }
+  }
+
+  /**
+  * Submit event for admin approval
+  * Change status from 'draft' to 'pending'
+  */
+ static async submitForApproval(eventId, userId) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Check permission
+      const permissionQuery = `
+        SELECT role FROM event_organizer_members
+        WHERE event_id = $1 AND user_id = $2 AND is_active = true
+        AND role = 'owner'
+      `;
+      const permissionResult = await client.query(permissionQuery, [eventId, userId]);
+    
+      if (permissionResult.rows.length === 0) {
+        throw new Error('Only event owner can submit for approval');
+      }
+
+      // Check event has required data
+      const eventQuery = `
+        SELECT 
+          title, venue_name, venue_address,
+          (SELECT COUNT(*) FROM event_sessions WHERE event_id = $1) as session_count,
+          (SELECT COUNT(*) FROM ticket_types WHERE event_id = $1) as ticket_count
+        FROM events WHERE id = $1
+      `;
+      const eventResult = await client.query(eventQuery, [eventId]);
+      const event = eventResult.rows[0];
+
+      // Validate before submit
+      if (!event.title || !event.venue_name || !event.venue_address) {
+        throw new Error('Event must have title, venue name, and address');
+      }
+      if (parseInt(event.session_count) === 0) {
+        throw new Error('Event must have at least one session');
+      }
+      if (parseInt(event.ticket_count) === 0) {
+        throw new Error('Event must have at least one ticket type');
+      }
+
+      // Update status to pending
+      const updateQuery = `
+        UPDATE events
+        SET status = 'pending', updated_at = NOW()
+        WHERE id = $1 AND status = 'draft'
+        RETURNING *
+      `;
+      const result = await client.query(updateQuery, [eventId]);
+
+      if (result.rows.length === 0) {
+        throw new Error('Event not found or already submitted');
+      }
+
+      await client.query('COMMIT');
+    
+      console.log(`📤 Event submitted for approval: ${event.title}`);
+      return result.rows[0];
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+  
+  /**
+   * Approve event (Admin only)
+   */
+  static async approve(eventId, adminId) {
+    const query = `
+      UPDATE events
+      SET status = 'approved',
+          approved_by = $1,
+          approved_at = NOW(),
+          updated_at = NOW()
+      WHERE id = $2 AND status = 'pending'
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [adminId, eventId]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Event not found or not pending approval');
+    }
+    
+    console.log(`✅ Event approved: ${result.rows[0].title}`);
+    return result.rows[0];
+  }
+
+  /**
+   * Reject event (Admin only)
+   */
+  static async reject(eventId, adminId, reason) {
+    if (!reason || reason.trim().length === 0) {
+      throw new Error('Rejection reason is required');
+    }
+
+    const query = `
+      UPDATE events
+      SET status = 'rejected',
+          approved_by = $1,
+          approved_at = NOW(),
+          rejection_reason = $2,
+          updated_at = NOW()
+      WHERE id = $3 AND status = 'pending'
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [adminId, reason, eventId]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Event not found or not pending approval');
+    }
+    
+    console.log(`❌ Event rejected: ${result.rows[0].title}`);
+    return result.rows[0];
+  }
+
+  /**
+   * Get events by organizer
+   */
+  static async findByOrganizer(organizerId, filters = {}, pagination = { page: 1, limit: 10 }) {
+    const { status } = filters;
+    const { page, limit } = pagination;
+    const offset = (page - 1) * limit;
+
+    let whereConditions = ['e.organizer_id = $1'];
+    let queryParams = [organizerId];
+    let paramCount = 2;
+
+    if (status) {
+      whereConditions.push(`e.status = $${paramCount}`);
+      queryParams.push(status);
+      paramCount++;
+    }
+
+    const whereClause = whereConditions.join(' AND ');
+
+    const query = `
+      SELECT 
+        e.id, e.title, e.slug, e.status, e.privacy_type,
+        e.created_at, e.updated_at,
+        e.cover_image, e.thumbnail_image, 
+        e.venue_name, e.venue_city,
+        c.name as category_name,
+        (SELECT COUNT(*) FROM event_sessions WHERE event_id = e.id) as session_count,
+        (SELECT SUM(tt.sold_quantity) FROM ticket_types tt WHERE tt.event_id = e.id) as tickets_sold,
+        (SELECT SUM(tt.total_quantity) FROM ticket_types tt WHERE tt.event_id = e.id) as total_tickets,
+        (SELECT COALESCE(SUM(o.total_amount), 0) FROM orders o 
+        WHERE o.event_id = e.id AND o.status = 'paid') as revenue
+      FROM events e
+      LEFT JOIN categories c ON e.category_id = c.id
+      WHERE ${whereClause}
+      ORDER BY e.created_at DESC
+      LIMIT $${paramCount} OFFSET $${paramCount + 1}
+    `;
+
+    const countQuery = `
+      SELECT COUNT(*) as total FROM events e WHERE ${whereClause}
+    `;
+
+    queryParams.push(limit, offset);
+    const countParams = queryParams.slice(0, -2);
+
+    const [eventsResult, countResult] = await Promise.all([
+      pool.query(query, queryParams),
+      pool.query(countQuery, countParams)
+    ]);
+
+    const totalCount = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return {
+      events: eventsResult.rows.map(e => ({
+        ...e,
+        session_count: parseInt(e.session_count) || 0,
+        tickets_sold: parseInt(e.tickets_sold) || 0,
+        total_tickets: parseInt(e.total_tickets) || 0,
+        revenue: parseFloat(e.revenue) || 0
+      })),
+      pagination: {
+        current_page: page,
+        total_pages: totalPages,
+        total_count: totalCount,
+        per_page: limit,
+        has_next: page < totalPages,
+        has_previous: page > 1
+      }
+    };
+  }
+
+  /**
+   * Get pending events (Admin only)
+   */
+  static async findPendingApproval(pagination = { page: 1, limit: 20 }) {
+    const { page, limit } = pagination;
+    const offset = (page - 1) * limit;
+
+    const query = `
+      SELECT 
+        e.id, e.title, e.slug, e.description, e.short_description,
+        e.created_at, e.updated_at,
+        e.cover_image, e.venue_name, e.venue_city,
+        c.name as category_name,
+        u.first_name || ' ' || u.last_name as organizer_name,
+        u.email as organizer_email,
+        (SELECT COUNT(*) FROM event_sessions WHERE event_id = e.id) as session_count,
+        (SELECT COUNT(*) FROM ticket_types WHERE event_id = e.id) as ticket_count
+      FROM events e
+      LEFT JOIN categories c ON e.category_id = c.id
+      LEFT JOIN users u ON e.organizer_id = u.id
+      WHERE e.status = 'pending'
+      ORDER BY e.created_at ASC
+      LIMIT $1 OFFSET $2
+    `;
+
+    const countQuery = `SELECT COUNT(*) as total FROM events WHERE status = 'pending'`;
+
+    const [eventsResult, countResult] = await Promise.all([
+      pool.query(query, [limit, offset]),
+      pool.query(countQuery)
+    ]);
+
+    const totalCount = parseInt(countResult.rows[0].total);
+
+    return {
+      events: eventsResult.rows.map(e => ({
+        ...e,
+        session_count: parseInt(e.session_count) || 0,
+        ticket_count: parseInt(e.ticket_count) || 0
+      })),
+      pagination: {
+        current_page: page,
+        total_pages: Math.ceil(totalCount / limit),
+        total_count: totalCount,
+        per_page: limit
+      }
+    };
+  }
+
+  /**
+   * Check user permission
+   */
+  static async checkPermission(eventId, userId, requiredRoles = ['owner', 'manager']) {
+    const query = `
+      SELECT role FROM event_organizer_members
+      WHERE event_id = $1 AND user_id = $2 AND is_active = true
+    `;
+    
+    const result = await pool.query(query, [eventId, userId]);
+    
+    if (result.rows.length === 0) {
+      return { hasPermission: false, role: null };
+    }
+    
+    const userRole = result.rows[0].role;
+    return { 
+      hasPermission: requiredRoles.includes(userRole), 
+      role: userRole 
+    };
+  }
+
+  /**
+   * Get event statistics
+   */
+  static async getStatistics(eventId) {
+    const query = `
+      SELECT 
+        e.title, e.status, e.view_count,
+        (SELECT SUM(tt.total_quantity) FROM ticket_types tt WHERE tt.event_id = e.id) as total_tickets,
+        (SELECT SUM(tt.sold_quantity) FROM ticket_types tt WHERE tt.event_id = e.id) as sold_tickets,
+        COUNT(DISTINCT o.id) FILTER (WHERE o.status = 'paid') as paid_orders,
+        COUNT(DISTINCT o.id) FILTER (WHERE o.status = 'pending') as pending_orders,
+        COALESCE(SUM(o.total_amount) FILTER (WHERE o.status = 'paid'), 0) as total_revenue,
+        COALESCE(AVG(o.total_amount) FILTER (WHERE o.status = 'paid'), 0) as avg_order_value,
+        COUNT(DISTINCT t.id) FILTER (WHERE t.is_checked_in) as checked_in_count,
+        COUNT(DISTINCT o.user_id) FILTER (WHERE o.status = 'paid') as unique_customers
+      FROM events e
+      LEFT JOIN orders o ON e.id = o.event_id
+      LEFT JOIN tickets t ON o.id = t.order_id
+      WHERE e.id = $1
+      GROUP BY e.id
+    `;
+    
+    const result = await pool.query(query, [eventId]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Event not found');
+    }
+    
+    const stats = result.rows[0];
+    const totalTickets = parseInt(stats.total_tickets) || 0;
+    const soldTickets = parseInt(stats.sold_tickets) || 0;
+    const checkedIn = parseInt(stats.checked_in_count) || 0;
+    
+    return {
+      title: stats.title,
+      status: stats.status,
+      view_count: parseInt(stats.view_count) || 0,
+      tickets: {
+        total: totalTickets,
+        sold: soldTickets,
+        available: totalTickets - soldTickets,
+        sold_percentage: totalTickets > 0 ? Math.round((soldTickets / totalTickets) * 100) : 0
+      },
+      orders: {
+        paid: parseInt(stats.paid_orders) || 0,
+        pending: parseInt(stats.pending_orders) || 0
+      },
+      revenue: {
+        total: parseFloat(stats.total_revenue) || 0,
+        average_order: parseFloat(stats.avg_order_value) || 0
+      },
+      checkin: {
+        checked_in: checkedIn,
+        percentage: soldTickets > 0 ? Math.round((checkedIn / soldTickets) * 100) : 0
+      },
+      customers: {
+        unique: parseInt(stats.unique_customers) || 0
+      }
+    };
   }
 }
 

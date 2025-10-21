@@ -7,7 +7,7 @@ const {
   authorizeRoles, 
   optionalAuth 
 } = require('../middleware/authMiddleware');
-const { validate } = require('../middleware/validationMiddleware');
+const { validate, validateUUIDParam } = require('../middleware/validationMiddleware');
 const {
   uploadEventImages,
   processEventImages
@@ -18,7 +18,10 @@ const {
   eventQuerySchema,
   searchQuerySchema,
   uuidParamSchema,
-  featuredEventsQuerySchema
+  featuredEventsQuerySchema,
+  rejectEventSchema,
+  myEventsQuerySchema,
+  slugParamSchema
 } = require('../validations/eventValidation');
 
 const router = express.Router();
@@ -29,8 +32,10 @@ const eventCreationLimiter = rateLimit({
   max: 5, // limit each IP to 5 event creations per hour
   message: {
     success: false,
-    message: 'Too many events created, please try again later.',
-    retry_after: '1 hour'
+    error: {
+      message: 'Too many events created, please try again later.',
+      retry_after: '1 hour'
+    }
   }
 });
 
@@ -39,7 +44,9 @@ const eventUpdateLimiter = rateLimit({
   max: 20, // limit each IP to 20 updates per 15 minutes
   message: {
     success: false,
-    message: 'Too many event updates, please try again later.'
+    error: {
+      message: 'Too many event updates, please try again later.'
+    }
   }
 });
 
@@ -60,7 +67,9 @@ router.get('/',
  * @desc    Get all event categories
  * @access  Public
  */
-router.get('/categories', EventController.getCategories);
+router.get('/categories', 
+  EventController.getCategories
+);
 
 /**
  * @route   GET /api/events/featured
@@ -83,14 +92,14 @@ router.get('/search',
 );
 
 /**
- * @route   GET /api/events/:id
- * @desc    Get single event by ID (with optional authentication for private events)
- * @access  Public/Private
+ * @route   GET /api/events/slug/:slug
+ * @desc    Get event by slug (SEO-friendly)
+ * @access  Public
  */
-router.get('/:id',
-  validate(uuidParamSchema, 'params'),
+router.get('/slug/:slug',
+  validate(slugParamSchema, 'params'),
   optionalAuth,
-  EventController.getEventById
+  EventController.getEventBySlug
 );
 
 // Protected routes (authentication required)
@@ -123,6 +132,17 @@ router.get('/my/events',
 );
 
 /**
+ * @route   GET /api/events/:id
+ * @desc    Get single event by ID (with optional authentication for private events)
+ * @access  Public/Private
+ */
+router.get('/:id',
+  validateUUIDParam('id'),
+  optionalAuth,
+  EventController.getEventById
+);
+
+/**
  * @route   PUT /api/events/:id
  * @desc    Update event (Event owner/manager only)
  * @access  Private (Event Owner/Manager)
@@ -131,11 +151,23 @@ router.put('/:id',
   eventUpdateLimiter,
   authenticateToken,
   authorizeRoles(['organizer']),
+  validateUUIDParam('id'),
   uploadEventImages,        
   processEventImages, 
-  validate(uuidParamSchema, 'params'),
   validate(updateEventSchema),
   EventController.updateEvent
+);
+
+/**
+ * @route   GET /api/events/:id/statistics
+ * @desc    Get event statistics for organizer dashboard
+ * @access  Private (Organizer - Owner/Manager)
+ */
+router.get('/:id/statistics',
+  authenticateToken,
+  authorizeRoles('organizer'),
+  validateUUIDParam('id'),
+  EventController.getEventStatistics
 );
 
 /**
@@ -146,7 +178,7 @@ router.put('/:id',
 router.delete('/:id',
   authenticateToken,
   authorizeRoles(['organizer']),
-  validate(uuidParamSchema, 'params'),
+  validateUUIDParam('id'),
   EventController.deleteEvent
 );
 
@@ -160,15 +192,7 @@ router.delete('/:id',
 router.get('/admin/pending',
   authenticateToken,
   authorizeRoles(['admin', 'sub_admin']),
-  (req, res) => {
-    // Placeholder for admin functionality
-    const { createResponse } = require('../utils/helpers');
-    res.json(createResponse(
-      true,
-      'Admin functionality will be implemented in future updates',
-      { pending_events: [] }
-    ));
-  }
+  EventController.getPendingEvents
 );
 
 /**
@@ -179,15 +203,8 @@ router.get('/admin/pending',
 router.put('/:id/approve',
   authenticateToken,
   authorizeRoles(['admin', 'sub_admin']),
-  validate(uuidParamSchema, 'params'),
-  (req, res) => {
-    // Placeholder for admin event approval
-    const { createResponse } = require('../utils/helpers');
-    res.json(createResponse(
-      true,
-      'Event approval functionality will be implemented in future updates'
-    ));
-  }
+  validateUUIDParam('id'),
+  EventController.approveEvent
 );
 
 /**
@@ -198,15 +215,9 @@ router.put('/:id/approve',
 router.put('/:id/reject',
   authenticateToken,
   authorizeRoles(['admin', 'sub_admin']),
-  validate(uuidParamSchema, 'params'),
-  (req, res) => {
-    // Placeholder for admin event rejection
-    const { createResponse } = require('../utils/helpers');
-    res.json(createResponse(
-      true,
-      'Event rejection functionality will be implemented in future updates'
-    ));
-  }
+  validateUUIDParam('id'),
+  validate(rejectEventSchema),
+  EventController.rejectEvent
 );
 
 /**
@@ -226,15 +237,17 @@ router.get('/debug/my-events',
       
       // Check events created by this organizer
       const eventsQuery = `
-        SELECT id, title, status, organizer_id, created_at 
-        FROM events 
+        SELECT id, title, status, organizer_id, created_at ,
+          (SELECT COUNT(*) FROM event_sessions WHERE event_id = e.id) as session_count,
+          (SELECT COUNT(*) FROM ticket_types WHERE event_id = e.id) as ticket_count
+        FROM events e
         WHERE organizer_id = $1 
         ORDER BY created_at DESC
       `;
       
       const eventsResult = await pool.query(eventsQuery, [organizerId]);
       
-      console.log(`📊 Found ${eventsResult.rows.length} events for organizer`);
+      console.log(`📊 Found ${eventsResult.rows.length} events`);
       
       const { createResponse } = require('../utils/helpers');
       res.json(createResponse(true, 'Debug info for my events', {
@@ -250,5 +263,44 @@ router.get('/debug/my-events',
     }
   }
 );
+
+/**
+ * @route   GET /api/events/health
+ * @desc    Event routes health check
+ * @access  Public
+ */
+router.get('/health', (req, res) => {
+  const { createResponse } = require('../utils/helpers');
+  res.json(createResponse(
+    true,
+    'Event routes are working',
+    {
+      timestamp: new Date().toISOString(),
+      endpoints: {
+        public: [
+          'GET /api/events',
+          'GET /api/events/categories',
+          'GET /api/events/featured',
+          'GET /api/events/search',
+          'GET /api/events/slug/:slug',
+          'GET /api/events/:id'
+        ],
+        organizer: [
+          'POST /api/events',
+          'GET /api/events/my/events',
+          'PUT /api/events/:id',
+          'POST /api/events/:id/submit',
+          'GET /api/events/:id/statistics',
+          'DELETE /api/events/:id'
+        ],
+        admin: [
+          'GET /api/events/admin/pending',
+          'POST /api/events/:id/approve',
+          'POST /api/events/:id/reject'
+        ]
+      }
+    }
+  ));
+});
 
 module.exports = router;

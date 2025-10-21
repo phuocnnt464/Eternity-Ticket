@@ -83,9 +83,13 @@ class EventController {
 
       // Check privacy settings
       if (event.privacy_type === 'private' && !event.user_role_in_event) {
-        return res.status(403).json(
-          createResponse(false, 'This is a private event. Access denied.')
-        );
+        const isAdmin = ['admin', 'sub_admin'].includes(req.user?.role);
+
+        if (!isAdmin) {
+            return res.status(403).json(
+            createResponse(false, 'This is a private event. Access denied.')
+          );
+        }
       }
 
       // Increment view count (don't await to avoid slowing response)
@@ -118,6 +122,10 @@ class EventController {
    */
   static async createEvent(req, res) {
     try {
+      console.log("📥 req.body in createEvent:", req.body);
+      console.log('📂 req.files:', req.files);
+      console.log('🖼️ req.processedImages:', req.processedImages);
+
       const organizerId = req.user.id;
 
       const eventData = { 
@@ -166,10 +174,6 @@ class EventController {
       const response = createResponse(false, message);
       res.status(statusCode).json(response);
     }
-    console.log("📥 req.body in createEvent:", req.body);
-    console.log('📂 req.files:', req.files);
-      console.log('🖼️ req.processedImages:', req.processedImages);
-      console.log('📝 req.body:', req.body);
   }
 
   /**
@@ -511,6 +515,270 @@ class EventController {
       );
       
       res.status(500).json(response);
+    }
+  }
+
+  /**
+   * Submit event for approval
+   * POST /api/events/:id/submit
+   * @access Private (Event Owner)
+   */
+  static async submitEventForApproval(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      console.log(`📤 Submitting event ${id} for approval`);
+
+      const event = await EventModel.submitForApproval(id, userId);
+
+      res.json(
+        createResponse(
+          true,
+          'Event submitted successfully. It will be reviewed by administrators.',
+          { event }
+        )
+      );
+
+    } catch (error) {
+      console.error('❌ Submit for approval error:', error.message);
+
+      let statusCode = 500;
+      let message = 'Failed to submit event for approval';
+
+      if (error.message.includes('Only event owner')) {
+        statusCode = 403;
+        message = error.message;
+      } else if (error.message.includes('validation failed') || 
+                error.message.includes('Cannot submit')) {
+        statusCode = 400;
+        message = error.message;
+      } else if (error.message === 'Event not found') {
+        statusCode = 404;
+        message = error.message;
+      }
+
+      res.status(statusCode).json(createResponse(false, message));
+    }
+  }
+
+  /**
+   * Get event statistics
+   * GET /api/events/:id/statistics
+   * @access Private (Event Owner/Manager)
+   */
+  static async getEventStatistics(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+      const isAdmin = ['admin', 'sub_admin'].includes(req.user.role);
+
+      if (!isAdmin) {
+        const permission = await EventModel.checkPermission(
+          id, 
+          userId, 
+          ['owner', 'manager']
+        );
+
+        if (!permission.hasPermission) {
+          return res.status(403).json(
+            createResponse(false, 'Access denied')
+          );
+        }
+      }
+
+      const stats = await EventModel.getStatistics(id);
+
+      res.json(
+        createResponse(
+          true,
+          'Event statistics retrieved successfully',
+          { statistics: stats }
+        )
+      );
+
+    } catch (error) {
+      console.error('❌ Get event statistics error:', error.message);
+
+      let statusCode = 500;
+      let message = 'Failed to retrieve event statistics';
+
+      if (error.message === 'Event not found') {
+        statusCode = 404;
+        message = error.message;
+      }
+
+      res.status(statusCode).json(createResponse(false, message));
+    }
+  }
+
+  /**
+   * Get events pending approval (Admin only)
+   * GET /api/admin/events/pending
+   * @access Private (Admin only)
+   */
+  static async getPendingEvents(req, res) {
+    try {
+      const { page = 1, limit = 20 } = req.query;
+
+      console.log(`📋 Admin getting pending events`);
+
+      const result = await EventModel.findPendingApproval({
+        page: parseInt(page),
+        limit: parseInt(limit)
+      });
+
+      res.json(
+        createResponse(
+          true,
+          `Found ${result.pagination.total_count} events pending approval`,
+          result
+        )
+      );
+
+    } catch (error) {
+      console.error('❌ Get pending events error:', error.message);
+      res.status(500).json(
+        createResponse(false, 'Failed to retrieve pending events')
+      );
+    }
+  }
+
+  /**
+   * Approve event (Admin only)
+   * POST /api/admin/events/:id/approve
+   * @access Private (Admin only)
+   */
+  static async approveEvent(req, res) {
+    try {
+      const { id } = req.params;
+      const adminId = req.user.id;
+
+      console.log(`✅ Admin ${adminId} approving event ${id}`);
+
+      const event = await EventModel.approve(id, adminId);
+
+      // TODO: Send notification to organizer
+      // await notificationService.sendEventApproved(event);
+
+      res.json(
+        createResponse(
+          true,
+          'Event approved successfully',
+          { event }
+        )
+      );
+
+    } catch (error) {
+      console.error('❌ Approve event error:', error.message);
+
+      let statusCode = 500;
+      let message = 'Failed to approve event';
+
+      if (error.message.includes('not pending approval')) {
+        statusCode = 400;
+        message = error.message;
+      } else if (error.message === 'Event not found') {
+        statusCode = 404;
+        message = error.message;
+      }
+
+      res.status(statusCode).json(createResponse(false, message));
+    }
+  }
+
+  /**
+   * Reject event (Admin only)
+   * POST /api/admin/events/:id/reject
+   * @access Private (Admin only)
+   */
+  static async rejectEvent(req, res) {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const adminId = req.user.id;
+
+      if (!reason || reason.trim().length === 0) {
+        return res.status(400).json(
+          createResponse(false, 'Rejection reason is required')
+        );
+      }
+
+      console.log(`❌ Admin ${adminId} rejecting event ${id}`);
+
+      const event = await EventModel.reject(id, adminId, reason);
+
+      // TODO: Send notification to organizer
+      // await notificationService.sendEventRejected(event, reason);
+
+      res.json(
+        createResponse(
+          true,
+          'Event rejected successfully',
+          { event }
+        )
+      );
+
+    } catch (error) {
+      console.error('❌ Reject event error:', error.message);
+
+      let statusCode = 500;
+      let message = 'Failed to reject event';
+
+      if (error.message.includes('Rejection reason')) {
+        statusCode = 400;
+        message = error.message;
+      } else if (error.message.includes('not pending approval')) {
+        statusCode = 400;
+        message = error.message;
+      } else if (error.message === 'Event not found') {
+        statusCode = 404;
+        message = error.message;
+      }
+
+      res.status(statusCode).json(createResponse(false, message));
+    }
+  }
+
+  /**
+   * Get event by slug
+   * GET /api/events/slug/:slug
+   * @access Public
+   */
+  static async getEventBySlug(req, res) {
+    try {
+      const { slug } = req.params;
+      const userId = req.user?.id;
+
+      console.log(`🎉 Getting event by slug: ${slug}`);
+
+      const pool = require('../config/database');
+      
+      const query = `
+        SELECT id FROM events 
+        WHERE slug = $1 
+        AND status IN ('approved', 'active')
+        AND privacy_type = 'public'
+      `;
+      
+      const result = await pool.query(query, [slug]);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json(
+          createResponse(false, 'Event not found')
+        );
+      }
+
+      const eventId = result.rows[0].id;
+      req.params.id = eventId;
+      
+      return EventController.getEventById(req, res);
+
+    } catch (error) {
+      console.error('❌ Get event by slug error:', error.message);
+      res.status(500).json(
+        createResponse(false, 'Failed to retrieve event')
+      );
     }
   }
 }

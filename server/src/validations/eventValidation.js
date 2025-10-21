@@ -100,7 +100,7 @@ const createEventSchema = Joi.object({
     }),
 
   organizer_contact_phone: Joi.string()
-    .pattern(/^[0-9+\-\s()]{10,15}$/)
+    .pattern(/^[0-9+\-\s()]{10,20}$/)
     .optional()
     .allow('')
     .messages({
@@ -372,11 +372,96 @@ const featuredEventsQuerySchema = Joi.object({
     })
 });
 
+/**
+ * Reject event validation (Admin only)
+ */
+const rejectEventSchema = Joi.object({
+  reason: Joi.string()
+    .min(10)
+    .max(1000)
+    .required()
+    .messages({
+      'string.min': 'Rejection reason must be at least 10 characters',
+      'string.max': 'Rejection reason cannot exceed 1000 characters',
+      'any.required': 'Rejection reason is required'
+    })
+});
+
+/**
+ * My events query validation (Organizer)
+ */
+const myEventsQuerySchema = Joi.object({
+  page: Joi.number()
+    .integer()
+    .min(1)
+    .default(1)
+    .messages({
+      'number.integer': 'Page must be an integer',
+      'number.min': 'Page must be at least 1'
+    }),
+
+  limit: Joi.number()
+    .integer()
+    .min(1)
+    .max(50)
+    .default(10)
+    .messages({
+      'number.integer': 'Limit must be an integer',
+      'number.min': 'Limit must be at least 1',
+      'number.max': 'Limit cannot exceed 50'
+    }),
+
+  status: Joi.string()
+    .valid('draft', 'pending', 'approved', 'rejected', 'active', 'completed', 'cancelled', 'ALL')
+    .optional()
+    .messages({
+      'any.only': 'Invalid status value'
+    })
+});
+
+/**
+ * Event slug parameter validation
+ */
+const slugParamSchema = Joi.object({
+  slug: Joi.string()
+    .min(3)
+    .max(300)
+    .pattern(/^[a-z0-9-]+$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Invalid slug format',
+      'any.required': 'Event slug is required'
+    })
+});
+
+/**
+ * Pending events query validation (Admin)
+ */
+const pendingEventsQuerySchema = Joi.object({
+  page: Joi.number()
+    .integer()
+    .min(1)
+    .default(1),
+
+  limit: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .default(20)
+    .messages({
+      'number.max': 'Limit cannot exceed 100'
+    })
+});
+
 module.exports = {
   createEventSchema,
   updateEventSchema,
   eventQuerySchema,
   searchQuerySchema,
   uuidParamSchema,
-  featuredEventsQuerySchema
+  featuredEventsQuerySchema,
+  rejectEventSchema,
+  myEventsQuerySchema,
+  slugParamSchema,
+  pendingEventsQuerySchema
 };
