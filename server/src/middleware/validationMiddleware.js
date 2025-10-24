@@ -82,140 +82,6 @@ const validate = (schema, source = 'body') => {
 };
 
 /**
- * Custom validation middleware for specific use cases
- */
-// const customValidations = {
-//   /**
-//    * Validate UUID parameters
-//    */
-//   validateUUID: (paramName = 'id') => {
-//     return (req, res, next) => {
-//       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-//       const paramValue = req.params[paramName];
-
-//       if (!paramValue) {
-//         return res.status(400).json(
-//           createResponse(false, `${paramName} parameter is required`)
-//         );
-//       }
-
-//       if (!uuidRegex.test(paramValue)) {
-//         return res.status(400).json(
-//           createResponse(false, `Invalid ${paramName} format. Expected UUID format.`)
-//         );
-//       }
-
-//       next();
-//     };
-//   },
-
-//   /**
-//    * Validate pagination parameters
-//    */
-//   validatePagination: () => {
-//     return (req, res, next) => {
-//       const page = parseInt(req.query.page) || 1;
-//       const limit = parseInt(req.query.limit) || 10;
-//       const maxLimit = 100;
-
-//       // Validate page
-//       if (page < 1) {
-//         return res.status(400).json(
-//           createResponse(false, 'Page number must be greater than 0')
-//         );
-//       }
-
-//       // Validate limit
-//       if (limit < 1) {
-//         return res.status(400).json(
-//           createResponse(false, 'Limit must be greater than 0')
-//         );
-//       }
-
-//       if (limit > maxLimit) {
-//         return res.status(400).json(
-//           createResponse(false, `Limit cannot exceed ${maxLimit}`)
-//         );
-//       }
-
-//       // Add validated pagination to request
-//       req.pagination = {
-//         page,
-//         limit,
-//         offset: (page - 1) * limit
-//       };
-
-//       next();
-//     };
-//   },
-
-//   /**
-//    * Validate file upload
-//    */
-//   validateFileUpload: (allowedTypes = ['image/jpeg', 'image/png'], maxSize = 2 * 1024 * 1024) => {
-//     return (req, res, next) => {
-//       if (!req.file && !req.files) {
-//         return next(); // No file uploaded, continue
-//       }
-
-//       const files = req.files || [req.file];
-      
-//       for (const file of files) {
-//         // Check file type
-//         if (!allowedTypes.includes(file.mimetype)) {
-//           return res.status(400).json(
-//             createResponse(false, `File type ${file.mimetype} is not allowed. Allowed types: ${allowedTypes.join(', ')}`)
-//           );
-//         }
-
-//         // Check file size
-//         if (file.size > maxSize) {
-//           return res.status(400).json(
-//             createResponse(false, `File size exceeds limit. Maximum size: ${maxSize / (1024 * 1024)}MB`)
-//           );
-//         }
-//       }
-
-//       next();
-//     };
-//   },
-
-//   /**
-//    * Sanitize HTML input to prevent XSS
-//    */
-//   sanitizeInput: (fields = []) => {
-//     return (req, res, next) => {
-//       const sanitizeString = (str) => {
-//         if (typeof str !== 'string') return str;
-        
-//         return str
-//           .replace(/[<>]/g, '') // Remove potential HTML tags
-//           .replace(/javascript:/gi, '') // Remove javascript: protocol
-//           .replace(/on\w+=/gi, '') // Remove event handlers
-//           .trim();
-//       };
-
-//       // Sanitize specified fields or all string fields in body
-//       const fieldsToSanitize = fields.length > 0 ? fields : Object.keys(req.body || {});
-      
-//       fieldsToSanitize.forEach(field => {
-//         if (req.body && req.body[field]) {
-//           if (Array.isArray(req.body[field])) {
-//             req.body[field] = req.body[field].map(item => 
-//               typeof item === 'string' ? sanitizeString(item) : item
-//             );
-//           } else {
-//             req.body[field] = sanitizeString(req.body[field]);
-//           }
-//         }
-//       });
-
-//       next();
-//     };
-//   }
-// };
-
-/**
  * Validate multiple schemas for different sources
  * @param {Object} schemas - Object with schemas for body, params, query
  * @example
@@ -617,6 +483,18 @@ const sanitizeInput = (fields = []) => {
 
     next();
   };
+};
+
+const sanitizeHTML = (input) => {
+  if (typeof input !== 'string') return input;
+  
+  const sanitizeHtml = require('sanitize-html');
+  
+  return sanitizeHtml(input, {
+    allowedTags: [], // No HTML allowed
+    allowedAttributes: {},
+    disallowedTagsMode: 'recursiveEscape'
+  });
 };
 
 /**

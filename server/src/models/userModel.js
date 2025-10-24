@@ -121,6 +121,24 @@ class UserModel {
   }
 
   /**
+   * Check if email exists
+   * @param {String} email - Email to check
+   * @returns {Boolean} Email exists
+   */
+  static async emailExists(email) {
+    const query = `
+      SELECT EXISTS(SELECT 1 FROM users WHERE email = $1) as exists
+    `;
+
+    try {
+      const result = await pool.query(query, [email.toLowerCase().trim()]);
+      return result.rows[0].exists;
+    } catch (error) {
+      throw new Error(`Error checking email existence: ${error.message}`);
+    }
+  }
+
+  /**
    * Find user by ID
    * @param {String} id - User ID
    * @returns {Object|null} User data
@@ -774,24 +792,6 @@ class UserModel {
       return result.rows;
     } catch (error) {
       throw new Error(`Error getting user activity logs: ${error.message}`);
-    }
-  }
-
-  /**
-   * Check if email exists
-   * @param {String} email - Email to check
-   * @returns {Boolean} Email exists
-   */
-  static async emailExists(email) {
-    const query = `
-      SELECT EXISTS(SELECT 1 FROM users WHERE email = $1) as exists
-    `;
-
-    try {
-      const result = await pool.query(query, [email.toLowerCase().trim()]);
-      return result.rows[0].exists;
-    } catch (error) {
-      throw new Error(`Error checking email existence: ${error.message}`);
     }
   }
 

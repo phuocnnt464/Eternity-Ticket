@@ -126,8 +126,42 @@ const logAdminAuditWithValues = (action, targetType) => {
   };
 };
 
+// Bổ sung vào activityLogger.js
+
+const logSensitiveDataChange = (action, entityType, oldValues, newValues) => {
+  return async (req, res, next) => {
+    const originalJson = res.json;
+    
+    res.json = function(data) {
+      if (data.success && req.user) {
+        const query = `
+          INSERT INTO admin_audit_logs 
+          (admin_id, action, target_type, target_id, old_values, new_values, description, ip_address)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `;
+        
+        pool.query(query, [
+          req.user.id,
+          action,
+          entityType,
+          req.params.userId || req.params.eventId,
+          JSON.stringify(oldValues),
+          JSON.stringify(newValues),
+          `${action} ${entityType}`,
+          req.ip
+        ]).catch(err => console.error(err));
+      }
+      
+      return originalJson.call(this, data);
+    };
+    
+    next();
+  };
+};
+
 module.exports = { 
   logActivity, 
   logAdminAudit,
-  logAdminAuditWithValues 
+  logAdminAuditWithValues,
+  logSensitiveDataChange
 };

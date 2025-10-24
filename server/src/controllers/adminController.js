@@ -450,22 +450,106 @@ class AdminController {
   }
 
   static async approveRefund(req, res) {
+    const client = await pool.connect();
     try {
       const { refundId } = req.params;
       const adminId = req.user.id;
       
       // TODO: Implement RefundModel.approve()
+      await client.query('BEGIN');
+
+      // 1. Get refund details
+      const refundQuery = await client.query(`
+        SELECT r.*, o.total_amount, o.user_id, o.payment_method,
+              u.email, u.first_name, e.title as event_title
+        FROM refund_requests r
+        JOIN orders o ON r.order_id = o.id
+        JOIN users u ON o.user_id = u.id
+        JOIN events e ON o.event_id = e.id
+        WHERE r.id = $1 AND r.status = 'pending'
+      `, [refundId]);
+
+      if (refundQuery.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json(
+          createResponse(false, 'Refund request not found or already processed')
+        );
+      }
+
+      const refund = refundQuery.rows[0];
+
+      // 2. Update refund status
+      await client.query(`
+        UPDATE refund_requests 
+        SET status = 'approved',
+            processed_by = $1,
+            processed_at = NOW(),
+            updated_at = NOW()
+        WHERE id = $2
+      `, [adminId, refundId]);
+
+
+      // 3. Update order status
+      await client.query(`
+        UPDATE orders 
+        SET status = 'refunded',
+            updated_at = NOW()
+        WHERE id = $1
+      `, [refund.order_id]);
+
+      // 4. Update tickets
+      await client.query(`
+        UPDATE tickets 
+        SET status = 'refunded',
+            updated_at = NOW()
+        WHERE order_id = $1
+      `, [refund.order_id]);
+
+      // 5. Restore ticket quantities
+      await client.query(`
+        UPDATE ticket_types tt
+        SET sold_quantity = sold_quantity - oi.quantity,
+            updated_at = NOW()
+        FROM order_items oi
+        WHERE tt.id = oi.ticket_type_id 
+          AND oi.order_id = $1
+      `, [refund.order_id]);
+
+      // 6. Create notification for user
+      await client.query(`
+        INSERT INTO notifications (user_id, type, title, message, data)
+        VALUES ($1, 'refund_approved', 'Refund Approved', $2, $3)
+      `, [
+        refund.user_id,
+        `Your refund request for ${refund.event_title} has been approved.`,
+        JSON.stringify({
+          order_id: refund.order_id,
+          refund_amount: refund.total_amount,
+          refund_id: refundId
+        })
+      ]);
+
+      await client.query('COMMIT');
+
+      // TODO: Send email notification
+      // await emailService.sendRefundApprovalEmail(refund);
+
       res.json(createResponse(
         true,
-        'Refund approved successfully (TODO: implement)'
+        'Refund approved successfully (TODO: implement)',
+        { refund_id: refundId }
       ));
     } catch (error) {
       console.error('❌ Approve refund error:', error);
       res.status(500).json(createResponse(false, 'Failed to approve refund'));
+    } finally {
+      client.release();
     }
   }
 
   static async rejectRefund(req, res) {
+    const client = await pool.connect();
+
     try {
       const { refundId } = req.params;
       const { reason } = req.body;
@@ -478,13 +562,65 @@ class AdminController {
       }
       
       // TODO: Implement RefundModel.reject()
+       // 1. Get refund details
+      const refundQuery = await client.query(`
+        SELECT r.*, o.user_id, u.email, u.first_name, e.title as event_title
+        FROM refund_requests r
+        JOIN orders o ON r.order_id = o.id
+        JOIN users u ON o.user_id = u.id
+        JOIN events e ON o.event_id = e.id
+        WHERE r.id = $1 AND r.status = 'pending'
+      `, [refundId]);
+
+      if (refundQuery.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json(
+          createResponse(false, 'Refund request not found or already processed')
+        );
+      }
+
+      const refund = refundQuery.rows[0];
+
+      // 2. Update refund status
+      await client.query(`
+        UPDATE refund_requests 
+        SET status = 'rejected',
+            processed_by = $1,
+            processed_at = NOW(),
+            rejection_reason = $2,
+            updated_at = NOW()
+        WHERE id = $3
+      `, [adminId, reason, refundId]);
+
+      // 3. Create notification
+      await client.query(`
+        INSERT INTO notifications (user_id, type, title, message, data)
+        VALUES ($1, 'refund_rejected', 'Refund Rejected', $2, $3)
+      `, [
+        refund.user_id,
+        `Your refund request for ${refund.event_title} has been rejected.`,
+        JSON.stringify({
+          order_id: refund.order_id,
+          refund_id: refundId,
+          rejection_reason: reason
+        })
+      ]);
+
+      await client.query('COMMIT');
+
+      // TODO: Send email notification
+      // await emailService.sendRefundRejectionEmail(refund, reason);
+
       res.json(createResponse(
         true,
-        'Refund rejected successfully (TODO: implement)'
+        'Refund rejected successfully (TODO: implement)',
+        { refund_id: refundId }
       ));
     } catch (error) {
       console.error('❌ Reject refund error:', error);
       res.status(500).json(createResponse(false, 'Failed to reject refund'));
+    } finally {
+      client.release();
     }
   }
 
