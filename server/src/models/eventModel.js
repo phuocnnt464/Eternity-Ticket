@@ -758,8 +758,8 @@ static async update(eventId, updateData, userId) {
   /**
    * Get pending events (Admin only)
    */
-  static async findPendingApproval(pagination = { page: 1, limit: 20 }) {
-    const { page, limit } = pagination;
+  static async findPendingApproval(pagination = {}) {
+    const { page = 1, limit = 20 } = pagination;
     const offset = (page - 1) * limit;
 
     const query = `

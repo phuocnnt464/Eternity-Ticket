@@ -77,30 +77,6 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-/**
- * Role-based authorization middleware
- * @param {Array|String} allowedRoles - Allowed roles for the endpoint
- */
-// const authorizeRoles = (allowedRoles) => {
-//   // Ensure allowedRoles is always an array
-//   const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-  
-//   return (req, res, next) => {
-//     if (!req.user) {
-//       return res.status(401).json(
-//         createResponse(false, 'Authentication required')
-//       );
-//     }
-
-//     if (!roles.includes(req.user.role)) {
-//       return res.status(403).json(
-//         createResponse(false, `Access denied. Required roles: ${roles.join(', ')}`)
-//       );
-//     }
-
-//     next();
-//   };
-// };
 const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -182,25 +158,6 @@ const requireEmailVerification = (req, res, next) => {
  * @example
  * router.get('/premium', authenticateToken, requireMembershipTier(['premium', 'advanced']), handler)
  */
-
-// const requireMembershipTier = (requiredTiers) => {
-//   const tiers = Array.isArray(requiredTiers) ? requiredTiers : [requiredTiers];
-//   return (req, res, next) => {
-//     if (!req.user) {
-//       return res.status(401).json(
-//         createResponse(false, 'Authentication required')
-//       );
-//     }
-
-//     if (!tiers.includes(req.user.membership_tier)) {
-//       return res.status(403).json(
-//         createResponse(false, `Premium membership required. Required tiers: ${tiers.join(', ')}`)
-//       );
-//     }
-
-//     next();
-//   };
-// };
 const requireMembershipTier = (...requiredTiers) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -426,6 +383,50 @@ const checkPurchaseCooldown = async (req, res, next) => {
   }
 };
 
+/**
+ * Event access rate limiter
+ * Prevent excessive event permission checks
+ */
+const eventAccessLimiter = async (req, res, next) => {
+  const key = `event_access:${req.user.id}`;
+  const pool = require('../config/database');
+  
+  try {
+    const result = await pool.query(`
+      SELECT COUNT(*) as count
+      FROM rate_limits
+      WHERE identifier = $1 
+        AND action = 'event_access_check'
+        AND window_start > NOW() - INTERVAL '1 minute'
+    `, [key]);
+
+    const count = parseInt(result.rows[0].count);
+
+    if (count > 30) { // Max 30 checks per minute
+      return res.status(429).json(
+        createResponse(
+          false,
+          'Too many event access checks. Please slow down.',
+          { retry_after: 60 }
+        )
+      );
+    }
+
+    // Log this check
+    await pool.query(`
+      INSERT INTO rate_limits (identifier, action, window_start, request_count)
+      VALUES ($1, 'event_access_check', NOW(), 1)
+      ON CONFLICT (identifier, action, window_start)
+      DO UPDATE SET request_count = rate_limits.request_count + 1
+    `, [key]);
+
+    next();
+  } catch (error) {
+    console.error('Event access limiter error:', error);
+    next(); // Don't block on error
+  }
+};
+
 
 module.exports = {
   authenticateToken,
@@ -437,5 +438,6 @@ module.exports = {
   // authenticatedRateLimit
   authorizeEventOrganizer,
   requireEventRole,
-  checkPurchaseCooldown
+  checkPurchaseCooldown,
+  eventAccessLimiter
 };

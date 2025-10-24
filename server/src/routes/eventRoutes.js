@@ -1,26 +1,31 @@
 // src/routes/eventRoutes.js
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+const Joi = require('joi');
 const EventController = require('../controllers/eventController');
 const { 
   authenticateToken, 
   authorizeRoles, 
-  optionalAuth 
+  optionalAuth,
+  authorizeEventOrganizer,
+  requireEventRole
 } = require('../middleware/authMiddleware');
-const { validate, validateUUIDParam } = require('../middleware/validationMiddleware');
+const { validate, validateUUIDParam, validateUUIDParams } = require('../middleware/validationMiddleware');
 const {
   uploadEventImages,
   processEventImages
 } = require('../middleware/uploadMiddleware');
+const { 
+  logActivity, 
+  logAdminAudit 
+} = require('../middleware/activityLogger');
 const {
   createEventSchema,
   updateEventSchema,
   eventQuerySchema,
   searchQuerySchema,
-  uuidParamSchema,
   featuredEventsQuerySchema,
   rejectEventSchema,
-  myEventsQuerySchema,
   slugParamSchema
 } = require('../validations/eventValidation');
 
@@ -53,16 +58,6 @@ const eventUpdateLimiter = rateLimit({
 // Public routes (no authentication required)
 
 /**
- * @route   GET /api/events
- * @desc    Get all public events with filtering and pagination
- * @access  Public
- */
-router.get('/',
-  validate(eventQuerySchema, 'query'),
-  EventController.getEvents
-);
-
-/**
  * @route   GET /api/events/categories
  * @desc    Get all event categories
  * @access  Public
@@ -92,6 +87,40 @@ router.get('/search',
 );
 
 /**
+ * @route   GET /api/events/debug/my-events
+ * @desc    Debug my events
+ * @access  Private (Organizer)
+ */
+router.get('/debug/my-events',
+  authenticateToken,
+  authorizeRoles('organizer'),
+  EventController.debugMyEvents
+);
+
+/**
+ * @route   GET /api/events/my/events
+ * @desc    Get events created by current user
+ * @access  Private (Organizer)
+ */
+router.get('/my/events',
+  authenticateToken,
+  authorizeRoles('organizer'),
+  validate(eventQuerySchema, 'query'),
+  EventController.getMyEvents
+);
+
+/**
+ * @route   GET /api/events/admin/pending
+ * @desc    Get pending events for admin approval
+ * @access  Private (Admin)
+ */
+router.get('/admin/pending',
+  authenticateToken,
+  authorizeRoles('admin', 'sub_admin'),
+  EventController.getPendingEvents
+);
+
+/**
  * @route   GET /api/events/slug/:slug
  * @desc    Get event by slug (SEO-friendly)
  * @access  Public
@@ -102,7 +131,57 @@ router.get('/slug/:slug',
   EventController.getEventBySlug
 );
 
-// Protected routes (authentication required)
+/**
+ * @route   GET /api/events/:id/statistics
+ * @desc    Get event statistics for organizer dashboard
+ * @access  Private (Organizer - Owner/Manager)
+ */
+router.get('/:id/statistics',
+  authenticateToken,
+  authorizeRoles('organizer'),
+  validateUUIDParam('id'),
+  authorizeEventOrganizer('id'),
+  EventController.getEventStatistics
+);
+
+// Admin routes (for future admin panel)
+
+/**
+ * @route   PUT /api/events/:id/approve
+ * @desc    Approve event (Admin only)
+ * @access  Private (Admin)
+ */
+router.put('/:id/approve',
+  authenticateToken,
+  authorizeRoles('admin', 'sub_admin'),
+  validateUUIDParam('id'),
+  logAdminAudit('APPROVE_EVENT', 'EVENT'),
+  EventController.approveEvent
+);
+
+/**
+ * @route   PUT /api/events/:id/reject
+ * @desc    Reject event (Admin only)
+ * @access  Private (Admin)
+ */
+router.put('/:id/reject',
+  authenticateToken,
+  authorizeRoles('admin', 'sub_admin'),
+  validateUUIDParam('id'),
+  validate(rejectEventSchema),
+  logAdminAudit('REJECT_EVENT', 'EVENT'),
+  EventController.rejectEvent
+);
+
+/**
+ * @route   GET /api/events
+ * @desc    Get all public events with filtering and pagination
+ * @access  Public
+ */
+router.get('/',
+  validate(eventQuerySchema, 'query'),
+  EventController.getEvents
+);
 
 /**
  * @route   POST /api/events
@@ -112,23 +191,12 @@ router.get('/slug/:slug',
 router.post('/',
   eventCreationLimiter,
   authenticateToken,
-  authorizeRoles(['organizer']),
+  authorizeRoles('organizer'),
   uploadEventImages,
   processEventImages,
   validate(createEventSchema),
+  logActivity('CREATE_EVENT', 'EVENT'),
   EventController.createEvent
-);
-
-/**
- * @route   GET /api/events/my/events
- * @desc    Get events created by current user
- * @access  Private (Organizer)
- */
-router.get('/my/events',
-  authenticateToken,
-  authorizeRoles(['organizer']),
-  validate(eventQuerySchema, 'query'),
-  EventController.getMyEvents
 );
 
 /**
@@ -150,25 +218,18 @@ router.get('/:id',
 router.put('/:id',
   eventUpdateLimiter,
   authenticateToken,
-  authorizeRoles(['organizer']),
+  authorizeRoles('organizer'),
   validateUUIDParam('id'),
+  authorizeEventOrganizer('id'),
+  requireEventRole('owner', 'manager'),
   uploadEventImages,        
   processEventImages, 
   validate(updateEventSchema),
+  logActivity('UPDATE_EVENT', 'EVENT'),
   EventController.updateEvent
 );
 
-/**
- * @route   GET /api/events/:id/statistics
- * @desc    Get event statistics for organizer dashboard
- * @access  Private (Organizer - Owner/Manager)
- */
-router.get('/:id/statistics',
-  authenticateToken,
-  authorizeRoles('organizer'),
-  validateUUIDParam('id'),
-  EventController.getEventStatistics
-);
+
 
 /**
  * @route   DELETE /api/events/:id
@@ -177,89 +238,143 @@ router.get('/:id/statistics',
  */
 router.delete('/:id',
   authenticateToken,
-  authorizeRoles(['organizer']),
+  authorizeRoles('organizer'),
   validateUUIDParam('id'),
+  authorizeEventOrganizer('id'),
+  requireEventRole('owner'),
+  logActivity('DELETE_EVENT', 'EVENT'),
   EventController.deleteEvent
 );
 
-// Admin routes (for future admin panel)
+// Thêm vào cuối file trước module.exports
 
 /**
- * @route   GET /api/events/admin/pending
- * @desc    Get pending events for admin approval
- * @access  Private (Admin)
+ * @route   POST /api/events/:eventId/members
+ * @desc    Add team member to event
+ * @access  Private (Event Owner/Manager)
  */
-router.get('/admin/pending',
+router.post('/:eventId/members',
   authenticateToken,
-  authorizeRoles(['admin', 'sub_admin']),
-  EventController.getPendingEvents
-);
-
-/**
- * @route   PUT /api/events/:id/approve
- * @desc    Approve event (Admin only)
- * @access  Private (Admin)
- */
-router.put('/:id/approve',
-  authenticateToken,
-  authorizeRoles(['admin', 'sub_admin']),
-  validateUUIDParam('id'),
-  EventController.approveEvent
-);
-
-/**
- * @route   PUT /api/events/:id/reject
- * @desc    Reject event (Admin only)
- * @access  Private (Admin)
- */
-router.put('/:id/reject',
-  authenticateToken,
-  authorizeRoles(['admin', 'sub_admin']),
-  validateUUIDParam('id'),
-  validate(rejectEventSchema),
-  EventController.rejectEvent
-);
-
-/**
- * @route   GET /api/events/debug/my-events
- * @desc    Debug my events
- * @access  Private (Organizer)
- */
-router.get('/debug/my-events',
-  authenticateToken,
-  authorizeRoles(['organizer']),
+  authorizeRoles('organizer'),
+  validateUUIDParam('eventId'),
+  authorizeEventOrganizer('eventId'),
+  requireEventRole('owner', 'manager'),
+  validate(Joi.object({
+    email: Joi.string().email().required(),
+    role: Joi.string().valid('manager', 'checkin_staff').required()
+  })),
   async (req, res) => {
     try {
-      const organizerId = req.user.id;
-      const pool = require('../config/database');
-      
-      console.log(`🔍 Debug my events for organizer: ${organizerId}`);
-      
-      // Check events created by this organizer
-      const eventsQuery = `
-        SELECT id, title, status, organizer_id, created_at ,
-          (SELECT COUNT(*) FROM event_sessions WHERE event_id = e.id) as session_count,
-          (SELECT COUNT(*) FROM ticket_types WHERE event_id = e.id) as ticket_count
-        FROM events e
-        WHERE organizer_id = $1 
-        ORDER BY created_at DESC
-      `;
-      
-      const eventsResult = await pool.query(eventsQuery, [organizerId]);
-      
-      console.log(`📊 Found ${eventsResult.rows.length} events`);
-      
-      const { createResponse } = require('../utils/helpers');
-      res.json(createResponse(true, 'Debug info for my events', {
-        organizer_id: organizerId,
-        events_count: eventsResult.rows.length,
-        events: eventsResult.rows
-      }));
-      
+      const { eventId } = req.params;
+      const { email, role } = req.body;
+      const invitedBy = req.user.id;
+
+      // Find user by email
+      const user = await UserModel.findByEmail(email);
+      if (!user) {
+        return res.status(404).json(
+          createResponse(false, 'User not found with this email')
+        );
+      }
+
+      // Check if already member
+      const existingQuery = await pool.query(
+        'SELECT id FROM event_organizer_members WHERE event_id = $1 AND user_id = $2',
+        [eventId, user.id]
+      );
+
+      if (existingQuery.rows.length > 0) {
+        return res.status(409).json(
+          createResponse(false, 'User is already a team member')
+        );
+      }
+
+      // Add member
+      const result = await pool.query(`
+        INSERT INTO event_organizer_members 
+        (event_id, user_id, role, invited_by, accepted_at, is_active)
+        VALUES ($1, $2, $3, $4, NOW(), true)
+        RETURNING *
+      `, [eventId, user.id, role, invitedBy]);
+
+      res.json(createResponse(
+        true,
+        'Team member added successfully',
+        { member: result.rows[0] }
+      ));
+
     } catch (error) {
-      console.error('❌ Debug my events error:', error.message);
-      const { createResponse } = require('../utils/helpers');
-      res.status(500).json(createResponse(false, `Debug error: ${error.message}`));
+      console.error('Add member error:', error);
+      res.status(500).json(createResponse(false, 'Failed to add team member'));
+    }
+  }
+);
+
+/**
+ * @route   GET /api/events/:eventId/members
+ * @desc    Get event team members
+ * @access  Private (Event Team)
+ */
+router.get('/:eventId/members',
+  authenticateToken,
+  authorizeRoles('organizer'),
+  validateUUIDParam('eventId'),
+  authorizeEventOrganizer('eventId'),
+  async (req, res) => {
+    try {
+      const { eventId } = req.params;
+
+      const result = await pool.query(`
+        SELECT 
+          eom.*,
+          u.email, u.first_name, u.last_name,
+          invited.first_name || ' ' || invited.last_name as invited_by_name
+        FROM event_organizer_members eom
+        JOIN users u ON eom.user_id = u.id
+        LEFT JOIN users invited ON eom.invited_by = invited.id
+        WHERE eom.event_id = $1 AND eom.is_active = true
+        ORDER BY eom.created_at DESC
+      `, [eventId]);
+
+      res.json(createResponse(
+        true,
+        'Team members retrieved successfully',
+        { members: result.rows }
+      ));
+
+    } catch (error) {
+      console.error('Get members error:', error);
+      res.status(500).json(createResponse(false, 'Failed to get team members'));
+    }
+  }
+);
+
+/**
+ * @route   DELETE /api/events/:eventId/members/:memberId
+ * @desc    Remove team member
+ * @access  Private (Event Owner only)
+ */
+router.delete('/:eventId/members/:memberId',
+  authenticateToken,
+  authorizeRoles('organizer'),
+  validateUUIDParams('eventId', 'memberId'),
+  authorizeEventOrganizer('eventId'),
+  requireEventRole('owner'),
+  async (req, res) => {
+    try {
+      const { eventId, memberId } = req.params;
+
+      await pool.query(`
+        UPDATE event_organizer_members 
+        SET is_active = false, updated_at = NOW()
+        WHERE event_id = $1 AND user_id = $2 AND role != 'owner'
+      `, [eventId, memberId]);
+
+      res.json(createResponse(true, 'Team member removed successfully'));
+
+    } catch (error) {
+      console.error('Remove member error:', error);
+      res.status(500).json(createResponse(false, 'Failed to remove team member'));
     }
   }
 );

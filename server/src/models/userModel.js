@@ -223,15 +223,25 @@ class UserModel {
    * @param {Number} minutes - Lock duration in minutes
    */
   static async lockAccount(userId, minutes = 15) {
-    const query = `
-      UPDATE users 
-      SET account_locked_until = NOW() + INTERVAL '${minutes} minutes',
-          updated_at = NOW()
-      WHERE id = $1
-    `;
+    const lockUntil = new Date(Date.now() + minutes * 60 * 1000);
     
+    // const query = `
+    //   UPDATE users 
+    //   SET account_locked_until = NOW() + INTERVAL '${minutes} minutes',
+    //       updated_at = NOW()
+    //   WHERE id = $1
+    // `;
+    
+    const query = `
+      UPDATE users
+      SET account_locked_until = $1,
+          failed_login_attempts = 0,
+          updated_at = NOW()
+      WHERE id = $2
+    `;
+
     try {
-      await pool.query(query, [userId]);
+      await pool.query(query, [lockUntil,userId]);
     } catch (error) {
       console.error('Error locking account:', error.message);
     }

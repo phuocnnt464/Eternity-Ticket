@@ -1125,3 +1125,19 @@ WHERE status = 'active' AND privacy_type = 'public';
 
 CREATE INDEX idx_orders_pending_reserved ON orders(reserved_until) 
 WHERE status = 'pending' AND reserved_until IS NOT NULL;
+
+
+-- Performance indexes for SessionTicketModel queries
+CREATE INDEX idx_event_sessions_event_active 
+  ON event_sessions(event_id, is_active);
+
+CREATE INDEX idx_ticket_types_session_active 
+  ON ticket_types(session_id, is_active);
+
+CREATE INDEX idx_ticket_types_sale_time 
+  ON ticket_types(sale_start_time, sale_end_time) 
+  WHERE is_active = true;
+
+CREATE INDEX idx_event_organizer_members_lookup
+  ON event_organizer_members(event_id, user_id, role)
+  WHERE is_active = true;

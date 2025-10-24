@@ -2,7 +2,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const AuthController = require('../controllers/authController');
-const { validate } = require('../middleware/validationMiddleware');
+const { validate, sanitizeInput } = require('../middleware/validationMiddleware');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const {
   registerSchema,
@@ -13,6 +13,8 @@ const {
   resetPasswordSchema,
   changePasswordSchema
 } = require('../validations/authValidation');
+
+const { logActivity } = require('../middleware/activityLogger');
 
 const router = express.Router();
 
@@ -60,7 +62,7 @@ const refreshLimiter = rateLimit({
   }
 });
 
-// Public routes (no authentication required)
+// Public routes 
 
 /**
  * @route   POST /api/auth/register
@@ -70,6 +72,7 @@ const refreshLimiter = rateLimit({
 router.post('/register', 
   authLimiter,
   validate(registerSchema),
+  logActivity('REGISTER', 'USER'),
   AuthController.register
 );
 
@@ -81,6 +84,7 @@ router.post('/register',
 router.post('/login',
   authLimiter, 
   validate(loginSchema),
+  logActivity('LOGIN', 'USER'),
   AuthController.login
 );
 
@@ -92,6 +96,7 @@ router.post('/login',
 router.post('/verify-email',
   strictAuthLimiter,
   validate(verifyEmailSchema),
+  logActivity('VERIFY_EMAIL', 'USER'),
   AuthController.verifyEmail
 );
 
@@ -115,6 +120,7 @@ router.post('/refresh-token',
 router.post('/forgot-password',
   strictAuthLimiter,
   validate(forgotPasswordSchema),
+  logActivity('FORGOT_PASSWORD', 'USER'),
   AuthController.forgotPassword
 );
 
@@ -127,6 +133,7 @@ router.post('/forgot-password',
 router.post('/reset-password',
   strictAuthLimiter,
   validate(resetPasswordSchema),
+  logActivity('RESET_PASSWORD', 'USER'),
   AuthController.resetPassword
 );
 
@@ -150,6 +157,7 @@ router.get('/profile',
  */
 router.post('/logout', 
   authenticateToken, 
+  logActivity('LOGOUT', 'USER'),
   AuthController.logout
 );
 
@@ -162,7 +170,9 @@ router.post('/logout',
  */
 router.post('/change-password',
   authenticateToken,
+  strictAuthLimiter,
   validate(changePasswordSchema),
+  logActivity('CHANGE_PASSWORD', 'USER'),
   AuthController.changePassword
 );
 
@@ -175,17 +185,38 @@ router.post('/change-password',
 router.post('/resend-verification',
   authenticateToken,
   strictAuthLimiter,
+  logActivity('RESEND_VERIFICATION', 'USER'),
   AuthController.resendVerification
 );
 
 //Temporary endpoint to test authentication without middleware
-router.get('/test', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Auth routes are working!',
-    timestamp: new Date().toISOString()
-  });
-});
+// router.get('/test', (req, res) => {
+//   res.json({
+//     success: true,
+//     message: 'Auth routes are working!',
+//     timestamp: new Date().toISOString()
+//   });
+// });
+
+/**
+ * @route   POST /api/auth/resend-verification
+ * @desc    Resend verification email
+ * @access  Private
+ */
+router.post('/resend-verification',
+  authenticateToken,
+  authLimiter,
+  AuthController.resendVerification
+);
+
+/**
+ * @route   GET /api/auth/check-email/:email
+ * @desc    Check if email already exists
+ * @access  Public
+ */
+router.get('/check-email/:email',
+  AuthController.checkEmailExists
+);
 
 // =============================================
 // HEALTH CHECK / TEST ROUTES
@@ -196,30 +227,58 @@ router.get('/test', (req, res) => {
  * @desc    Test auth routes health
  * @access  Public
  */
-router.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      message: 'Auth routes are working!',
-      timestamp: new Date().toISOString(),
-      endpoints: {
-        public: [
-          'POST /api/auth/register',
-          'POST /api/auth/login',
-          'POST /api/auth/verify-email',
-          'POST /api/auth/refresh-token',
-          'POST /api/auth/forgot-password',
-          'POST /api/auth/reset-password'
-        ],
-        protected: [
-          'GET /api/auth/profile',
-          'POST /api/auth/logout',
-          'POST /api/auth/change-password',
-          'POST /api/auth/resend-verification'
-        ]
+router.get('/health', async (req, res) => {
+  try {
+    const pool = require('../config/database');
+    await pool.query('SELECT 1');
+    
+    res.json({
+      success: true,
+      data: {
+        status: 'healthy',
+        message: 'Auth routes are operational',
+        timestamp: new Date().toISOString(),
+        database: 'connected',
+        environment: process.env.NODE_ENV || 'development',
+        endpoints: {
+          public: [
+            'POST /api/auth/register',
+            'POST /api/auth/login',
+            'POST /api/auth/verify-email',
+            'POST /api/auth/refresh-token',
+            'POST /api/auth/forgot-password',
+            'POST /api/auth/reset-password'
+          ],
+          protected: [
+            'GET /api/auth/profile',
+            'POST /api/auth/logout',
+            'POST /api/auth/change-password',
+            'POST /api/auth/resend-verification'
+          ]
+        }
       }
-    }
-  });
+    });
+  } catch (error) {
+    res.status(503).json({
+      success: false,
+      error: {
+        status: 'unhealthy',
+        message: 'Database connection failed',
+        details: error.message
+      }
+    });
+  }
 });
+
+// Test route (development only)
+if (process.env.NODE_ENV !== 'production') {
+  router.get('/test', (req, res) => {
+    res.json({
+      success: true,
+      message: 'Auth routes test endpoint',
+      timestamp: new Date().toISOString()
+    });
+  });
+}
 
 module.exports = router;

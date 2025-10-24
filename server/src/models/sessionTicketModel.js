@@ -228,6 +228,52 @@ class SessionTicketModel {
   }
 
   /**
+   * Get single session with details
+   */
+  static async getSessionById(sessionId) {
+    const query = `
+      SELECT 
+        es.*,
+        e.title as event_title,
+        COUNT(tt.id) as ticket_type_count
+      FROM event_sessions es
+      JOIN events e ON es.event_id = e.id
+      LEFT JOIN ticket_types tt ON es.id = tt.session_id AND tt.is_active = true
+      WHERE es.id = $1 AND es.is_active = true
+      GROUP BY es.id, e.title
+    `;
+    
+    const result = await pool.query(query, [sessionId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+ * Get single ticket type with availability
+  */
+  static async getTicketTypeById(ticketTypeId) {
+    const query = `
+      SELECT 
+        tt.*,
+        es.title as session_title,
+        e.title as event_title,
+        (tt.total_quantity - tt.sold_quantity) as available_quantity,
+        CASE 
+          WHEN NOW() < tt.sale_start_time THEN 'not_started'
+          WHEN NOW() > tt.sale_end_time THEN 'ended'
+          WHEN tt.sold_quantity >= tt.total_quantity THEN 'sold_out'
+          ELSE 'available'
+        END as sale_status
+      FROM ticket_types tt
+      JOIN event_sessions es ON tt.session_id = es.id
+      JOIN events e ON tt.event_id = e.id
+      WHERE tt.id = $1 AND tt.is_active = true
+    `;
+    
+    const result = await pool.query(query, [ticketTypeId]);
+    return result.rows[0] || null;
+  }
+
+  /**
    * Update session
    * @param {String} sessionId - Session ID
    * @param {Object} updateData - Update data
@@ -311,17 +357,55 @@ class SessionTicketModel {
       await client.query('BEGIN');
 
       // Check permission
-      const permissionCheck = await client.query(`
-        SELECT tt.id 
+      // const permissionCheck = await client.query(`
+      //   SELECT tt.id 
+      //   FROM ticket_types tt
+      //   JOIN events e ON tt.event_id = e.id
+      //   LEFT JOIN event_organizer_members eom ON e.id = eom.event_id
+      //   WHERE tt.id = $1 
+      //   AND (e.organizer_id = $2 OR (eom.user_id = $2 AND eom.role IN ('owner', 'manager')))
+      // `, [ticketTypeId, userId]);
+
+      // if (permissionCheck.rows.length === 0) {
+      //   throw new Error('Permission denied');
+      // }
+
+       // Get current ticket type data
+      const currentQuery = `
+        SELECT tt.*, e.organizer_id
         FROM ticket_types tt
         JOIN events e ON tt.event_id = e.id
         LEFT JOIN event_organizer_members eom ON e.id = eom.event_id
         WHERE tt.id = $1 
         AND (e.organizer_id = $2 OR (eom.user_id = $2 AND eom.role IN ('owner', 'manager')))
-      `, [ticketTypeId, userId]);
-
-      if (permissionCheck.rows.length === 0) {
+        FOR UPDATE
+      `;
+      
+      const currentResult = await client.query(currentQuery, [ticketTypeId, userId]);
+      
+      if (currentResult.rows.length === 0) {
         throw new Error('Permission denied');
+      }
+      
+      const currentTicket = currentResult.rows[0];
+      
+      // ✅ Validate updates
+      if (updateData.price !== undefined && updateData.price < 0) {
+        throw new Error('Price cannot be negative');
+      }
+      
+      if (updateData.total_quantity !== undefined) {
+        if (updateData.total_quantity < currentTicket.sold_quantity) {
+          throw new Error(
+            `Total quantity cannot be less than sold quantity (${currentTicket.sold_quantity})`
+          );
+        }
+      }
+      
+      if (updateData.sale_start_time && updateData.sale_end_time) {
+        if (new Date(updateData.sale_start_time) >= new Date(updateData.sale_end_time)) {
+          throw new Error('Sale start time must be before sale end time');
+        }
       }
 
       const allowedFields = [
@@ -375,7 +459,11 @@ class SessionTicketModel {
    * @returns {Boolean} Success status
    */
   static async deleteSession(sessionId, userId) {
+    const client = await pool.connect();
     try {
+      // Soft delete session and related ticket types
+      await client.query('BEGIN');
+
       // Check permission and ensure no tickets sold
       const checkQuery = `
         SELECT es.id, COUNT(t.id) as ticket_count
@@ -387,9 +475,10 @@ class SessionTicketModel {
         WHERE es.id = $1 
         AND (e.organizer_id = $2 OR (eom.user_id = $2 AND eom.role IN ('owner', 'manager')))
         GROUP BY es.id
+        FOR UPDATE
       `;
 
-      const checkResult = await pool.query(checkQuery, [sessionId, userId]);
+      const checkResult = await client.query(checkQuery, [sessionId, userId]);
 
       if (checkResult.rows.length === 0) {
         throw new Error('Session not found or permission denied');
@@ -399,26 +488,25 @@ class SessionTicketModel {
         throw new Error('Cannot delete session with sold tickets');
       }
 
-      // Soft delete session and related ticket types
-      await pool.query('BEGIN');
-
-      await pool.query(
-        'UPDATE ticket_types SET is_active = false WHERE session_id = $1',
+      await client.query(
+        'UPDATE ticket_types SET is_active = false, updated_at = NOW() WHERE session_id = $1',
         [sessionId]
       );
 
-      await pool.query(
-        'UPDATE event_sessions SET is_active = false WHERE id = $1',
+      await client.query(
+        'UPDATE event_sessions SET is_active = false, updated_at = NOW() WHERE id = $1',
         [sessionId]
       );
 
-      await pool.query('COMMIT');
+      await client.query('COMMIT');
 
       return true;
 
     } catch (error) {
-      await pool.query('ROLLBACK');
+      await client.query('ROLLBACK');
       throw error;
+    } finally {
+      client.release();
     }
   }
 
@@ -429,7 +517,10 @@ class SessionTicketModel {
    * @returns {Boolean} Success status
    */
   static async deleteTicketType(ticketTypeId, userId) {
+    const client = await pool.connect();
     try {
+      await client.query('BEGIN');
+
       // Check permission and ensure no tickets sold
       const checkQuery = `
         SELECT tt.id, tt.sold_quantity
@@ -438,9 +529,10 @@ class SessionTicketModel {
         LEFT JOIN event_organizer_members eom ON e.id = eom.event_id
         WHERE tt.id = $1 
         AND (e.organizer_id = $2 OR (eom.user_id = $2 AND eom.role IN ('owner', 'manager')))
+        FOR UPDATE
       `;
 
-      const checkResult = await pool.query(checkQuery, [ticketTypeId, userId]);
+      const checkResult = await client.query(checkQuery, [ticketTypeId, userId]);
 
       if (checkResult.rows.length === 0) {
         throw new Error('Ticket type not found or permission denied');
@@ -451,15 +543,19 @@ class SessionTicketModel {
       }
 
       // Soft delete
-      await pool.query(
-        'UPDATE ticket_types SET is_active = false WHERE id = $1',
+      await client.query(
+        'UPDATE ticket_types SET is_active = false, updated_at = NOW() WHERE id = $1',
         [ticketTypeId]
       );
 
+      await client.query('COMMIT');
       return true;
 
     } catch (error) {
+      await client.query('ROLLBACK');
       throw error;
+    } finally {
+      client.release();
     }
   }
 }

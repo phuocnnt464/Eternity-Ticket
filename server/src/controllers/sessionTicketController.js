@@ -325,6 +325,36 @@ class SessionTicketController {
   }
 
   /**
+   * Get ticket type by ID
+   * @param {String} ticketTypeId - Ticket type ID
+   * @returns {Object} Ticket type
+   */
+  static async getTicketTypeById(ticketTypeId) {
+    const query = `
+      SELECT 
+        tt.*,
+        es.title as session_title,
+        e.title as event_title,
+        (tt.total_quantity - tt.sold_quantity) as available_quantity,
+        CASE 
+          WHEN NOW() < tt.sale_start_time THEN 'not_started'
+          WHEN NOW() > tt.sale_end_time THEN 'ended'
+          WHEN tt.sold_quantity >= tt.total_quantity THEN 'sold_out'
+          ELSE 'available'
+        END as sale_status
+      FROM ticket_types tt
+      JOIN event_sessions es ON tt.session_id = es.id
+      JOIN events e ON tt.event_id = e.id
+      WHERE tt.id = $1 AND tt.is_active = true
+    `;
+
+    const result = await pool.query(query, [ticketTypeId]);
+    return result.rows[0] || null;
+  }
+
+  
+
+  /**
    * Get event with sessions and ticket types (for purchase)
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object

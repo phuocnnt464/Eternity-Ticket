@@ -4,7 +4,8 @@ const {
   generateAccessToken, 
   generateRefreshToken, 
   verifyToken, 
-  createResponse 
+  createResponse,
+  validatePassword
 } = require('../utils/helpers');
 
 // TODO: Implement later
@@ -607,9 +608,19 @@ class AuthController {
       const { current_password, new_password } = req.body;
       const userId = req.user.id;
 
+      // Validate new password strength
+      const passwordValidation = validatePassword(new_password);
+      if (!passwordValidation.isValid) {
+        return res.status(400).json(
+          createResponse(false, 'New password does not meet requirements', null, {
+            errors: passwordValidation.errors
+          })
+        );
+      }
+
       await UserModel.changePassword(userId, current_password, new_password);
 
-      console.log(`✅ Password changed for user: ${req.user.email}`);
+      console.log(`Password changed for user: ${req.user.email}`);
 
       res.json(
         createResponse(true, 'Password changed successfully')
@@ -621,7 +632,10 @@ class AuthController {
       let statusCode = 500;
       let message = 'Failed to change password';
 
-      if (error.message === 'Current password is incorrect') {
+      if (error.message === 'User not found') {
+        statusCode = 404;
+        message = 'User not found';
+      } else if (error.message === 'Current password is incorrect') {
         statusCode = 400;
         message = error.message;
       }
@@ -664,6 +678,25 @@ class AuthController {
       res.status(500).json(
         createResponse(false, 'Failed to resend verification email')
       );
+    }
+  }
+
+  // Thêm method này vào AuthController
+
+  static async checkEmailExists(req, res) {
+    try {
+      const { email } = req.params;
+      
+      const exists = await UserModel.emailExists(email);
+      
+      res.json(createResponse(
+        true,
+        exists ? 'Email already registered' : 'Email available',
+        { exists, email }
+      ));
+    } catch (error) {
+      console.error('❌ Check email error:', error);
+      res.status(500).json(createResponse(false, 'Failed to check email'));
     }
   }
 }

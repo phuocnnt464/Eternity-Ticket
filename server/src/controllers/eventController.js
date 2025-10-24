@@ -781,6 +781,41 @@ class EventController {
       );
     }
   }
+
+  static async debugMyEvents(req, res) {
+    try {
+      const organizerId = req.user.id;
+      const pool = require('../config/database');
+      
+      console.log(`🔍 Debug my events for organizer: ${organizerId}`);
+      
+      // Check events created by this organizer
+      const eventsQuery = `
+        SELECT id, title, status, organizer_id, created_at ,
+          (SELECT COUNT(*) FROM event_sessions WHERE event_id = e.id) as session_count,
+          (SELECT COUNT(*) FROM ticket_types WHERE event_id = e.id) as ticket_count
+        FROM events e
+        WHERE organizer_id = $1 
+        ORDER BY created_at DESC
+      `;
+      
+      const eventsResult = await pool.query(eventsQuery, [organizerId]);
+      
+      console.log(`📊 Found ${eventsResult.rows.length} events`);
+      
+      const { createResponse } = require('../utils/helpers');
+      res.json(createResponse(true, 'Debug info for my events', {
+        organizer_id: organizerId,
+        events_count: eventsResult.rows.length,
+        events: eventsResult.rows
+      }));
+      
+    } catch (error) {
+      console.error('❌ Debug my events error:', error.message);
+      const { createResponse } = require('../utils/helpers');
+      res.status(500).json(createResponse(false, `Debug error: ${error.message}`));
+    }
+  }
 }
 
 module.exports = EventController;

@@ -4,16 +4,9 @@ const rateLimit = require('express-rate-limit');
 const UserController = require('../controllers/userController');
 const { authenticateToken, authorizeOwnerOrAdmin, authorizeRoles } = require('../middleware/authMiddleware');
 const { validate, validateUUIDParam, validatePagination } = require('../middleware/validationMiddleware');
-// const {
-//   updateProfileSchema,
-//   changePasswordSchema,
-//   deactivateAccountSchema,
-//   ticketHistoryQuerySchema
-// } = require('../validations/userValidation');
-
-const {
+const { 
   updateProfileSchema
-} = require('../validations/authValidation')
+} = require('../validations/authValidation');
 
 const { logActivity } = require('../middleware/activityLogger');
 
@@ -44,48 +37,6 @@ const profileUpdateLimiter = rateLimit({
     }  
   }
 });
-
-// All user routes require authentication
-// router.use(authenticateToken);
-
-/**
- * @route   GET /api/users/profile
- * @desc    Get current user profile
- * @access  Private
- */
-// router.get('/profile', UserController.getProfile);
-
-/**
- * @route   PUT /api/users/profile
- * @desc    Update user profile
- * @access  Private
- */
-// router.put('/profile',
-//   profileUpdateLimiter,
-//   validate(updateProfileSchema),
-//   UserController.updateProfile
-// );
-
-/**
- * @route   POST /api/users/change-password
- * @desc    Change user password
- * @access  Private
- */
-// router.post('/change-password',
-//   sensitiveOperationsLimiter,
-//   validate(changePasswordSchema),
-//   UserController.changePassword
-// );
-
-/**
- * @route   GET /api/users/tickets
- * @desc    Get user's ticket history
- * @access  Private
- */
-// router.get('/tickets',
-//   validate(ticketHistoryQuerySchema, 'query'),
-//   UserController.getTicketHistory
-// );
 
 // =============================================
 // USER PROFILE ROUTES
@@ -127,10 +78,24 @@ router.post('/:userId/avatar',
   authenticateToken,
   validateUUIDParam('userId'),
   authorizeOwnerOrAdmin('userId'),
-  // upload.single('avatar'), // Add after creating uploadMiddleware
   uploadUserAvatar,
   processUserAvatar,
+  logActivity('UPLOAD_AVATAR', 'USER'),
   UserController.uploadAvatar
+);
+
+/**
+ * @route   DELETE /api/users/:userId
+ * @desc    Deactivate user account
+ * @access  Private (Owner or Admin)
+ */
+router.delete('/:userId',
+  authenticateToken,
+  sensitiveOperationsLimiter,
+  validateUUIDParam('userId'),
+  authorizeOwnerOrAdmin('userId'),
+  logActivity('DEACTIVATE_PROFILE', 'USER'),
+  UserController.deactivateAccount
 );
 
 // =============================================
@@ -166,79 +131,55 @@ router.get('/:userId/orders',
 // =============================================
 // USER ACCOUNT MANAGEMENT
 // =============================================
-
-/**
- * @route   DELETE /api/users/:userId
- * @desc    Deactivate user account
- * @access  Private (Owner or Admin)
- */
-router.delete('/:userId',
-  authenticateToken,
-  sensitiveOperationsLimiter,
-  validateUUIDParam('userId'),
-  authorizeOwnerOrAdmin('userId'),
-  logActivity('DEACTIVATE_PROFILE', 'USER'),
-  UserController.deactivateAccount
-);
-
-
-/**
- * @route   POST /api/users/deactivate
- * @desc    Deactivate user account
- * @access  Private
- */
-// router.post('/deactivate',
-//   sensitiveOperationsLimiter,
-//   validate(deactivateAccountSchema),
-//   UserController.deactivateAccount
-// );
-
 // Statistics endpoint
 /**
  * @route   GET /api/users/stats
  * @desc    Get user statistics (orders, tickets, spending)
  * @access  Private
  */
-router.get('/:userId/stats',authenticateToken,
-   validateUUIDParam('userId'),
-   async (req, res) => {
-  try {
-    const UserModel = require('../models/userModel');
-    const { createResponse } = require('../utils/helpers');
-    
-    const stats = await UserModel.getUserStats(req.user.id);
-    
-    const responseData = {
-      statistics: {
-        total_orders: parseInt(stats.total_orders) || 0,
-        total_tickets: parseInt(stats.total_tickets) || 0,
-        used_tickets: parseInt(stats.used_tickets) || 0,
-        total_spent: parseFloat(stats.total_spent) || 0,
-        unused_tickets: (parseInt(stats.total_tickets) || 0) - (parseInt(stats.used_tickets) || 0),
-        usage_rate: stats.total_tickets > 0 ? 
-          Math.round((stats.used_tickets / stats.total_tickets) * 100) : 0
-      }
-    };
+router.get('/:userId/stats',
+  authenticateToken,
+  validateUUIDParam('userId'),
+  authorizeOwnerOrAdmin('userId'),
+  async (req, res) => {
+    try {
+      const UserModel = require('../models/userModel');
+      const { createResponse } = require('../utils/helpers');
+      
+      const stats = await UserModel.getUserStats(req.user.id);
+      
+      const responseData = {
+        statistics: {
+          total_orders: parseInt(stats.total_orders) || 0,
+          total_tickets: parseInt(stats.total_tickets) || 0,
+          used_tickets: parseInt(stats.used_tickets) || 0,
+          total_spent: parseFloat(stats.total_spent) || 0,
+          unused_tickets: (parseInt(stats.total_tickets) || 0) - (parseInt(stats.used_tickets) || 0),
+          usage_rate: stats.total_tickets > 0 ? 
+            Math.round((stats.used_tickets / stats.total_tickets) * 100) : 0
+        }
+      };
 
-    const response = createResponse(
-      true,
-      'User statistics retrieved successfully',
-      responseData
-    );
+      const response = createResponse(
+        true,
+        'User statistics retrieved successfully',
+        responseData
+      );
 
-    res.json(response);
-  } catch (error) {
-    console.error('❌ Get user stats error:', error.message);
-    
-    const { createResponse } = require('../utils/helpers');
-    const response = createResponse(
-      false,
-      'Failed to retrieve user statistics'
-    );
-    
-    res.status(500).json(response);
+      res.json(response);
+    } catch (error) {
+      console.error('❌ Get user stats error:', error.message);
+      
+      const { createResponse } = require('../utils/helpers');
+      const response = createResponse(
+        false,
+        'Failed to retrieve user statistics'
+      );
+      
+      res.status(500).json(response);
+    }
   }
-});
+);
 
 // Preferences endpoint (for future features)
 /**
