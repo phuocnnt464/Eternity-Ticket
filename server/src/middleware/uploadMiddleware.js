@@ -247,7 +247,7 @@ const uploadMultipleImages = (fieldName = 'images', maxCount = 5) => {
  * Process event images after upload
  */
 const processEventImages = async (req, res, next) => {
-  const processedFiles = []; // To track all processed files for cleanup on error
+  // const processedFiles = []; // To track all processed files for cleanup on error
   try {
     if (!req.files || Object.keys(req.files).length === 0) {
       return next();
@@ -258,136 +258,136 @@ const processEventImages = async (req, res, next) => {
     const processedImages = {};
     const errors = [];
 
-    const fileConfigs = [
-      {
-        fieldName: 'cover_image',
-        config: IMAGE_CONFIGS.event_cover,
-        outputDir: UPLOAD_DIRS.events.covers,
-        extension: 'jpg'
-      },
-      {
-        fieldName: 'thumbnail_image',
-        config: IMAGE_CONFIGS.event_thumbnail,
-        outputDir: UPLOAD_DIRS.events.thumbnails,
-        extension: 'jpg'
-      },
-      {
-        fieldName: 'logo_image',
-        config: IMAGE_CONFIGS.event_logo,
-        outputDir: UPLOAD_DIRS.events.logos,
-        extension: 'png'
-      },
-      {
-        fieldName: 'venue_map_image',
-        config: IMAGE_CONFIGS.venue_map,
-        outputDir: UPLOAD_DIRS.events.venueMaps,
-        extension: 'jpg'
-      }
-    ];
+    // const fileConfigs = [
+    //   {
+    //     fieldName: 'cover_image',
+    //     config: IMAGE_CONFIGS.event_cover,
+    //     outputDir: UPLOAD_DIRS.events.covers,
+    //     extension: 'jpg'
+    //   },
+    //   {
+    //     fieldName: 'thumbnail_image',
+    //     config: IMAGE_CONFIGS.event_thumbnail,
+    //     outputDir: UPLOAD_DIRS.events.thumbnails,
+    //     extension: 'jpg'
+    //   },
+    //   {
+    //     fieldName: 'logo_image',
+    //     config: IMAGE_CONFIGS.event_logo,
+    //     outputDir: UPLOAD_DIRS.events.logos,
+    //     extension: 'png'
+    //   },
+    //   {
+    //     fieldName: 'venue_map_image',
+    //     config: IMAGE_CONFIGS.venue_map,
+    //     outputDir: UPLOAD_DIRS.events.venueMaps,
+    //     extension: 'jpg'
+    //   }
+    // ];
 
     // Process cover image
-    // if (req.files.cover_image && req.files.cover_image[0]) {
-    //   try {
-    //     const file = req.files.cover_image[0];
-    //     const filename = `${Date.now()}-${uuidv4()}.jpg`;
-    //     const outputPath = path.join(UPLOAD_DIRS.events.covers, filename);
+    if (req.files.cover_image && req.files.cover_image[0]) {
+      try {
+        const file = req.files.cover_image[0];
+        const filename = `${Date.now()}-${uuidv4()}.jpg`;
+        const outputPath = path.join(UPLOAD_DIRS.events.covers, filename);
 
-    //     await processImage(file.path, outputPath, IMAGE_CONFIGS.event_cover);
-    //     processedImages.cover_image = `/uploads/events/covers/${filename}`;
-    //   } catch (error) {
-    //     errors.push(`Cover image: ${error.message}`)
-    //   }
-    // }
-
-    // Process thumbnail image
-    // if (req.files.thumbnail_image && req.files.thumbnail_image[0]) {
-    //   try {
-    //     const file = req.files.thumbnail_image[0];
-    //     const filename = `${Date.now()}-${uuidv4()}.jpg`;
-    //     const outputPath = path.join(UPLOAD_DIRS.events.thumbnails, filename);
-
-    //     await processImage(file.path, outputPath, IMAGE_CONFIGS.event_thumbnail);
-    //     processedImages.thumbnail_image = `/uploads/events/thumbnails/${filename}`;
-    //   } catch (error) {
-    //     errors.push(`Thumbnail image: ${error.message}`);
-    //   }
-    // }
-
-    // Process logo image
-    // if (req.files.logo_image && req.files.logo_image[0]) {
-    //   try {
-    //     const file = req.files.logo_image[0];
-    //     const filename = `${Date.now()}-${uuidv4()}.png`;
-    //     const outputPath = path.join(UPLOAD_DIRS.events.logos, filename);
-
-    //     await processImage(file.path, outputPath, IMAGE_CONFIGS.event_logo);
-    //     processedImages.logo_image = `/uploads/events/logos/${filename}`;
-    //   } catch (error) {
-    //     errors.push(`Logo image: ${error.message}`);
-    //   }
-    // }
-
-    // Process venue map image
-    // if (req.files.venue_map_image && req.files.venue_map_image[0]) {
-    //   try {
-    //     const file = req.files.venue_map_image[0];
-    //     const filename = `${Date.now()}-${uuidv4()}.jpg`
-    //     const outputPath = path.join(UPLOAD_DIRS.events.venueMaps, filename);
-      
-    //     await processImage(file.path, outputPath, IMAGE_CONFIGS.venue_map);
-    //     processedImages.venue_map_image = `/uploads/events/venue-maps/${filename}`;
-    //   } catch (error) {
-    //     errors.push(`Venue map image: ${error.message}`);
-    //   }
-    // }
-
-    // Process all files in order
-    for (const fileConfig of fileConfigs) {
-      if (req.files[fileConfig.fieldName] && req.files[fileConfig.fieldName][0]) {
-        const file = req.files[fileConfig.fieldName][0];
-        const filename = `${Date.now()}-${uuidv4()}.${fileConfig.extension}`;
-        const outputPath = path.join(fileConfig.outputDir, filename);
-
-        try {
-          await processImage(file.path, outputPath, fileConfig.config);
-          
-          const publicPath = `/uploads/events/${path.basename(fileConfig.outputDir)}/${filename}`;
-          processedImages[fileConfig.fieldName] = publicPath;
-          processedFiles.push(outputPath); // Track processed file
-          
-        } catch (error) {
-          // Cleanup all successfully processed files on error
-          console.error(`Error processing ${fileConfig.fieldName}:`, error);
-          
-          for (const processedFile of processedFiles) {
-            try {
-              if (fsSync.existsSync(processedFile)) {
-                await fs.unlink(processedFile);
-              }
-            } catch (cleanupError) {
-              console.error('Cleanup error:', cleanupError);
-            }
-          }
-
-          throw new Error(`Failed to process ${fileConfig.fieldName}: ${error.message}`);
-        }
+        await processImage(file.path, outputPath, IMAGE_CONFIGS.event_cover);
+        processedImages.cover_image = `/uploads/events/covers/${filename}`;
+      } catch (error) {
+        errors.push(`Cover image: ${error.message}`)
       }
     }
 
-    // if (errors.length > 0) {
-    //   console.error('Image processing errors: ', errors);
+    // Process thumbnail image
+    if (req.files.thumbnail_image && req.files.thumbnail_image[0]) {
+      try {
+        const file = req.files.thumbnail_image[0];
+        const filename = `${Date.now()}-${uuidv4()}.jpg`;
+        const outputPath = path.join(UPLOAD_DIRS.events.thumbnails, filename);
 
-    //   // clean up any processed images
-    //   await cleanupOldImages(processedImages);
+        await processImage(file.path, outputPath, IMAGE_CONFIGS.event_thumbnail);
+        processedImages.thumbnail_image = `/uploads/events/thumbnails/${filename}`;
+      } catch (error) {
+        errors.push(`Thumbnail image: ${error.message}`);
+      }
+    }
 
-    //   return res.status(400).json({
-    //     success: false,
-    //     error: {
-    //       message: 'Failed to process some images',
-    //       details: errors
+    // Process logo image
+    if (req.files.logo_image && req.files.logo_image[0]) {
+      try {
+        const file = req.files.logo_image[0];
+        const filename = `${Date.now()}-${uuidv4()}.png`;
+        const outputPath = path.join(UPLOAD_DIRS.events.logos, filename);
+
+        await processImage(file.path, outputPath, IMAGE_CONFIGS.event_logo);
+        processedImages.logo_image = `/uploads/events/logos/${filename}`;
+      } catch (error) {
+        errors.push(`Logo image: ${error.message}`);
+      }
+    }
+
+    // Process venue map image
+    if (req.files.venue_map_image && req.files.venue_map_image[0]) {
+      try {
+        const file = req.files.venue_map_image[0];
+        const filename = `${Date.now()}-${uuidv4()}.jpg`
+        const outputPath = path.join(UPLOAD_DIRS.events.venueMaps, filename);
+      
+        await processImage(file.path, outputPath, IMAGE_CONFIGS.venue_map);
+        processedImages.venue_map_image = `/uploads/events/venue-maps/${filename}`;
+      } catch (error) {
+        errors.push(`Venue map image: ${error.message}`);
+      }
+    }
+
+    // Process all files in order
+    // for (const fileConfig of fileConfigs) {
+    //   if (req.files[fileConfig.fieldName] && req.files[fileConfig.fieldName][0]) {
+    //     const file = req.files[fileConfig.fieldName][0];
+    //     const filename = `${Date.now()}-${uuidv4()}.${fileConfig.extension}`;
+    //     const outputPath = path.join(fileConfig.outputDir, filename);
+
+    //     try {
+    //       await processImage(file.path, outputPath, fileConfig.config);
+          
+    //       const publicPath = `/uploads/events/${path.basename(fileConfig.outputDir)}/${filename}`;
+    //       processedImages[fileConfig.fieldName] = publicPath;
+    //       processedFiles.push(outputPath); // Track processed file
+          
+    //     } catch (error) {
+    //       // Cleanup all successfully processed files on error
+    //       console.error(`Error processing ${fileConfig.fieldName}:`, error);
+          
+    //       for (const processedFile of processedFiles) {
+    //         try {
+    //           if (fsSync.existsSync(processedFile)) {
+    //             await fs.unlink(processedFile);
+    //           }
+    //         } catch (cleanupError) {
+    //           console.error('Cleanup error:', cleanupError);
+    //         }
+    //       }
+
+    //       throw new Error(`Failed to process ${fileConfig.fieldName}: ${error.message}`);
     //     }
-    //   });
+    //   }
     // }
+
+    if (errors.length > 0) {
+      console.error('Image processing errors: ', errors);
+
+      // clean up any processed images
+      await cleanupOldImages(processedImages);
+
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Failed to process some images',
+          details: errors
+        }
+      });
+    }
 
     // Add processed image to request object
     
@@ -414,8 +414,9 @@ const processEventImages = async (req, res, next) => {
     //     }
     //   });
     // }
-
-    await cleanupTempFiles(req.files);
+    if (req.files) {
+      await cleanupTempFiles(req.files);
+    }
 
     return res.status(500).json({
       success: false,
@@ -481,7 +482,7 @@ const deleteFile = async (filePath) => {
     // Convert URL path to filesystem path
     const fsPath = path.join(process.cwd(), filePath.replace(/^\//, ''));
     
-    if (fs.existsSync(fsPath)) {
+    if (fsSync.existsSync(fsPath)) {
       await fs.unlink(fsPath);
       console.log(`Deleted file: ${fsPath}`);
       return true;
@@ -497,7 +498,7 @@ const deleteFile = async (filePath) => {
 /**
  * Clean up processed images 
  * */
-const cleaupProcessedImages = async (processedImages) => {
+const cleanupProcessedImages = async (processedImages) => {
   if (!processedImages) return;
   
   const deletePromises = Object.values(processedImages).map(filePath =>
@@ -566,7 +567,7 @@ module.exports = {
 
   deleteFile,
   cleanupOldImages,
-  cleaupProcessedImages,
+  cleanupProcessedImages,
   cleanupTempFiles,
 
   validateImageDimensions,
