@@ -185,7 +185,6 @@ router.post('/change-password',
 router.post('/resend-verification',
   authenticateToken,
   strictAuthLimiter,
-  authLimiter,
   logActivity('RESEND_VERIFICATION', 'USER'),
   AuthController.resendVerification
 );

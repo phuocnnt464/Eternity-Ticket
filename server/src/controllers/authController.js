@@ -5,7 +5,7 @@ const {
   generateRefreshToken, 
   verifyToken, 
   createResponse,
-  validatePassword
+  // validatePassword
 } = require('../utils/helpers');
 
 // TODO: Implement later

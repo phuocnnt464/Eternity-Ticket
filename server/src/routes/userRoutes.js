@@ -250,7 +250,7 @@ router.put('/:userId/preferences',
  * @desc    Debug user data
  * @access  Private
  */
-router.get('/debug', 
+router.get('/:userId/debug', 
   authenticateToken, 
   validateUUIDParam('userId'),
   authorizeOwnerOrAdmin('userId'),
