@@ -262,6 +262,7 @@ class UserModel {
       await pool.query(query, [lockUntil,userId]);
     } catch (error) {
       console.error('Error locking account:', error.message);
+      throw error;
     }
   }
 

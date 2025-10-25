@@ -185,6 +185,7 @@ router.post('/change-password',
 router.post('/resend-verification',
   authenticateToken,
   strictAuthLimiter,
+  authLimiter,
   logActivity('RESEND_VERIFICATION', 'USER'),
   AuthController.resendVerification
 );
@@ -197,17 +198,6 @@ router.post('/resend-verification',
 //     timestamp: new Date().toISOString()
 //   });
 // });
-
-/**
- * @route   POST /api/auth/resend-verification
- * @desc    Resend verification email
- * @access  Private
- */
-router.post('/resend-verification',
-  authenticateToken,
-  authLimiter,
-  AuthController.resendVerification
-);
 
 /**
  * @route   GET /api/auth/check-email/:email

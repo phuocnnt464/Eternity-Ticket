@@ -281,7 +281,7 @@ const processEventImages = async (req, res, next) => {
           processedImages.cover_image = `/uploads/events/covers/${filename}`;
         } catch (error) {
           console.log('Error processing cover image:', error.message);
-          errors.push(`Cover image: ${error.message}`);
+          // errors.push(`Cover image: ${error.message}`);
         }
       })());
     }
@@ -298,7 +298,7 @@ const processEventImages = async (req, res, next) => {
           processedImages.thumbnail_image = `/uploads/events/thumbnails/${filename}`;
         } catch (error) {
           console.log('Error processing thumbnail image:', error.message);
-          errors.push(`Thumbnail image: ${error.message}`);
+          // errors.push(`Thumbnail image: ${error.message}`);
         }
       })());
     }
@@ -315,7 +315,7 @@ const processEventImages = async (req, res, next) => {
           processedImages.logo_image = `/uploads/events/logos/${filename}`;
         } catch (error) {
           console.log('Error processing logo image:', error.message);
-          errors.push(`Logo image: ${error.message}`);
+          // errors.push(`Logo image: ${error.message}`);
         }
       })());
     }
@@ -332,7 +332,7 @@ const processEventImages = async (req, res, next) => {
           processedImages.venue_map_image = `/uploads/events/venue-maps/${filename}`;
         } catch (error) {
           console.log('Error processing venue map image:', error.message);
-          errors.push(`Venue map image: ${error.message}`);
+          // errors.push(`Venue map image: ${error.message}`);
         }
       })());
     }
@@ -340,20 +340,20 @@ const processEventImages = async (req, res, next) => {
     // Await all processing tasks
     await Promise.all(processingTasks);
 
-    if (errors.length > 0) {
-      console.error('Image processing errors: ', errors);
+    // if (errors.length > 0) {
+    //   console.error('Image processing errors: ', errors);
 
-      // clean up any processed images
-      await cleanupProcessedImages(processedImages);
+    //   // clean up any processed images
+    //   await cleanupProcessedImages(processedImages);
 
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Failed to process some images',
-          details: errors
-        }
-      });
-    }
+    //   return res.status(400).json({
+    //     success: false,
+    //     error: {
+    //       message: 'Failed to process some images',
+    //       details: errors
+    //     }
+    //   });
+    // }
 
     // Add processed image to request object
     req.body = {

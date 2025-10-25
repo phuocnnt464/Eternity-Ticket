@@ -22,7 +22,7 @@ const dbConfig = {
   port: parseInt(process.env.DB_PORT) || 5432,
   database: process.env.DB_NAME || 'eternity_ticket',
   user: process.env.DB_USER || 'eternity_user',
-  password: process.env.DB_PASSWORD || '',  // This will cause the error if empty
+  password: process.env.DB_PASSWORD,  // This will cause the error if empty
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   
   // Connection pool settings

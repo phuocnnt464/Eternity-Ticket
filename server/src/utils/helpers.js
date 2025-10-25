@@ -293,8 +293,9 @@ const truncateText = (text, maxLength = 100) => {
 const generateOrderNumber = () => {
   const date = new Date();
   const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-  const randomStr = generateSecureRandomString(8).toUpperCase();
-  return `ORD-${dateStr}-${randomStr}`;
+  // const randomStr = generateSecureRandomString(8).toUpperCase();
+  const uuid = uuidv4().split('-')[0];
+  return `ORD-${dateStr}-${uuid.toUpperCase()}`;
 };
 
 /**

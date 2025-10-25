@@ -65,10 +65,10 @@ const registerSchema = Joi.object({
     }),
 
   phone: Joi.string()
-    .pattern(/^[\d\s+()-]{10,20}$/)
+    .pattern(/^[\d\s+()-]{10,15}$/)
+    .trim()
     .optional()
     .allow('', null)
-    .trim()
     .messages({
       'string.pattern.base': 'Please provide a valid phone number (10-15 digits)'
     })

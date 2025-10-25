@@ -10,6 +10,12 @@ const logActivity = (action, entityType) => {
   return async (req, res, next) => {
     // Store original json method
     const originalJson = res.json;
+
+    // ✅ Cleanup khi response finished
+    res.on('finish', () => {
+      res.json = originalJson;
+    });
+    
     
     // Override res.json to intercept response
     res.json = function(data) {
