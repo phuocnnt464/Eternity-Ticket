@@ -917,6 +917,6 @@ class UserModel {
       client.release();
     }
   }
-}
+} 
 
 module.exports = UserModel;

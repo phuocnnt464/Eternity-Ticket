@@ -250,7 +250,7 @@ router.put('/:userId/preferences',
  * @desc    Debug user data
  * @access  Private
  */
-router.get('/debug', async (req, res) => {
+router.get('/debug', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const pool = require('../config/database');

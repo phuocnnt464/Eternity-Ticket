@@ -271,7 +271,7 @@ const processEventImages = async (req, res, next) => {
 
     // Process cover image
     if (req.files.cover_image && req.files.cover_image[0]) {
-      proccessingTasks.push((async () => {
+      processingTasks.push((async () => {
         try {
           const file = req.files.cover_image[0];
           const filename = `${timestamp}-${uuidv4()}.jpg`;
