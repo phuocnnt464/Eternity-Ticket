@@ -277,33 +277,7 @@ router.get('/:eventId/members',
   authorizeRoles('organizer'),
   validateUUIDParam('eventId'),
   authorizeEventOrganizer('eventId'),
-  async (req, res) => {
-    try {
-      const { eventId } = req.params;
-
-      const result = await pool.query(`
-        SELECT 
-          eom.*,
-          u.email, u.first_name, u.last_name,
-          invited.first_name || ' ' || invited.last_name as invited_by_name
-        FROM event_organizer_members eom
-        JOIN users u ON eom.user_id = u.id
-        LEFT JOIN users invited ON eom.invited_by = invited.id
-        WHERE eom.event_id = $1 AND eom.is_active = true
-        ORDER BY eom.created_at DESC
-      `, [eventId]);
-
-      res.json(createResponse(
-        true,
-        'Team members retrieved successfully',
-        { members: result.rows }
-      ));
-
-    } catch (error) {
-      console.error('Get members error:', error);
-      res.status(500).json(createResponse(false, 'Failed to get team members'));
-    }
-  }
+  EventController.getEventMembers
 );
 
 /**
@@ -317,23 +291,7 @@ router.delete('/:eventId/members/:memberId',
   validateUUIDParams('eventId', 'memberId'),
   authorizeEventOrganizer('eventId'),
   requireEventRole('owner'),
-  async (req, res) => {
-    try {
-      const { eventId, memberId } = req.params;
-
-      await pool.query(`
-        UPDATE event_organizer_members 
-        SET is_active = false, updated_at = NOW()
-        WHERE event_id = $1 AND user_id = $2 AND role != 'owner'
-      `, [eventId, memberId]);
-
-      res.json(createResponse(true, 'Team member removed successfully'));
-
-    } catch (error) {
-      console.error('Remove member error:', error);
-      res.status(500).json(createResponse(false, 'Failed to remove team member'));
-    }
-  }
+  EventController.removeEventMember
 );
 
 /**

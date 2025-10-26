@@ -92,8 +92,10 @@ const updateSessionSchema = Joi.object({
 
   start_time: Joi.date()
     .iso()
+    .min('now')
     .messages({
-      'date.iso': 'Start time must be a valid ISO date'
+      'date.iso': 'Start time must be a valid ISO date',
+      'date.min': 'Start time cannot be in the past'
     }),
 
   end_time: Joi.date()
