@@ -633,24 +633,60 @@ static async update(eventId, updateData, userId) {
    * Approve event (Admin only)
    */
   static async approve(eventId, adminId) {
-    const query = `
-      UPDATE events
-      SET status = 'approved',
-          approved_by = $1,
-          approved_at = NOW(),
-          updated_at = NOW()
-      WHERE id = $2 AND status = 'pending'
-      RETURNING *
-    `;
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // ✅ THÊM VALIDATION
+      const validationQuery = `
+        SELECT 
+          e.id,
+          (SELECT COUNT(*) FROM event_sessions WHERE event_id = e.id) as session_count,
+          (SELECT COUNT(*) FROM ticket_types WHERE event_id = e.id) as ticket_count
+        FROM events e
+        WHERE e.id = $1 AND e.status = 'pending'
+      `;
+      
+      const result = await client.query(validationQuery, [eventId]);
+      
+      if (result.rows.length === 0) {
+        throw new Error('Event not found or not pending approval');
+      }
+      
+      const event = result.rows[0];
+      
+      // Validate requirements
+      if (parseInt(event.session_count) === 0) {
+        throw new Error('Cannot approve event without sessions');
+      }
+      
+      if (parseInt(event.ticket_count) === 0) {
+        throw new Error('Cannot approve event without ticket types');
+      }
+
+      const updateQuery = `
+        UPDATE events
+        SET status = 'approved',
+            approved_by = $1,
+            approved_at = NOW(),
+            updated_at = NOW()
+        WHERE id = $2 AND status = 'pending'
+        RETURNING *
+      `;
+      
+      const updateResult = await client.query(updateQuery, [adminId, eventId]);
     
-    const result = await pool.query(query, [adminId, eventId]);
-    
-    if (result.rows.length === 0) {
-      throw new Error('Event not found or not pending approval');
+      await client.query('COMMIT');
+
+      console.log(`✅ Event approved: ${updateResult.rows[0].title}`);
+      return updateResult.rows[0];
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-    
-    console.log(`✅ Event approved: ${result.rows[0].title}`);
-    return result.rows[0];
   }
 
   /**

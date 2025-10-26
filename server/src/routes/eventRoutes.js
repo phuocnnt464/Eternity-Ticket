@@ -28,7 +28,6 @@ const {
   rejectEventSchema,
   slugParamSchema
 } = require('../validations/eventValidation');
-const e = require('express');
 
 const router = express.Router();
 
