@@ -28,6 +28,7 @@ const {
   rejectEventSchema,
   slugParamSchema
 } = require('../validations/eventValidation');
+const e = require('express');
 
 const router = express.Router();
 
@@ -263,51 +264,7 @@ router.post('/:eventId/members',
     email: Joi.string().email().required(),
     role: Joi.string().valid('manager', 'checkin_staff').required()
   })),
-  async (req, res) => {
-    try {
-      const { eventId } = req.params;
-      const { email, role } = req.body;
-      const invitedBy = req.user.id;
-
-      // Find user by email
-      const user = await UserModel.findByEmail(email);
-      if (!user) {
-        return res.status(404).json(
-          createResponse(false, 'User not found with this email')
-        );
-      }
-
-      // Check if already member
-      const existingQuery = await pool.query(
-        'SELECT id FROM event_organizer_members WHERE event_id = $1 AND user_id = $2',
-        [eventId, user.id]
-      );
-
-      if (existingQuery.rows.length > 0) {
-        return res.status(409).json(
-          createResponse(false, 'User is already a team member')
-        );
-      }
-
-      // Add member
-      const result = await pool.query(`
-        INSERT INTO event_organizer_members 
-        (event_id, user_id, role, invited_by, accepted_at, is_active)
-        VALUES ($1, $2, $3, $4, NOW(), true)
-        RETURNING *
-      `, [eventId, user.id, role, invitedBy]);
-
-      res.json(createResponse(
-        true,
-        'Team member added successfully',
-        { member: result.rows[0] }
-      ));
-
-    } catch (error) {
-      console.error('Add member error:', error);
-      res.status(500).json(createResponse(false, 'Failed to add team member'));
-    }
-  }
+  EventController.addEventMember
 );
 
 /**

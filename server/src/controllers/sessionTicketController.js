@@ -1,6 +1,7 @@
 // src/controllers/sessionTicketController.js
 const SessionTicketModel = require('../models/sessionTicketModel');
 const { createResponse } = require('../utils/helpers');
+ const pool = require('../config/database');
 
 class SessionTicketController {
   /**
@@ -347,12 +348,9 @@ class SessionTicketController {
       JOIN events e ON tt.event_id = e.id
       WHERE tt.id = $1 AND tt.is_active = true
     `;
-
     const result = await pool.query(query, [ticketTypeId]);
     return result.rows[0] || null;
-  }
-
-  
+  } 
 
   /**
    * Get event with sessions and ticket types (for purchase)

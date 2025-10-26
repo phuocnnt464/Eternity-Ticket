@@ -791,7 +791,7 @@ class EventController {
       
       // Check events created by this organizer
       const eventsQuery = `
-        SELECT id, title, status, organizer_id, created_at ,
+        SELECT id, title, status, organizer_id, created_at,
           (SELECT COUNT(*) FROM event_sessions WHERE event_id = e.id) as session_count,
           (SELECT COUNT(*) FROM ticket_types WHERE event_id = e.id) as ticket_count
         FROM events e
@@ -814,6 +814,52 @@ class EventController {
       console.error('❌ Debug my events error:', error.message);
       const { createResponse } = require('../utils/helpers');
       res.status(500).json(createResponse(false, `Debug error: ${error.message}`));
+    }
+  }
+
+  static async addEventMember(req, res) {
+    try {
+      const { eventId } = req.params;
+      const { email, role } = req.body;
+      const invitedBy = req.user.id;
+
+      // Find user by email
+      const user = await UserModel.findByEmail(email);
+      if (!user) {
+        return res.status(404).json(
+          createResponse(false, 'User not found with this email')
+        );
+      }
+
+      // Check if already member
+      const existingQuery = await pool.query(
+        'SELECT id FROM event_organizer_members WHERE event_id = $1 AND user_id = $2',
+        [eventId, user.id]
+      );
+
+      if (existingQuery.rows.length > 0) {
+        return res.status(409).json(
+          createResponse(false, 'User is already a team member')
+        );
+      }
+
+      // Add member
+      const result = await pool.query(`
+        INSERT INTO event_organizer_members 
+        (event_id, user_id, role, invited_by, accepted_at, is_active)
+        VALUES ($1, $2, $3, $4, NOW(), true)
+        RETURNING *
+      `, [eventId, user.id, role, invitedBy]);
+
+      res.json(createResponse(
+        true,
+        'Team member added successfully',
+        { member: result.rows[0] }
+      ));
+
+    } catch (error) {
+      console.error('Add member error:', error);
+      res.status(500).json(createResponse(false, 'Failed to add team member'));
     }
   }
 }

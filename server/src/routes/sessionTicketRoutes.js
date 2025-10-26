@@ -40,7 +40,7 @@ const sessionTicketLimiter = rateLimit({
 router.post('/:eventId/sessions',
   sessionTicketLimiter,
   authenticateToken,
-  authorizeRoles(['organizer']),
+  authorizeRoles('organizer'),
   validate(uuidParamSchema, 'params'),
   validate(createSessionSchema),
   SessionTicketController.createSession
@@ -64,7 +64,7 @@ router.get('/:eventId/sessions',
 router.put('/session/:sessionId',
   sessionTicketLimiter,
   authenticateToken,
-  authorizeRoles(['organizer']),
+  authorizeRoles('organizer'),
   validate(uuidParamSchema, 'params'),
   validate(updateSessionSchema),
   SessionTicketController.updateSession
@@ -77,7 +77,7 @@ router.put('/session/:sessionId',
  */
 router.delete('/session/:sessionId',
   authenticateToken,
-  authorizeRoles(['organizer']),
+  authorizeRoles('organizer'),
   validate(uuidParamSchema, 'params'),
   SessionTicketController.deleteSession
 );
@@ -94,7 +94,7 @@ router.delete('/session/:sessionId',
 router.post('/session/:sessionId/tickets',
   sessionTicketLimiter,
   authenticateToken,
-  authorizeRoles(['organizer']),
+  authorizeRoles('organizer'),
   validate(uuidParamSchema, 'params'),
   validate(createTicketTypeSchema),
   SessionTicketController.createTicketType
@@ -118,7 +118,7 @@ router.get('/session/:sessionId/tickets',
 router.put('/ticket/:ticketTypeId',
   sessionTicketLimiter,
   authenticateToken,
-  authorizeRoles(['organizer']),
+  authorizeRoles('organizer'),
   validate(uuidParamSchema, 'params'),
   validate(updateTicketTypeSchema),
   SessionTicketController.updateTicketType
@@ -131,7 +131,7 @@ router.put('/ticket/:ticketTypeId',
  */
 router.delete('/ticket/:ticketTypeId',
   authenticateToken,
-  authorizeRoles(['organizer']),
+  authorizeRoles('organizer'),
   validate(uuidParamSchema, 'params'),
   SessionTicketController.deleteTicketType
 );
