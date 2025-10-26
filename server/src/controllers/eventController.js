@@ -1,6 +1,8 @@
 // src/controllers/eventController.js
 const EventModel = require('../models/eventModel');
 const { createResponse, paginate } = require('../utils/helpers');
+const UserModel = require('../models/userModel');  
+const pool = require('../config/database');  
 
 class EventController {
   /**
