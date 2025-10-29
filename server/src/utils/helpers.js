@@ -23,8 +23,8 @@ if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
 const generateAccessToken = (payload) => {
   return jwt.sign(payload, JWT_SECRET, { 
     expiresIn: JWT_EXPIRES_IN,
-    issuer: 'eternity-ticket',
-    audience: 'eternity-ticket-users',
+    issuer: 'eternity-tickets',
+    audience: 'eternity-user',
     subject: payload.id
   });
 };
@@ -52,8 +52,8 @@ const generateRefreshToken = (payload) => {
 const verifyToken = (token, secret = JWT_SECRET) => {
   try { 
     return jwt.verify(token, secret, {
-      issuer: 'eternity-ticket',
-      audience: 'eternity-ticket-users'
+      issuer: 'eternity-tickets',
+      audience: 'eternity-user'
     });
   } catch (error) {
     throw error;

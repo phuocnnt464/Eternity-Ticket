@@ -21,39 +21,40 @@ const validate = (schema, source = 'body') => {
           // Nếu là JSON string (object/array) → parse
           // parsed[key] = JSON.parse(dataToValidate[key]);
 
-          const parsed = JSON.parse(dataToValidate[key]);
+          const jsonValue = JSON.parse(dataToValidate[key]);
   
           // ✅ Validate size
-          const stringified = JSON.stringify(parsed);
+          const stringified = JSON.stringify(jsonValue);
           if (stringified.length > 100000) { // 100KB limit
             throw new Error('JSON payload too large');
           }
           
           // ✅ Validate depth (optional)
-          const depth = getJSONDepth(parsed);
+          const depth = getJSONDepth(jsonValue);
           if (depth > 10) {
             throw new Error('JSON nested too deep');
           }
-          
-          parsedData[key] = parsed;
-        } catch {
+
+          parsedData[key] = jsonValue;
+        } catch(error) {
           //Keep as string if not valid json
           // nếu không parse được thì giữ nguyên string
           // parsed[key] = dataToValidate[key];
 
-          if (error.message.includes('JSON')) {
+          if (error.message && error.message.includes('JSON')) {
             throw error; // Re-throw validation errors
           }
           parsedData[key] = dataToValidate[key];
         }
-
-        // Helper function
-        function getJSONDepth(obj, depth = 0) {
-          if (typeof obj !== 'object' || obj === null) return depth;
-          return Math.max(...Object.values(obj).map(v => getJSONDepth(v, depth + 1)));
-        }
       }
       dataToValidate = parsed;
+    }
+
+    // Helper function
+    function getJSONDepth(obj, depth = 0) {
+      if (typeof obj !== 'object' || obj === null) return depth;
+      if (Object.keys(obj).length === 0) return depth;
+      return Math.max(...Object.values(obj).map(v => getJSONDepth(v, depth + 1)));
     }
 
     // Validate data against schema

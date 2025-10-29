@@ -1,6 +1,57 @@
 // src/middleware/authMiddleware.js
 const { verifyToken, createResponse } = require('../utils/helpers');
 const UserModel = require('../models/userModel');
+const pool = require('../config/database');
+
+/**
+ * Log failed authentication attempt
+ */
+async function logFailedAuth(ip, reason) {
+  try {
+    await pool.query(`
+      INSERT INTO activity_logs (action, description, ip_address, metadata)
+      VALUES ('auth_failed', 'Failed authentication attempt', $1, $2)
+    `, [ip, JSON.stringify({ reason })]);
+  } catch (error) {
+    console.error('Failed to log auth attempt:', error);
+  }
+}
+
+/**
+ * Check rate limit for IP
+ */
+async function checkRateLimit(key) {
+  try {
+    const result = await pool.query(`
+      SELECT COUNT(*) as count
+      FROM rate_limits
+      WHERE identifier = $1 
+        AND action = 'auth_failed'
+        AND window_start > NOW() - INTERVAL '15 minutes'
+    `, [key]);
+    
+    return parseInt(result.rows[0]?.count || 0);
+  } catch (error) {
+    console.error('Rate limit check error:', error);
+    return 0; // Don't block on error
+  }
+}
+
+/**
+ * Increment fail counter
+ */
+async function incrementFailCounter(key) {
+  try {
+    await pool.query(`
+      INSERT INTO rate_limits (identifier, action, window_start, request_count)
+      VALUES ($1, 'auth_failed', NOW(), 1)
+      ON CONFLICT (identifier, action, window_start)
+      DO UPDATE SET request_count = rate_limits.request_count + 1
+    `, [key]);
+  } catch (error) {
+    console.error('Failed to increment counter:', error);
+  }
+}
 
 /**
  * JWT Authentication Middleware

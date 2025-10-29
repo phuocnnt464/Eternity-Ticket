@@ -555,8 +555,11 @@ class AdminController {
       const { refundId } = req.params;
       const { reason } = req.body;
       const adminId = req.user.id;
-      
+
+      await client.query('BEGIN'); 
+    
       if (!reason) {
+        await client.query('ROLLBACK');
         return res.status(400).json(
           createResponse(false, 'Rejection reason is required')
         );
