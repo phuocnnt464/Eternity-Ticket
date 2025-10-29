@@ -467,6 +467,7 @@ class AdminController {
         JOIN users u ON o.user_id = u.id
         JOIN events e ON o.event_id = e.id
         WHERE r.id = $1 AND r.status = 'pending'
+        FOR UPDATE
       `, [refundId]);
 
       if (refundQuery.rows.length === 0) {

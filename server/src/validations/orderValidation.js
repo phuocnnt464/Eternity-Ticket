@@ -131,11 +131,39 @@ const processPaymentSchema = Joi.object({
       'any.required': 'Payment method is required'
     }),
 
-  payment_data: Joi.object()
-    .optional()
-    .messages({
-      'object.base': 'Payment data must be an object'
+  // payment_data: Joi.object()
+  //   .optional()
+  //   .messages({
+  //     'object.base': 'Payment data must be an object'
+  //   })
+
+  
+  payment_data: Joi.object({
+    // Validate dựa trên payment_method
+    card_number: Joi.when('..payment_method', {
+      is: 'banking',
+      then: Joi.string().creditCard().required(),
+      otherwise: Joi.forbidden()
+    }),
+    
+    vnpay_token: Joi.when('..payment_method', {
+      is: 'vnpay',
+      then: Joi.string().required(),
+      otherwise: Joi.forbidden()
+    }),
+
+    momo_token: Joi.when('..payment_method', {
+      is: 'momo',
+      then: Joi.string().required(),
+      otherwise: Joi.forbidden()
+    }), 
+    cash_received_by: Joi.when('..payment_method', {
+      is: 'cash',
+      then: Joi.string().min(2).max(100).required(),
+      otherwise: Joi.forbidden()
     })
+  })
+  .optional()
 });
 
 // Order query validation (for listing orders)

@@ -13,8 +13,19 @@ const authenticateToken = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
+      await logFailedAuth(req.ip, 'missing_token');
       return res.status(401).json(
         createResponse(false, 'Access token is required. Please provide a valid token.')
+      );
+    }
+
+     // ✅ Check rate limit trước khi verify
+    const rateLimitKey = `auth_fail:${req.ip}`;
+    const failedAttempts = await checkRateLimit(rateLimitKey);
+    
+    if (failedAttempts > 10) { // 10 attempts per 15 minutes
+      return res.status(429).json(
+        createResponse(false, 'Too many failed authentication attempts')
       );
     }
 
@@ -58,6 +69,9 @@ const authenticateToken = async (req, res, next) => {
     next();
 
   } catch (error) {
+    // ✅ Increment fail counter
+    await incrementFailCounter(`auth_fail:${req.ip}`);
+    
     console.error('❌ Auth middleware error:', error.message);
 
     let message = 'Invalid token. Please log in again.';

@@ -97,7 +97,11 @@ class OrderModel {
       // Get user membership for discounts
       const membershipQuery = await client.query(`
         SELECT tier FROM memberships 
-        WHERE user_id = $1 AND is_active = true
+        WHERE user_id = $1 
+          AND is_active = true
+          AND (end_date IS NULL OR end_date > NOW())
+        ORDER BY created_at DESC
+      LIMIT 1
       `, [userId]);
 
       const membershipTier = membershipQuery.rows.length > 0 ? membershipQuery.rows[0].tier : 'basic';

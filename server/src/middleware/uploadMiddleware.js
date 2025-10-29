@@ -438,9 +438,22 @@ const deleteFile = async (filePath) => {
   try {
     if (!filePath) return false;
 
+     // ✅ Validate path không có ".."
+    if (filePath.includes('..') || !filePath.startsWith('/uploads/')) {
+      console.error('Invalid file path:', filePath);
+      return false;
+    }
+
     // Convert URL path to filesystem path
     const fsPath = path.join(process.cwd(), filePath.replace(/^\//, ''));
     
+     // ✅ Đảm bảo file nằm trong thư mục uploads
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    if (!fsPath.startsWith(uploadsDir)) {
+      console.error('Path traversal attempt:', filePath);
+      return false;
+    }
+
     if (fsSync.existsSync(fsPath)) {
       await fs.unlink(fsPath);
       console.log(`Deleted file: ${fsPath}`);

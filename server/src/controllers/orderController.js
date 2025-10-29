@@ -188,12 +188,13 @@ class OrderController {
           message: 'Payment successful'
         };
       } else {
+        const isSuccess = Math.random() > 0.1; // 90% success rate
         // Mock other payment methods
         paymentResult = {
-          success: Math.random() > 0.1, // 90% success rate for testing
+          success: isSuccess,
           transaction_id: transactionId,
-          response_code: paymentResult?.success ? '00' : '01',
-          message: paymentResult?.success ? 'Payment successful' : 'Payment failed'
+          response_code: isSuccess ? '00' : '01',
+          message: isSuccess ? 'Payment successful' : 'Payment failed'
         };
       }
 

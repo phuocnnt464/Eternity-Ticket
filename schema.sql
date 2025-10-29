@@ -1101,6 +1101,9 @@ INSERT INTO system_settings (setting_key, setting_value, description, is_public)
 ('time_format', '24', 'Time format (12 or 24 hour)', true);
 
 -- Insert default admin user (password: admin123 - MUST BE CHANGED!)
+-- ⚠️ WARNING: CHANGE DEFAULT ADMIN PASSWORD IMMEDIATELY AFTER FIRST LOGIN!
+-- Default credentials: admin@eternityticket.com / admin123
+-- Security risk if not changed in production environment
 INSERT INTO users (email, password_hash, role, first_name, last_name, is_email_verified, is_active) 
 VALUES ('admin@eternityticket.com', crypt('admin123', gen_salt('bf')), 'admin', 'System', 'Administrator', true, true);
 
