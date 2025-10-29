@@ -14,7 +14,15 @@ const validate = (schema, source = 'body') => {
     // Handle multipart/form-data (file uploads with form fields)
     // Nếu request là multipart → req.body toàn string
     if (req.is('multipart/form-data') && source === 'body') {
-      const parsed = {};
+      const parsedData = {};
+
+      // Helper function
+      const getJSONDepth = (obj, depth = 0) => {
+        if (typeof obj !== 'object' || obj === null) return depth;
+        if (Object.keys(obj).length === 0) return depth;
+        return Math.max(...Object.values(obj).map(v => getJSONDepth(v, depth + 1)));
+      };
+
       for (const key in dataToValidate) {
         try {
           // Try to parse JSON String (object/array)
@@ -41,20 +49,13 @@ const validate = (schema, source = 'body') => {
           // nếu không parse được thì giữ nguyên string
           // parsed[key] = dataToValidate[key];
 
-          if (error.message && error.message.includes('JSON')) {
+          if (error.message &&  (error.message.includes('JSON') || error.message.includes('payload'))) {
             throw error; // Re-throw validation errors
           }
           parsedData[key] = dataToValidate[key];
         }
       }
-      dataToValidate = parsed;
-    }
-
-    // Helper function
-    function getJSONDepth(obj, depth = 0) {
-      if (typeof obj !== 'object' || obj === null) return depth;
-      if (Object.keys(obj).length === 0) return depth;
-      return Math.max(...Object.values(obj).map(v => getJSONDepth(v, depth + 1)));
+      dataToValidate = parsedData;
     }
 
     // Validate data against schema
