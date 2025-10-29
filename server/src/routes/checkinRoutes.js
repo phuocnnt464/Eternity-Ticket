@@ -7,10 +7,13 @@ const {
   authorizeEventOrganizer,
   requireEventRole } = require('../middleware/authMiddleware');
 
+const { createResponse } = require('../utils/helpers');  
+const pool = require('../config/database');
+
 const router = express.Router();
 
 /**
- * ✅ Helper middleware: Lấy eventId từ ticketCode nếu cần
+ * Helper middleware: Lấy eventId từ ticketCode nếu cần
  * Để authorizeEventOrganizer hoạt động, cần eventId trong req.params hoặc req.body
  */
 const extractEventIdFromTicket = async (req, res, next) => {
@@ -39,7 +42,7 @@ const extractEventIdFromTicket = async (req, res, next) => {
         );
       }
       
-      // ✅ Inject eventId vào params để middleware tiếp theo dùng
+      // Inject eventId vào params để middleware tiếp theo dùng
       req.params.eventId = result.rows[0].event_id;
     }
     
@@ -53,19 +56,19 @@ const extractEventIdFromTicket = async (req, res, next) => {
 };
 
 /**
- * ✅ Middleware tổng hợp cho undo checkin
+ * Middleware tổng hợp cho undo checkin
  * Chỉ owner và admin được undo
  */
 const canUndoCheckin = [
   extractEventIdFromTicket,
   authorizeEventOrganizer(),
   (req, res, next) => {
-    // ✅ Admin luôn được phép
+    // Admin luôn được phép
     if (req.isAdmin) {
       return next();
     }
-    
-    // ✅ Chỉ owner mới được undo
+
+    // Chỉ owner mới được undo
     if (!req.eventAccess || !req.eventAccess.isOwner) {
       return res.status(403).json(
         createResponse(false, 'Only event owner or admin can undo check-ins')
