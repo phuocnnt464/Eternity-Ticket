@@ -306,7 +306,7 @@ const authorizeEventOrganizer = (eventIdParam = 'eventId') => {
       );
     }
 
-    const eventId = req.params[eventIdParam] || req.body[eventIdParam];
+    const eventId = req.params[eventIdParam] || req.query[eventIdParam];
 
     if (!eventId) {
       return res.status(400).json(

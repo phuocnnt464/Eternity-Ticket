@@ -1,9 +1,80 @@
 // src/routes/checkinRoutes.js
 const express = require('express');
 const CheckinController = require('../controllers/checkinController');
-const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
+const { 
+  authenticateToken, 
+  authorizeRoles, 
+  authorizeEventOrganizer,
+  requireEventRole } = require('../middleware/authMiddleware');
 
 const router = express.Router();
+
+/**
+ * ✅ Helper middleware: Lấy eventId từ ticketCode nếu cần
+ * Để authorizeEventOrganizer hoạt động, cần eventId trong req.params hoặc req.body
+ */
+const extractEventIdFromTicket = async (req, res, next) => {
+  try {
+    // Nếu đã có eventId trong params hoặc query, skip
+    if (req.params.eventId || req.query.eventId || req.body.eventId) {
+      // Đưa eventId vào params để authorizeEventOrganizer dùng
+      if (!req.params.eventId) {
+        req.params.eventId = req.query.eventId || req.body.eventId;
+      }
+      return next();
+    }
+    
+    // Nếu có ticketCode, lấy eventId từ ticket
+    const { ticketCode } = req.params;
+    
+    if (ticketCode) {
+      const result = await pool.query(
+        'SELECT event_id FROM tickets WHERE ticket_code = $1',
+        [ticketCode]
+      );
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json(
+          createResponse(false, 'Ticket not found')
+        );
+      }
+      
+      // ✅ Inject eventId vào params để middleware tiếp theo dùng
+      req.params.eventId = result.rows[0].event_id;
+    }
+    
+    next();
+  } catch (error) {
+    console.error('❌ Extract eventId error:', error);
+    return res.status(500).json(
+      createResponse(false, 'Failed to verify ticket')
+    );
+  }
+};
+
+/**
+ * ✅ Middleware tổng hợp cho undo checkin
+ * Chỉ owner và admin được undo
+ */
+const canUndoCheckin = [
+  extractEventIdFromTicket,
+  authorizeEventOrganizer(),
+  (req, res, next) => {
+    // ✅ Admin luôn được phép
+    if (req.isAdmin) {
+      return next();
+    }
+    
+    // ✅ Chỉ owner mới được undo
+    if (!req.eventAccess || !req.eventAccess.isOwner) {
+      return res.status(403).json(
+        createResponse(false, 'Only event owner or admin can undo check-ins')
+      );
+    }
+    
+    next();
+  }
+];
 
 // All check-in routes require authentication
 router.use(authenticateToken);
@@ -14,7 +85,9 @@ router.use(authenticateToken);
  * @access  Private (Event Staff)
  */
 router.get('/verify/:ticketCode',
-  authorizeRoles(['organizer', 'admin']),
+  extractEventIdFromTicket,
+  authorizeEventOrganizer(),
+  requireEventRole('manager','checkin_staff'),
   CheckinController.verifyTicket
 );
 
@@ -24,7 +97,9 @@ router.get('/verify/:ticketCode',
  * @access  Private (Event Staff)
  */
 router.post('/:ticketCode',
-  authorizeRoles(['organizer', 'admin']),
+  extractEventIdFromTicket,
+  authorizeEventOrganizer(),
+  requireEventRole('manager','checkin_staff'),
   CheckinController.checkinTicket
 );
 
@@ -34,7 +109,8 @@ router.post('/:ticketCode',
  * @access  Private (Event Organizer)
  */
 router.get('/event/:eventId/stats',
-  authorizeRoles(['organizer', 'admin']),
+  authorizeEventOrganizer(),
+  requireEventRole('manager'),
   CheckinController.getCheckinStats
 );
 
@@ -44,7 +120,8 @@ router.get('/event/:eventId/stats',
  * @access  Private (Event Organizer)
  */
 router.get('/event/:eventId/recent',
-  authorizeRoles(['organizer', 'admin']),
+  authorizeEventOrganizer(),
+  requireEventRole('manager','checkin_staff'),
   CheckinController.getRecentCheckins
 );
 
@@ -54,7 +131,8 @@ router.get('/event/:eventId/recent',
  * @access  Private (Event Organizer)
  */
 router.get('/event/:eventId/search',
-  authorizeRoles(['organizer', 'admin']),
+  authorizeEventOrganizer(),
+  requireEventRole('manager','checkin_staff'),
   CheckinController.searchTickets
 );
 
@@ -64,7 +142,7 @@ router.get('/event/:eventId/search',
  * @access  Private (Event Owner/Admin)
  */
 router.delete('/:ticketCode',
-  authorizeRoles(['organizer', 'admin']),
+  ...canUndoCheckin,
   CheckinController.undoCheckin
 );
 

@@ -951,7 +951,7 @@ BEGIN
         v_order_id, 
         format('Reserved %s tickets. Expires in %s minutes', p_quantity, p_hold_minutes)::TEXT;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- =============================================
 -- VIEWS FOR COMMON QUERIES

@@ -11,11 +11,18 @@ const logActivity = (action, entityType) => {
     // Store original json method
     const originalJson = res.json;
 
-    // ✅ Cleanup khi response finished
+    // ✅ Cleanup khi response 
     res.on('finish', () => {
       res.json = originalJson;
     });
-    
+
+    res.on('close', () => {
+      res.json = originalJson;
+    });
+
+    res.on('error', () => {
+      res.json = originalJson;
+    });
     
     // Override res.json to intercept response
     res.json = function(data) {
@@ -66,6 +73,18 @@ const logActivity = (action, entityType) => {
 const logAdminAudit = (action, targetType) => {
   return async (req, res, next) => {
     const originalJson = res.json;
+    
+    res.on('finish', () => {
+      res.json = originalJson;
+    });
+
+    res.on('close', () => {
+      res.json = originalJson;
+    });
+
+    res.on('error', () => {
+      res.json = originalJson;
+    });
     
     res.json = function(data) {
       if (data.success && req.user && ['admin', 'sub_admin'].includes(req.user.role)) {
