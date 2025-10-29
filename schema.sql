@@ -1,6 +1,7 @@
 -- =============================================
 -- ETERNITY TICKET DATABASE SCHEMA
 -- PostgreSQL Database for Event Ticketing System
+-- Version: 1.0
 -- =============================================
 
 -- Enable required extensions
@@ -12,46 +13,46 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- =============================================
 
 CREATE TYPE user_role AS ENUM (
-    'participant',      -- Event participant
-    'organizer',       -- Event organizer  
-    'admin',           -- System administrator
-    'sub_admin'        -- Sub administrator
+    'participant',
+    'organizer',
+    'admin',
+    'sub_admin'
 );
 
 CREATE TYPE membership_tier AS ENUM (
     'basic',
-    'advanced', 
+    'advanced',
     'premium'
 );
 
 CREATE TYPE event_privacy AS ENUM (
-    'public',          -- Public event
-    'private'          -- Private event (requires link)
+    'public',
+    'private'
 );
 
 CREATE TYPE event_status AS ENUM (
-    'draft',           -- Draft
-    'pending',         -- Pending approval
-    'approved',        -- Approved
-    'rejected',        -- Rejected
-    'active',          -- Active/Live
-    'completed',       -- Completed
-    'cancelled'        -- Cancelled
+    'draft',
+    'pending',
+    'approved',
+    'rejected',
+    'active',
+    'completed',
+    'cancelled'
 );
 
 CREATE TYPE organizer_member_role AS ENUM (
-    'owner',           -- Event Owner/Admin
-    'manager',         -- Manager
-    'checkin_staff'    -- Check-in Staff
+    'owner',
+    'manager',
+    'checkin_staff'
 );
 
 CREATE TYPE order_status AS ENUM (
-    'pending',         -- Pending payment
-    'processing',      -- Processing
-    'paid',            -- Paid
-    'failed',          -- Payment failed
-    'cancelled',       -- Cancelled
-    'refunded'         -- Refunded
+    'pending',
+    'processing',
+    'paid',
+    'failed',
+    'cancelled',
+    'refunded'
 );
 
 CREATE TYPE payment_method AS ENUM (
@@ -62,30 +63,45 @@ CREATE TYPE payment_method AS ENUM (
 );
 
 CREATE TYPE notification_type AS ENUM (
-    'system',          -- System notification
-    'event_reminder',  -- Event reminder
-    'payment',         -- Payment related
-    'membership',      -- Membership related
-    'promotion'        -- Promotion/Marketing
+    'system',
+    'event_reminder',
+    'payment',
+    'membership',
+    'promotion'
 );
 
 CREATE TYPE coupon_type AS ENUM (
-    'percentage',      -- Percentage discount
-    'fixed_amount'     -- Fixed amount discount
+    'percentage',
+    'fixed_amount'
 );
 
 CREATE TYPE ticket_status AS ENUM (
-    'valid',           -- Valid ticket
-    'used',            -- Already used
-    'cancelled',       -- Cancelled
-    'refunded'         -- Refunded
+    'valid',
+    'used',
+    'cancelled',
+    'refunded'
+);
+
+CREATE TYPE refund_reason AS ENUM (
+    'event_cancelled',
+    'payment_error',
+    'duplicate_payment',
+    'other'
+);
+
+CREATE TYPE refund_status AS ENUM (
+    'pending',
+    'approved',
+    'rejected',
+    'processing',
+    'completed'
 );
 
 -- =============================================
 -- CORE TABLES
 -- =============================================
 
--- Users table - User management
+-- Users table
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -100,17 +116,29 @@ CREATE TABLE users (
     address TEXT,
     city VARCHAR(100),
     country VARCHAR(100) DEFAULT 'Vietnam',
+    
+    -- Email verification
     is_email_verified BOOLEAN DEFAULT FALSE,
     email_verification_token VARCHAR(255),
+    
+    -- Password reset
     reset_password_token VARCHAR(255),
     reset_password_expires_at TIMESTAMP,
+    
+    -- Security
     last_login_at TIMESTAMP,
+    last_purchase_at TIMESTAMP,
+    purchase_cooldown_until TIMESTAMP,
+    failed_login_attempts INTEGER DEFAULT 0,
+    account_locked_until TIMESTAMP,
+    
+    -- Status
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Memberships table - Paid membership management
+-- Memberships table
 CREATE TABLE memberships (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -122,10 +150,11 @@ CREATE TABLE memberships (
     payment_date TIMESTAMP,
     auto_renewal BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT check_membership_dates CHECK (end_date IS NULL OR end_date > start_date)
 );
 
--- Categories table - Event categories
+-- Categories table
 CREATE TABLE categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(100) NOT NULL,
@@ -136,7 +165,7 @@ CREATE TABLE categories (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Events table - Event management
+-- Events table
 CREATE TABLE events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organizer_id UUID NOT NULL REFERENCES users(id),
@@ -147,10 +176,10 @@ CREATE TABLE events (
     short_description TEXT,
     
     -- Event images
-    cover_image VARCHAR(500),      -- 1280x720
-    thumbnail_image VARCHAR(500),  -- 720x958
-    logo_image VARCHAR(500),       -- 275x275
-    venue_map_image VARCHAR(500),  -- Venue area map
+    cover_image VARCHAR(500),
+    thumbnail_image VARCHAR(500),
+    logo_image VARCHAR(500),
+    venue_map_image VARCHAR(500),
     
     -- Venue information
     venue_name VARCHAR(255),
@@ -170,7 +199,7 @@ CREATE TABLE events (
     status event_status DEFAULT 'draft',
     
     -- Payment information
-    payment_account_info JSONB,    -- Payment account details
+    payment_account_info JSONB,
     
     -- Confirmation content
     booking_confirmation_content TEXT,
@@ -185,15 +214,19 @@ CREATE TABLE events (
     approved_at TIMESTAMP,
     rejection_reason TEXT,
     
+    -- Cancellation
+    cancelled_at TIMESTAMP,
+    cancellation_reason TEXT,
+    
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Event sessions table - Event sessions/dates (Day 1, Day 2, Session 1, etc.)
+-- Event sessions table
 CREATE TABLE event_sessions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,       -- "Day 1", "Session 1", "Afternoon Show"
+    title VARCHAR(255) NOT NULL,
     description TEXT,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
@@ -202,15 +235,17 @@ CREATE TABLE event_sessions (
     is_active BOOLEAN DEFAULT TRUE,
     sort_order INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT check_session_time CHECK (start_time < end_time),
+    CONSTRAINT check_session_min_max CHECK (min_tickets_per_order <= max_tickets_per_order)
 );
 
--- Ticket types table - Ticket categories (VIP, Regular, Early Bird, etc.)
+-- Ticket types table
 CREATE TABLE ticket_types (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     session_id UUID NOT NULL REFERENCES event_sessions(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,        -- "VIP A", "Regular", "Early Bird"
+    name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(12,2) NOT NULL,
     total_quantity INTEGER NOT NULL,
@@ -222,16 +257,21 @@ CREATE TABLE ticket_types (
     sale_start_time TIMESTAMP NOT NULL,
     sale_end_time TIMESTAMP NOT NULL,
     
-    -- Early access for premium members (minutes before regular sale)
+    -- Early access
     premium_early_access_minutes INTEGER DEFAULT 0,
     
     sort_order INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT check_price_positive CHECK (price >= 0),
+    CONSTRAINT check_total_quantity_positive CHECK (total_quantity > 0),
+    CONSTRAINT check_sold_quantity CHECK (sold_quantity >= 0 AND sold_quantity <= total_quantity),
+    CONSTRAINT check_min_max_quantity CHECK (min_quantity_per_order <= max_quantity_per_order),
+    CONSTRAINT check_sale_time CHECK (sale_start_time < sale_end_time)
 );
 
--- Event organizer members - Event organization team members
+-- Event organizer members table
 CREATE TABLE event_organizer_members (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -243,7 +283,6 @@ CREATE TABLE event_organizer_members (
     is_active BOOLEAN DEFAULT TRUE,
     permissions JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT NOW(),
-    
     UNIQUE(event_id, user_id)
 );
 
@@ -251,7 +290,7 @@ CREATE TABLE event_organizer_members (
 -- ORDERS & PAYMENTS
 -- =============================================
 
--- Orders table - Order management
+-- Orders table
 CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_number VARCHAR(50) UNIQUE NOT NULL,
@@ -268,7 +307,7 @@ CREATE TABLE orders (
     
     -- Status and timing
     status order_status DEFAULT 'pending',
-    reserved_until TIMESTAMP,      -- 15 minute reservation
+    reserved_until TIMESTAMP,
     
     -- Payment info
     payment_method payment_method,
@@ -276,17 +315,34 @@ CREATE TABLE orders (
     payment_data JSONB,
     paid_at TIMESTAMP,
     
-    -- Customer info at time of order
+    -- Customer info
     customer_info JSONB,
     
-    -- Coupon used
+    -- Coupon
     coupon_code VARCHAR(50),
     
+    -- Tracking
+    membership_tier_at_purchase membership_tier,
+    is_early_access BOOLEAN DEFAULT FALSE,
+    applied_discounts JSONB DEFAULT '[]',
+    
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT check_order_amounts CHECK (
+        subtotal >= 0 AND
+        membership_discount >= 0 AND
+        coupon_discount >= 0 AND
+        vat_amount >= 0 AND
+        total_amount >= 0
+    ),
+    CONSTRAINT check_reserved_until CHECK (
+        status != 'pending' OR 
+        reserved_until IS NULL OR 
+        reserved_until > created_at
+    )
 );
 
--- Order items table - Order details
+-- Order items table
 CREATE TABLE order_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -294,10 +350,11 @@ CREATE TABLE order_items (
     quantity INTEGER NOT NULL,
     unit_price DECIMAL(12,2) NOT NULL,
     total_price DECIMAL(12,2) NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT check_order_item_quantity_positive CHECK (quantity > 0)
 );
 
--- Tickets table - Electronic tickets
+-- Tickets table
 CREATE TABLE tickets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     ticket_code VARCHAR(50) UNIQUE NOT NULL,
@@ -312,20 +369,48 @@ CREATE TABLE tickets (
     qr_code_data TEXT NOT NULL,
     qr_code_image_url TEXT,
     
-    -- Ticket status
+    -- Status
     status ticket_status DEFAULT 'valid',
     
-    -- Check-in info
+    -- Check-in
     is_checked_in BOOLEAN DEFAULT FALSE,
     checked_in_at TIMESTAMP,
     checked_in_by UUID REFERENCES users(id),
     check_in_location TEXT,
     
-    -- Ticket holder info
+    -- Holder info
     holder_name VARCHAR(255),
     holder_email VARCHAR(255),
     holder_phone VARCHAR(20),
     
+    -- Refund
+    refunded_at TIMESTAMP,
+    
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================
+-- REFUNDS
+-- =============================================
+
+-- Refund requests table
+CREATE TABLE refund_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id UUID NOT NULL REFERENCES orders(id),
+    user_id UUID NOT NULL REFERENCES users(id),
+    reason refund_reason NOT NULL,
+    description TEXT,
+    refund_amount DECIMAL(12,2) NOT NULL,
+    status refund_status DEFAULT 'pending',
+    reviewed_by UUID REFERENCES users(id),
+    processed_by UUID REFERENCES users(id),
+    processed_at TIMESTAMP,
+    reviewed_at TIMESTAMP,
+    review_notes TEXT,
+    rejection_reason TEXT,
+    refund_transaction_id VARCHAR(255),
+    refunded_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -334,7 +419,7 @@ CREATE TABLE tickets (
 -- PROMOTIONS & COUPONS
 -- =============================================
 
--- Coupons table - Promotion codes
+-- Coupons table
 CREATE TABLE coupons (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     code VARCHAR(50) UNIQUE NOT NULL,
@@ -342,7 +427,7 @@ CREATE TABLE coupons (
     description TEXT,
     
     -- Scope
-    event_id UUID REFERENCES events(id),    -- NULL = system-wide coupon
+    event_id UUID REFERENCES events(id),
     created_by UUID NOT NULL REFERENCES users(id),
     
     -- Discount settings
@@ -365,7 +450,12 @@ CREATE TABLE coupons (
     
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT check_discount_value CHECK (
+        (type = 'percentage' AND discount_value >= 0 AND discount_value <= 100) OR
+        (type = 'fixed_amount' AND discount_value >= 0)
+    ),
+    CONSTRAINT check_usage_limits CHECK (usage_limit IS NULL OR usage_limit > 0)
 );
 
 -- Coupon usage tracking
@@ -379,22 +469,40 @@ CREATE TABLE coupon_usages (
 );
 
 -- =============================================
--- QUEUE & WAITING ROOM SYSTEM
+-- QUEUE & WAITING ROOM
 -- =============================================
 
--- Waiting room queue - Queue management system
+-- Waiting room configs
+CREATE TABLE waiting_room_configs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    session_id UUID NOT NULL REFERENCES event_sessions(id) ON DELETE CASCADE,
+    max_capacity INTEGER DEFAULT 1000,
+    queue_timeout_minutes INTEGER DEFAULT 15,
+    concurrent_purchase_limit INTEGER DEFAULT 100,
+    is_enabled BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(event_id, session_id)
+);
+
+-- Waiting queue
 CREATE TABLE waiting_queue (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id),
     event_id UUID NOT NULL REFERENCES events(id),
     session_id UUID NOT NULL REFERENCES event_sessions(id),
     queue_number INTEGER NOT NULL,
-    status VARCHAR(20) DEFAULT 'waiting',  -- waiting, active, expired, completed
+    status VARCHAR(20) DEFAULT 'waiting',
+    priority_score INTEGER DEFAULT 0,
+    estimated_wait_minutes INTEGER,
+    session_token VARCHAR(255),
+    ip_address INET,
     entered_at TIMESTAMP DEFAULT NOW(),
     activated_at TIMESTAMP,
     expires_at TIMESTAMP,
     completed_at TIMESTAMP,
-    
+    last_heartbeat TIMESTAMP,
     UNIQUE(event_id, session_id, queue_number)
 );
 
@@ -439,10 +547,40 @@ CREATE TABLE email_templates (
 );
 
 -- =============================================
+-- SECURITY & SESSIONS
+-- =============================================
+
+-- Rate limits table
+CREATE TABLE rate_limits (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    identifier VARCHAR(255) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    request_count INTEGER DEFAULT 1,
+    window_start TIMESTAMP NOT NULL DEFAULT NOW(),
+    blocked_until TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(identifier, action, window_start)
+);
+
+-- User sessions table
+CREATE TABLE user_sessions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(255) UNIQUE NOT NULL,
+    refresh_token_hash VARCHAR(255),
+    ip_address INET,
+    user_agent TEXT,
+    expires_at TIMESTAMP NOT NULL,
+    last_activity_at TIMESTAMP DEFAULT NOW(),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================
 -- SYSTEM LOGS & AUDIT
 -- =============================================
 
--- Activity logs - User activity logging
+-- Activity logs
 CREATE TABLE activity_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id),
@@ -456,7 +594,7 @@ CREATE TABLE activity_logs (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Admin audit logs - Administrative action logging
+-- Admin audit logs
 CREATE TABLE admin_audit_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     admin_id UUID NOT NULL REFERENCES users(id),
@@ -515,15 +653,24 @@ CREATE INDEX idx_events_status ON events(status);
 CREATE INDEX idx_events_category ON events(category_id);
 CREATE INDEX idx_events_privacy_status ON events(privacy_type, status);
 CREATE INDEX idx_events_created_at ON events(created_at DESC);
+CREATE INDEX idx_events_active_public ON events(status, created_at DESC) 
+    WHERE status = 'active' AND privacy_type = 'public';
 
 -- Event sessions indexes
 CREATE INDEX idx_event_sessions_event ON event_sessions(event_id);
 CREATE INDEX idx_event_sessions_time ON event_sessions(start_time, end_time);
+CREATE INDEX idx_event_sessions_event_active ON event_sessions(event_id, is_active);
 
 -- Ticket types indexes
 CREATE INDEX idx_ticket_types_event ON ticket_types(event_id);
 CREATE INDEX idx_ticket_types_session ON ticket_types(session_id);
-CREATE INDEX idx_ticket_types_sale_time ON ticket_types(sale_start_time, sale_end_time);
+CREATE INDEX idx_ticket_types_session_active ON ticket_types(session_id, is_active);
+CREATE INDEX idx_ticket_types_sale_time ON ticket_types(sale_start_time, sale_end_time)
+    WHERE is_active = true;
+
+-- Event organizer members indexes
+CREATE INDEX idx_event_organizer_members_lookup ON event_organizer_members(event_id, user_id, role)
+    WHERE is_active = true;
 
 -- Orders indexes
 CREATE INDEX idx_orders_user ON orders(user_id);
@@ -531,6 +678,10 @@ CREATE INDEX idx_orders_event ON orders(event_id);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
 CREATE INDEX idx_orders_number ON orders(order_number);
+CREATE INDEX idx_orders_user_status ON orders(user_id, status);
+CREATE INDEX idx_orders_user_status_created ON orders(user_id, status, created_at DESC);
+CREATE INDEX idx_orders_pending_reserved ON orders(reserved_until) 
+    WHERE status = 'pending' AND reserved_until IS NOT NULL;
 
 -- Tickets indexes
 CREATE INDEX idx_tickets_code ON tickets(ticket_code);
@@ -539,11 +690,25 @@ CREATE INDEX idx_tickets_event ON tickets(event_id);
 CREATE INDEX idx_tickets_order ON tickets(order_id);
 CREATE INDEX idx_tickets_checkin ON tickets(is_checked_in);
 CREATE INDEX idx_tickets_status ON tickets(status);
+CREATE INDEX idx_tickets_order_status ON tickets(order_id, status);
+CREATE INDEX idx_tickets_event_status ON tickets(event_id, status);
+CREATE INDEX idx_tickets_event_status_checkin ON tickets(event_id, status, is_checked_in);
+
+-- Refund requests indexes
+CREATE INDEX idx_refund_requests_order ON refund_requests(order_id);
+CREATE INDEX idx_refund_requests_status ON refund_requests(status);
+CREATE INDEX idx_refund_requests_user ON refund_requests(user_id);
+CREATE INDEX idx_refund_requests_created_at ON refund_requests(created_at DESC);
 
 -- Queue indexes
 CREATE INDEX idx_waiting_queue_event_session ON waiting_queue(event_id, session_id);
 CREATE INDEX idx_waiting_queue_user_status ON waiting_queue(user_id, status);
 CREATE INDEX idx_waiting_queue_number ON waiting_queue(queue_number);
+CREATE INDEX idx_waiting_queue_priority ON waiting_queue(status, priority_score DESC, queue_number);
+CREATE INDEX idx_waiting_queue_heartbeat ON waiting_queue(last_heartbeat);
+
+-- Waiting room configs indexes
+CREATE INDEX idx_waiting_room_configs_event ON waiting_room_configs(event_id, session_id);
 
 -- Notifications indexes
 CREATE INDEX idx_notifications_user ON notifications(user_id);
@@ -556,6 +721,18 @@ CREATE INDEX idx_activity_logs_user ON activity_logs(user_id);
 CREATE INDEX idx_activity_logs_action ON activity_logs(action);
 CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at DESC);
 
+-- Rate limits indexes
+CREATE INDEX idx_rate_limits_identifier ON rate_limits(identifier, action);
+CREATE INDEX idx_rate_limits_blocked ON rate_limits(blocked_until);
+CREATE INDEX idx_rate_limits_window ON rate_limits(window_start);
+
+-- User sessions indexes
+CREATE INDEX idx_user_sessions_user ON user_sessions(user_id);
+CREATE INDEX idx_user_sessions_token ON user_sessions(token_hash);
+CREATE INDEX idx_user_sessions_expires ON user_sessions(expires_at);
+CREATE INDEX idx_user_sessions_active ON user_sessions(user_id, is_active) 
+    WHERE is_active = true;
+
 -- =============================================
 -- TRIGGERS FOR AUTOMATIC UPDATES
 -- =============================================
@@ -567,9 +744,9 @@ BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
--- Apply trigger to tables with updated_at column
+-- Apply triggers
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -594,60 +771,187 @@ CREATE TRIGGER update_tickets_updated_at BEFORE UPDATE ON tickets
 CREATE TRIGGER update_coupons_updated_at BEFORE UPDATE ON coupons 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_refund_requests_updated_at BEFORE UPDATE ON refund_requests 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_waiting_room_configs_updated_at BEFORE UPDATE ON waiting_room_configs 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_email_templates_updated_at BEFORE UPDATE ON email_templates 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- =============================================
--- INITIAL DATA
+-- STORED FUNCTIONS
 -- =============================================
 
--- Insert default categories
-INSERT INTO categories (name, slug, description) VALUES
-('Music', 'music', 'Music events, concerts, festivals'),
-('Sports', 'sports', 'Sports events and competitions'),
-('Conference', 'conference', 'Conferences, seminars, workshops'),
-('Exhibition', 'exhibition', 'Art and technology exhibitions'),
-('Entertainment', 'entertainment', 'Entertainment events and shows'),
-('Education', 'education', 'Educational courses and training'),
-('Food & Beverage', 'food-beverage', 'Food festivals and culinary events'),
-('Business', 'business', 'Business networking and corporate events'),
-('Technology', 'technology', 'Tech conferences and product launches'),
-('Arts & Culture', 'arts-culture', 'Cultural events and art exhibitions'),
-('Health & Wellness', 'health-wellness', 'Wellness workshops and health seminars'),
-('Others', 'others', 'Other types of events');
+-- Check-in ticket function
+CREATE OR REPLACE FUNCTION checkin_ticket(
+    p_ticket_code VARCHAR(50),
+    p_checked_in_by UUID
+)
+RETURNS TABLE (
+    success BOOLEAN,
+    message TEXT,
+    ticket_info JSONB
+) AS $$
+DECLARE
+    v_ticket RECORD;
+BEGIN
+    SELECT * INTO v_ticket
+    FROM tickets
+    WHERE ticket_code = p_ticket_code
+    FOR UPDATE;
+    
+    IF v_ticket IS NULL THEN
+        RETURN QUERY SELECT FALSE, 'Ticket not found'::TEXT, NULL::JSONB;
+        RETURN;
+    END IF;
+    
+    IF v_ticket.is_checked_in THEN
+        RETURN QUERY SELECT 
+            FALSE, 
+            'Already checked in at ' || v_ticket.checked_in_at::TEXT,
+            jsonb_build_object(
+                'checked_in_at', v_ticket.checked_in_at,
+                'checked_in_by', v_ticket.checked_in_by
+            );
+        RETURN;
+    END IF;
+    
+    IF v_ticket.status != 'valid' THEN
+        RETURN QUERY SELECT FALSE, 'Invalid ticket status: ' || v_ticket.status, NULL::JSONB;
+        RETURN;
+    END IF;
+    
+    UPDATE tickets
+    SET 
+        is_checked_in = TRUE,
+        checked_in_at = NOW(),
+        checked_in_by = p_checked_in_by,
+        updated_at = NOW()
+    WHERE ticket_code = p_ticket_code;
+    
+    RETURN QUERY SELECT 
+        TRUE, 
+        'Check-in successful'::TEXT,
+        jsonb_build_object(
+            'ticket_code', v_ticket.ticket_code,
+            'holder_name', v_ticket.holder_name,
+            'event_id', v_ticket.event_id,
+            'checked_in_at', NOW()
+        );
+END;
+$$ LANGUAGE plpgsql;
 
--- Insert default system settings
-INSERT INTO system_settings (setting_key, setting_value, description, is_public) VALUES
-('site_name', 'Eternity Ticket', 'Website name', true),
-('site_description', 'Event ticketing and management platform', 'Website description', true),
-('max_queue_capacity', '1000', 'Maximum waiting room capacity per event', false),
-('ticket_hold_duration_minutes', '15', 'Ticket hold duration in minutes', false),
-('max_file_size_mb', '2', 'Maximum file size in MB', false),
-('vat_rate', '0.1', 'VAT rate percentage', false),
-('premium_discount_rate', '0.1', 'Premium membership discount rate', false),
-('advanced_discount_rate', '0.05', 'Advanced membership discount rate', false),
-('premium_early_access_hours', '5', 'Premium early access hours', false),
-('currency_code', 'VND', 'Default currency code', true),
-('currency_symbol', '₫', 'Default currency symbol', true),
-('timezone', 'Asia/Ho_Chi_Minh', 'Default timezone', true),
-('date_format', 'DD/MM/YYYY', 'Default date format', true),
-('time_format', '24', 'Time format (12 or 24 hour)', true);
+-- Cancel expired orders function
+CREATE OR REPLACE FUNCTION cancel_expired_orders()
+RETURNS INTEGER AS $$
+DECLARE
+    v_cancelled_count INTEGER := 0;
+    v_order_id UUID;
+BEGIN
+    FOR v_order_id IN 
+        SELECT id
+        FROM orders
+        WHERE status = 'pending' 
+        AND reserved_until < NOW()
+        FOR UPDATE SKIP LOCKED
+    LOOP
+        UPDATE ticket_types tt
+        SET 
+            sold_quantity = tt.sold_quantity - oi.quantity,
+            updated_at = NOW()
+        FROM order_items oi
+        WHERE oi.order_id = v_order_id
+        AND tt.id = oi.ticket_type_id;
+        
+        UPDATE orders 
+        SET 
+            status = 'cancelled',
+            updated_at = NOW()
+        WHERE id = v_order_id;
+        
+        UPDATE tickets
+        SET status = 'cancelled',
+            updated_at = NOW()
+        WHERE order_id = v_order_id;
+        
+        v_cancelled_count := v_cancelled_count + 1;
+    END LOOP;
+    
+    RETURN v_cancelled_count;
+END;
+$$ LANGUAGE plpgsql;
 
--- Insert default admin user (password should be changed immediately)
-INSERT INTO users (email, password_hash, role, first_name, last_name, is_email_verified, is_active) 
-VALUES ('admin@eternityticket.com', crypt('admin123', gen_salt('bf')), 'admin', 'System', 'Administrator', true, true);
-
--- Insert email templates
-INSERT INTO email_templates (name, subject, html_content) VALUES
-('welcome', 'Welcome to Eternity Ticket', '<h1>Welcome {{first_name}}!</h1><p>Thank you for registering your account.</p>'),
-('ticket_confirmation', 'Ticket Purchase Confirmation', '<h1>Ticket Purchase Successful!</h1><p>Order Number: {{order_number}}</p><p>Event: {{event_title}}</p>'),
-('event_reminder', 'Event Reminder', '<h1>Upcoming Event: {{event_title}}</h1><p>Your event is starting soon!</p>'),
-('membership_confirmation', 'Membership Upgrade Confirmation', '<h1>{{tier}} Membership Upgrade Successful!</h1><p>Enjoy your new benefits!</p>'),
-('password_reset', 'Password Reset Request', '<h1>Password Reset</h1><p>Click the link below to reset your password:</p><p><a href="{{reset_link}}">Reset Password</a></p>'),
-('email_verification', 'Email Verification', '<h1>Verify Your Email</h1><p>Click the link below to verify your email:</p><p><a href="{{verification_link}}">Verify Email</a></p>'),
-('event_approved', 'Event Approved', '<h1>Your Event Has Been Approved!</h1><p>Event: {{event_title}}</p><p>Your event is now live and tickets can be purchased.</p>'),
-('event_rejected', 'Event Rejected', '<h1>Event Review Update</h1><p>Event: {{event_title}}</p><p>Reason: {{rejection_reason}}</p>'),
-('order_cancelled', 'Order Cancelled', '<h1>Order Cancelled</h1><p>Order Number: {{order_number}}</p><p>Your order has been cancelled and refund will be processed.</p>'),
-('refund_approved', 'Refund Request Approved', '<h1>Refund Approved</h1><p>Order: {{order_number}}</p><p>Amount: {{refund_amount}}</p><p>Processing time: 5-7 business days.</p>'),
-('refund_rejected', 'Refund Request Rejected', '<h1>Refund Request Rejected</h1><p>Order: {{order_number}}</p><p>Reason: {{reason}}</p>'),
-('event_cancelled_notification', 'Event Cancelled', '<h1>Event Cancelled: {{event_title}}</h1><p>Reason: {{cancellation_reason}}</p><p>Refund will be processed automatically.</p>');
+-- Reserve tickets function
+CREATE OR REPLACE FUNCTION reserve_tickets(
+    p_user_id UUID,
+    p_event_id UUID,
+    p_session_id UUID,
+    p_ticket_type_id UUID,
+    p_quantity INTEGER,
+    p_hold_minutes INTEGER DEFAULT 15
+)
+RETURNS TABLE (
+    success BOOLEAN,
+    order_id UUID,
+    message TEXT
+) AS $$
+DECLARE
+    v_available INTEGER;
+    v_order_id UUID;
+    v_order_number VARCHAR(50);
+    v_unit_price DECIMAL(12,2);
+BEGIN
+    SELECT 
+        tt.total_quantity - tt.sold_quantity,
+        tt.price
+    INTO v_available, v_unit_price
+    FROM ticket_types tt
+    WHERE tt.id = p_ticket_type_id
+    FOR UPDATE;
+    
+    IF NOT FOUND THEN
+        RETURN QUERY SELECT FALSE, NULL::UUID, 'Ticket type not found'::TEXT;
+        RETURN;
+    END IF;
+    
+    IF v_available < p_quantity THEN
+        RETURN QUERY SELECT 
+            FALSE, 
+            NULL::UUID, 
+            format('Only %s tickets available', v_available)::TEXT;
+        RETURN;
+    END IF;
+    
+    v_order_number := 'ORD-' || to_char(NOW(), 'YYYYMMDD') || '-' || 
+                      upper(substr(md5(random()::text), 1, 8));
+    
+    UPDATE ticket_types 
+    SET sold_quantity = sold_quantity + p_quantity,
+        updated_at = NOW()
+    WHERE id = p_ticket_type_id;
+    
+    INSERT INTO orders (
+        order_number, user_id, event_id, session_id,
+        subtotal, total_amount, status, reserved_until
+    )
+    VALUES (
+        v_order_number, p_user_id, p_event_id, p_session_id,
+        v_unit_price * p_quantity, v_unit_price * p_quantity,
+        'pending', NOW() + (p_hold_minutes || ' minutes')::INTERVAL
+    )
+    RETURNING id INTO v_order_id;
+    
+    INSERT INTO order_items (order_id, ticket_type_id, quantity, unit_price, total_price)
+    VALUES (v_order_id, p_ticket_type_id, p_quantity, v_unit_price, v_unit_price * p_quantity);
+    
+    RETURN QUERY SELECT 
+        TRUE, 
+        v_order_id, 
+        format('Reserved %s tickets. Expires in %s minutes', p_quantity, p_hold_minutes)::TEXT;
+END;
+$ LANGUAGE plpgsql;
 
 -- =============================================
 -- VIEWS FOR COMMON QUERIES
@@ -729,362 +1033,7 @@ LEFT JOIN order_items oi ON tt.id = oi.ticket_type_id
 LEFT JOIN orders o ON oi.order_id = o.id AND o.status = 'paid'
 GROUP BY e.id, e.title, e.status;
 
-
-
--- =============================================
--- BỔ SUNG CONSTRAINTS (Chạy sau khi có schema gốc)
--- =============================================
-
--- 1. Ticket types constraints
-ALTER TABLE ticket_types 
-ADD CONSTRAINT check_sold_quantity 
-CHECK (ticket_types.sold_quantity >= 0 AND ticket_types.sold_quantity <= ticket_types.total_quantity);
-
-
-
-ALTER TABLE ticket_types 
-ADD CONSTRAINT check_min_max_quantity
-CHECK (ticket_types.min_quantity_per_order <= ticket_types.max_quantity_per_order);
-
-ALTER TABLE ticket_types 
-ADD CONSTRAINT check_price_positive
-CHECK (ticket_types.price >= 0);
-
-ALTER TABLE ticket_types
-ADD CONSTRAINT check_total_quantity_positive
-CHECK (ticket_types.total_quantity > 0);
-
-ALTER TABLE ticket_types 
-ADD CONSTRAINT check_sale_time
-CHECK (ticket_types.sale_start_time < ticket_types.sale_end_time);
-
--- 2. Event sessions constraints
-ALTER TABLE event_sessions 
-ADD CONSTRAINT check_session_min_max
-CHECK (event_sessions.min_tickets_per_order <= event_sessions.max_tickets_per_order);
-
-ALTER TABLE event_sessions 
-ADD CONSTRAINT check_session_time
-CHECK (event_sessions.start_time < event_sessions.end_time);
-
--- 3. Order constraints
-ALTER TABLE order_items
-ADD CONSTRAINT check_order_item_quantity_positive
-CHECK (order_items.quantity > 0);
-
-ALTER TABLE orders
-ADD CONSTRAINT check_order_amounts
-CHECK (
-    orders.subtotal >= 0 AND
-    orders.membership_discount >= 0 AND
-    orders.coupon_discount >= 0 AND
-    orders.vat_amount >= 0 AND
-    orders.total_amount >= 0
-);
-
-ALTER TABLE orders
-ADD CONSTRAINT check_reserved_until
-CHECK (
-    orders.status != 'pending' OR 
-    orders.reserved_until IS NULL OR 
-    orders.reserved_until > orders.created_at
-);
-
--- 4. Coupon constraints
-ALTER TABLE coupons 
-ADD CONSTRAINT check_discount_value
-CHECK (
-    (coupons.type = 'percentage' AND coupons.discount_value >= 0 AND coupons.discount_value <= 100) OR
-    (coupons.type = 'fixed_amount' AND coupons.discount_value >= 0)
-);
-
-ALTER TABLE coupons
-ADD CONSTRAINT check_usage_limits
-CHECK (coupons.usage_limit IS NULL OR coupons.usage_limit > 0);
-
--- 5. Membership constraints
-ALTER TABLE memberships
-ADD CONSTRAINT check_membership_dates
-CHECK (memberships.end_date IS NULL OR memberships.end_date > memberships.start_date);
-
-CREATE TABLE rate_limits (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    identifier VARCHAR(255) NOT NULL,  -- IP hoặc user_id
-    action VARCHAR(100) NOT NULL,       -- 'ticket_purchase', 'login', 'api_call'
-    request_count INTEGER DEFAULT 1,
-    window_start TIMESTAMP NOT NULL DEFAULT NOW(),
-    blocked_until TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(identifier, action, window_start)
-);
-
-CREATE INDEX idx_rate_limits_identifier ON rate_limits(identifier, action);
-CREATE INDEX idx_rate_limits_blocked ON rate_limits(blocked_until);
-
-CREATE TABLE user_sessions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token_hash VARCHAR(255) UNIQUE NOT NULL,
-    refresh_token_hash VARCHAR(255),
-    ip_address INET,
-    user_agent TEXT,
-    expires_at TIMESTAMP NOT NULL,
-    last_activity_at TIMESTAMP DEFAULT NOW(),
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX idx_user_sessions_user ON user_sessions(user_id);
-CREATE INDEX idx_user_sessions_token ON user_sessions(token_hash);
-CREATE INDEX idx_user_sessions_expires ON user_sessions(expires_at);
-
-CREATE TYPE refund_reason AS ENUM (
-    'event_cancelled',
-    'payment_error',
-    'duplicate_payment',
-    'other'
-);
-
-CREATE TYPE refund_status AS ENUM (
-    'pending',
-    'approved', 
-    'rejected',
-    'processing',
-    'completed'
-);
-
-CREATE TABLE refund_requests (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    order_id UUID NOT NULL REFERENCES orders(id),
-    user_id UUID NOT NULL REFERENCES users(id),
-    reason refund_reason NOT NULL,
-    description TEXT,
-    refund_amount DECIMAL(12,2) NOT NULL,
-    status refund_status DEFAULT 'pending',
-    reviewed_by UUID REFERENCES users(id),
-    reviewed_at TIMESTAMP,
-    review_notes TEXT,
-    refund_transaction_id VARCHAR(255),
-    refunded_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX idx_refund_requests_order ON refund_requests(order_id);
-CREATE INDEX idx_refund_requests_status ON refund_requests(status);
-CREATE INDEX idx_refund_requests_user ON refund_requests(user_id);
-
-CREATE TRIGGER update_refund_requests_updated_at BEFORE UPDATE ON refund_requests 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TABLE waiting_room_configs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    session_id UUID NOT NULL REFERENCES event_sessions(id) ON DELETE CASCADE,
-    max_capacity INTEGER DEFAULT 1000,
-    queue_timeout_minutes INTEGER DEFAULT 15,
-    concurrent_purchase_limit INTEGER DEFAULT 100,
-    is_enabled BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(event_id, session_id)
-);
-
-CREATE INDEX idx_waiting_room_configs_event ON waiting_room_configs(event_id, session_id);
-
-CREATE TRIGGER update_waiting_room_configs_updated_at BEFORE UPDATE ON waiting_room_configs 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Users: Security và purchase cooldown
-ALTER TABLE users ADD COLUMN last_purchase_at TIMESTAMP;
-ALTER TABLE users ADD COLUMN purchase_cooldown_until TIMESTAMP;
-ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0;
-ALTER TABLE users ADD COLUMN account_locked_until TIMESTAMP;
-
--- Orders: Tracking membership và early access
-ALTER TABLE orders ADD COLUMN membership_tier_at_purchase membership_tier;
-ALTER TABLE orders ADD COLUMN is_early_access BOOLEAN DEFAULT FALSE;
-ALTER TABLE orders ADD COLUMN applied_discounts JSONB DEFAULT '[]';
-
--- Events: Cancellation tracking
-ALTER TABLE events ADD COLUMN cancelled_at TIMESTAMP;
-ALTER TABLE events ADD COLUMN cancellation_reason TEXT;
-
--- Tickets: Refund tracking
-ALTER TABLE tickets ADD COLUMN refunded_at TIMESTAMP;
-
--- Waiting Queue: Bổ sung thông tin quan trọng
-ALTER TABLE waiting_queue ADD COLUMN priority_score INTEGER DEFAULT 0;
-ALTER TABLE waiting_queue ADD COLUMN estimated_wait_minutes INTEGER;
-ALTER TABLE waiting_queue ADD COLUMN session_token VARCHAR(255);
-ALTER TABLE waiting_queue ADD COLUMN ip_address INET;
-ALTER TABLE waiting_queue ADD COLUMN last_heartbeat TIMESTAMP;
-
-CREATE INDEX idx_waiting_queue_priority ON waiting_queue(status, priority_score DESC, queue_number);
-CREATE INDEX idx_waiting_queue_heartbeat ON waiting_queue(last_heartbeat);
-
-CREATE OR REPLACE FUNCTION checkin_ticket(
-    p_ticket_code VARCHAR(50),
-    p_checked_in_by UUID
-)
-RETURNS TABLE (
-    success BOOLEAN,
-    message TEXT,
-    ticket_info JSONB
-) AS $$
-DECLARE
-    v_ticket RECORD;
-BEGIN
-    SELECT * INTO v_ticket
-    FROM tickets
-    WHERE ticket_code = p_ticket_code
-    FOR UPDATE;
-    
-    IF v_ticket IS NULL THEN
-        RETURN QUERY SELECT FALSE, 'Ticket not found'::TEXT, NULL::JSONB;
-        RETURN;
-    END IF;
-    
-    IF v_ticket.is_checked_in THEN
-        RETURN QUERY SELECT 
-            FALSE, 
-            'Already checked in at ' || v_ticket.checked_in_at::TEXT,
-            jsonb_build_object(
-                'checked_in_at', v_ticket.checked_in_at,
-                'checked_in_by', v_ticket.checked_in_by
-            );
-        RETURN;
-    END IF;
-    
-    IF v_ticket.status != 'valid' THEN
-        RETURN QUERY SELECT FALSE, 'Invalid ticket status: ' || v_ticket.status, NULL::JSONB;
-        RETURN;
-    END IF;
-    
-    UPDATE tickets
-    SET 
-        is_checked_in = TRUE,
-        checked_in_at = NOW(),
-        checked_in_by = p_checked_in_by,
-        updated_at = NOW()
-    WHERE ticket_code = p_ticket_code;
-    
-    RETURN QUERY SELECT 
-        TRUE, 
-        'Check-in successful'::TEXT,
-        jsonb_build_object(
-            'ticket_code', v_ticket.ticket_code,
-            'holder_name', v_ticket.holder_name,
-            'event_id', v_ticket.event_id,
-            'checked_in_at', NOW()
-        );
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION cancel_expired_orders()
-RETURNS INTEGER AS $$
-DECLARE
-    v_cancelled_count INTEGER := 0;
-    v_order_id UUID;
-BEGIN
-    FOR v_order_id IN 
-        SELECT id
-        FROM orders
-        WHERE status = 'pending' 
-        AND reserved_until < NOW()
-        FOR UPDATE SKIP LOCKED
-    LOOP
-        UPDATE ticket_types tt
-        SET 
-            sold_quantity = tt.sold_quantity - oi.quantity,
-            updated_at = NOW()
-        FROM order_items oi
-        WHERE oi.order_id = v_order_id
-        AND tt.id = oi.ticket_type_id;
-        
-        UPDATE orders 
-        SET 
-            status = 'cancelled',
-            updated_at = NOW()
-        WHERE id = v_order_id;
-        
-        v_cancelled_count := v_cancelled_count + 1;
-    END LOOP;
-    
-    RETURN v_cancelled_count;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION reserve_tickets(
-    p_user_id UUID,
-    p_event_id UUID,
-    p_session_id UUID,
-    p_ticket_type_id UUID,
-    p_quantity INTEGER,
-    p_hold_minutes INTEGER DEFAULT 15
-)
-RETURNS TABLE (
-    success BOOLEAN,
-    order_id UUID,
-    message TEXT
-) AS $$
-DECLARE
-    v_available INTEGER;
-    v_order_id UUID;
-    v_order_number VARCHAR(50);
-    v_unit_price DECIMAL(12,2);
-BEGIN
-    SELECT 
-        tt.total_quantity - tt.sold_quantity,
-        tt.price
-    INTO v_available, v_unit_price
-    FROM ticket_types tt
-    WHERE tt.id = p_ticket_type_id
-    FOR UPDATE;
-    
-    IF NOT FOUND THEN
-        RETURN QUERY SELECT FALSE, NULL::UUID, 'Ticket type not found'::TEXT;
-        RETURN;
-    END IF;
-    
-    IF v_available < p_quantity THEN
-        RETURN QUERY SELECT 
-            FALSE, 
-            NULL::UUID, 
-            format('Only %s tickets available', v_available)::TEXT;
-        RETURN;
-    END IF;
-    
-    v_order_number := 'ORD-' || to_char(NOW(), 'YYYYMMDD') || '-' || 
-                      upper(substr(md5(random()::text), 1, 8));
-    
-    UPDATE ticket_types 
-    SET sold_quantity = sold_quantity + p_quantity,
-        updated_at = NOW()
-    WHERE id = p_ticket_type_id;
-    
-    INSERT INTO orders (
-        order_number, user_id, event_id, session_id,
-        subtotal, total_amount, status, reserved_until
-    )
-    VALUES (
-        v_order_number, p_user_id, p_event_id, p_session_id,
-        v_unit_price * p_quantity, v_unit_price * p_quantity,
-        'pending', NOW() + (p_hold_minutes || ' minutes')::INTERVAL
-    )
-    RETURNING id INTO v_order_id;
-    
-    INSERT INTO order_items (order_id, ticket_type_id, quantity, unit_price, total_price)
-    VALUES (v_order_id, p_ticket_type_id, p_quantity, v_unit_price, v_unit_price * p_quantity);
-    
-    RETURN QUERY SELECT 
-        TRUE, 
-        v_order_id, 
-        format('Reserved %s tickets. Expires in %s minutes', p_quantity, p_hold_minutes)::TEXT;
-END;
-$$ LANGUAGE plpgsql;
-
--- Dashboard cho organizer
+-- Organizer dashboard view
 CREATE VIEW organizer_dashboard_view AS
 SELECT 
     e.id as event_id,
@@ -1104,7 +1053,7 @@ LEFT JOIN orders o ON e.id = o.event_id
 LEFT JOIN tickets t ON o.id = t.order_id
 GROUP BY e.id, e.title, e.status;
 
--- Membership statistics
+-- Membership statistics view
 CREATE VIEW membership_stats_view AS
 SELECT 
     tier,
@@ -1115,29 +1064,78 @@ SELECT
 FROM memberships
 GROUP BY tier;
 
--- Composite indexes cho performance
-CREATE INDEX idx_orders_user_status_created ON orders(user_id, status, created_at DESC);
-CREATE INDEX idx_tickets_event_status_checkin ON tickets(event_id, status, is_checked_in);
+-- =============================================
+-- INITIAL DATA
+-- =============================================
 
--- Partial indexes
-CREATE INDEX idx_events_active_public ON events(status, created_at DESC) 
-WHERE status = 'active' AND privacy_type = 'public';
+-- Insert default categories
+INSERT INTO categories (name, slug, description) VALUES
+('Music', 'music', 'Music events, concerts, festivals'),
+('Sports', 'sports', 'Sports events and competitions'),
+('Conference', 'conference', 'Conferences, seminars, workshops'),
+('Exhibition', 'exhibition', 'Art and technology exhibitions'),
+('Entertainment', 'entertainment', 'Entertainment events and shows'),
+('Education', 'education', 'Educational courses and training'),
+('Food & Beverage', 'food-beverage', 'Food festivals and culinary events'),
+('Business', 'business', 'Business networking and corporate events'),
+('Technology', 'technology', 'Tech conferences and product launches'),
+('Arts & Culture', 'arts-culture', 'Cultural events and art exhibitions'),
+('Health & Wellness', 'health-wellness', 'Wellness workshops and health seminars'),
+('Others', 'others', 'Other types of events');
 
-CREATE INDEX idx_orders_pending_reserved ON orders(reserved_until) 
-WHERE status = 'pending' AND reserved_until IS NOT NULL;
+-- Insert default system settings
+INSERT INTO system_settings (setting_key, setting_value, description, is_public) VALUES
+('site_name', 'Eternity Ticket', 'Website name', true),
+('site_description', 'Event ticketing and management platform', 'Website description', true),
+('max_queue_capacity', '1000', 'Maximum waiting room capacity per event', false),
+('ticket_hold_duration_minutes', '15', 'Ticket hold duration in minutes', false),
+('max_file_size_mb', '2', 'Maximum file size in MB', false),
+('vat_rate', '0.1', 'VAT rate percentage', false),
+('premium_discount_rate', '0.1', 'Premium membership discount rate', false),
+('advanced_discount_rate', '0.05', 'Advanced membership discount rate', false),
+('premium_early_access_hours', '5', 'Premium early access hours', false),
+('currency_code', 'VND', 'Default currency code', true),
+('currency_symbol', '₫', 'Default currency symbol', true),
+('timezone', 'Asia/Ho_Chi_Minh', 'Default timezone', true),
+('date_format', 'DD/MM/YYYY', 'Default date format', true),
+('time_format', '24', 'Time format (12 or 24 hour)', true);
 
+-- Insert default admin user (password: admin123 - MUST BE CHANGED!)
+INSERT INTO users (email, password_hash, role, first_name, last_name, is_email_verified, is_active) 
+VALUES ('admin@eternityticket.com', crypt('admin123', gen_salt('bf')), 'admin', 'System', 'Administrator', true, true);
 
--- Performance indexes for SessionTicketModel queries
-CREATE INDEX idx_event_sessions_event_active 
-  ON event_sessions(event_id, is_active);
+-- Insert email templates
+INSERT INTO email_templates (name, subject, html_content) VALUES
+('welcome', 'Welcome to Eternity Ticket', '<h1>Welcome {{first_name}}!</h1><p>Thank you for registering your account.</p>'),
+('ticket_confirmation', 'Ticket Purchase Confirmation', '<h1>Ticket Purchase Successful!</h1><p>Order Number: {{order_number}}</p><p>Event: {{event_title}}</p>'),
+('event_reminder', 'Event Reminder', '<h1>Upcoming Event: {{event_title}}</h1><p>Your event is starting soon!</p>'),
+('membership_confirmation', 'Membership Upgrade Confirmation', '<h1>{{tier}} Membership Upgrade Successful!</h1><p>Enjoy your new benefits!</p>'),
+('password_reset', 'Password Reset Request', '<h1>Password Reset</h1><p>Click the link below to reset your password:</p><p><a href="{{reset_link}}">Reset Password</a></p>'),
+('email_verification', 'Email Verification', '<h1>Verify Your Email</h1><p>Click the link below to verify your email:</p><p><a href="{{verification_link}}">Verify Email</a></p>'),
+('event_approved', 'Event Approved', '<h1>Your Event Has Been Approved!</h1><p>Event: {{event_title}}</p><p>Your event is now live and tickets can be purchased.</p>'),
+('event_rejected', 'Event Rejected', '<h1>Event Review Update</h1><p>Event: {{event_title}}</p><p>Reason: {{rejection_reason}}</p>'),
+('order_cancelled', 'Order Cancelled', '<h1>Order Cancelled</h1><p>Order Number: {{order_number}}</p><p>Your order has been cancelled and refund will be processed.</p>'),
+('refund_approved', 'Refund Request Approved', '<h1>Refund Approved</h1><p>Order: {{order_number}}</p><p>Amount: {{refund_amount}}</p><p>Processing time: 5-7 business days.</p>'),
+('refund_rejected', 'Refund Request Rejected', '<h1>Refund Request Rejected</h1><p>Order: {{order_number}}</p><p>Reason: {{reason}}</p>'),
+('event_cancelled_notification', 'Event Cancelled', '<h1>Event Cancelled: {{event_title}}</h1><p>Reason: {{cancellation_reason}}</p><p>Refund will be processed automatically.</p>');
 
-CREATE INDEX idx_ticket_types_session_active 
-  ON ticket_types(session_id, is_active);
+-- =============================================
+-- COMMENTS
+-- =============================================
 
-CREATE INDEX idx_ticket_types_sale_time 
-  ON ticket_types(sale_start_time, sale_end_time) 
-  WHERE is_active = true;
+COMMENT ON TABLE users IS 'User accounts for the system';
+COMMENT ON TABLE memberships IS 'Paid membership tiers for users';
+COMMENT ON TABLE events IS 'Events created by organizers';
+COMMENT ON TABLE event_sessions IS 'Multiple sessions/dates for an event';
+COMMENT ON TABLE ticket_types IS 'Different ticket categories within a session';
+COMMENT ON TABLE orders IS 'Purchase orders for tickets';
+COMMENT ON TABLE tickets IS 'Individual electronic tickets';
+COMMENT ON TABLE waiting_queue IS 'Virtual waiting room queue for high-demand events';
+COMMENT ON TABLE refund_requests IS 'Refund requests from users';
+COMMENT ON TABLE coupons IS 'Promotional discount codes';
+COMMENT ON TABLE rate_limits IS 'Rate limiting for security';
+COMMENT ON TABLE user_sessions IS 'Active user sessions with JWT tokens';
 
-CREATE INDEX idx_event_organizer_members_lookup
-  ON event_organizer_members(event_id, user_id, role)
-  WHERE is_active = true;
+-- =============================================
+-- END OF SCHEMA
+-- =============================================
