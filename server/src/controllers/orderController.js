@@ -248,7 +248,7 @@ class OrderController {
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    */
-  static async cancelOrder(req, res) {
+  static async cancelOrder(req, res) { 
     try {
       const { orderId } = req.params;
       const userId = req.user.id;

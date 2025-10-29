@@ -51,6 +51,7 @@ class OrderModel {
           SELECT tt.*, (tt.total_quantity - tt.sold_quantity) as available_quantity
           FROM ticket_types tt
           WHERE tt.id = $1 AND tt.session_id = $2 AND tt.is_active = true
+          FOR UPDATE
         `, [ticket_type_id, session_id]);
 
         if (ticketQuery.rows.length === 0) {
