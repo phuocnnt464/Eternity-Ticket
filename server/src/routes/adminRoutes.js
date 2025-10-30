@@ -115,12 +115,13 @@ router.get('/events/pending',
 );
 
 /**
- * POST /api/admin/events/:eventId/approve
- * Approve event
+ * @route   POST /api/admin/events/:eventId/approve
+ * @desc    Approve event
+ * @access  Private (Admin only)
  */
 router.post('/events/:eventId/approve',
   validateUUIDParam('eventId'),
-  logActivity('APPROVE_EVENT', 'EVENT'),
+  logAdminAudit('APPROVE_EVENT', 'EVENT'),
   EventController.approveEvent
 );
 
@@ -142,17 +143,6 @@ router.post('/events/:eventId/reject',
 router.get('/events',
   validatePagination(),
   AdminController.getAllEvents 
-);
-
-/**
- * @route   POST /api/admin/events/:eventId/approve
- * @desc    Approve event
- * @access  Private (Admin only)
- */
-router.post('/events/:eventId/approve',
-  validateUUIDParam('eventId'),
-  logAdminAudit('APPROVE_EVENT', 'EVENT'),
-  EventController.approveEvent
 );
 
 /**
