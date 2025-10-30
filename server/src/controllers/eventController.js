@@ -3,6 +3,7 @@ const EventModel = require('../models/eventModel');
 const { createResponse, paginate } = require('../utils/helpers');
 const UserModel = require('../models/userModel');  
 const pool = require('../config/database');  
+const emailService = require('../services/emailService');
 
 class EventController {
   /**
@@ -677,7 +678,7 @@ class EventController {
 
       const event = await EventModel.approve(id, adminId);
 
-      await notificationService.sendEventApproved(event);
+      await emailService.sendEventApproved(event);
 
       res.json(
         createResponse(
@@ -726,7 +727,7 @@ class EventController {
 
       const event = await EventModel.reject(id, adminId, reason);
 
-      await notificationService.sendEventRejected(event, reason);
+      await emailService.sendEventRejected(event, reason);
 
       res.json(
         createResponse(
