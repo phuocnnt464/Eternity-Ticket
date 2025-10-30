@@ -5,12 +5,11 @@ const {
   generateRefreshToken, 
   verifyToken, 
   createResponse,
-  // validatePassword
+  validatePassword
 } = require('../utils/helpers');
 
 // TODO: Implement later
 const emailService = require('../services/emailService');
-// const sessionService = require('../services/sessionService');
 
 class AuthController {
   /**

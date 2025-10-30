@@ -309,7 +309,6 @@ class EventController {
       console.log(`📋 Getting events for organizer: ${organizerId}, status filter: ${status || 'ALL'}`);
 
       // Temporary simple query to avoid complex parameter issues
-      const pool = require('../config/database');
       const offset = (parseInt(page) - 1) * parseInt(limit);
 
       let query = `
@@ -492,7 +491,6 @@ class EventController {
       console.log('⭐ Getting featured events');
 
       // Get events sorted by view count and recent activity
-      const pool = require('../config/database');
       const query = `
         SELECT 
           e.id, e.title, e.slug, e.short_description, e.cover_image, e.thumbnail_image,
@@ -771,9 +769,7 @@ class EventController {
       const { slug } = req.params;
       const userId = req.user?.id;
 
-      console.log(`🎉 Getting event by slug: ${slug}`);
-
-      const pool = require('../config/database');
+      console.log(`Getting event by slug: ${slug}`);
       
       const query = `
         SELECT id FROM events 
@@ -806,8 +802,7 @@ class EventController {
   static async debugMyEvents(req, res) {
     try {
       const organizerId = req.user.id;
-      const pool = require('../config/database');
-      
+            
       console.log(`🔍 Debug my events for organizer: ${organizerId}`);
       
       // Check events created by this organizer

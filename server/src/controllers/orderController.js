@@ -1,5 +1,6 @@
 // src/controllers/orderController.js
 const OrderModel = require('../models/orderModel');
+const pool = require('../config/database');
 const { createResponse } = require('../utils/helpers');
 
 class OrderController {

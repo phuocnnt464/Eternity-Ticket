@@ -12,6 +12,13 @@ class OrderModel {
    * @returns {Object} Created order with tickets
    */
   static async createOrder(userId, orderData) {
+    const {
+        event_id,
+        session_id,
+        tickets, // Array of {ticket_type_id, quantity}
+        customer_info,
+        coupon_code
+    } = orderData;
 
      // ACQUIRE DISTRIBUTED LOCK PER SESSION
     const lockKey = `order:session:${session_id}`;
@@ -25,14 +32,6 @@ class OrderModel {
     
     try {
       await client.query('BEGIN');
-
-      const {
-        event_id,
-        session_id,
-        tickets, // Array of {ticket_type_id, quantity}
-        customer_info,
-        coupon_code
-      } = orderData;
 
       // Verify session exists and belongs to event
       const sessionCheck = await client.query(`
