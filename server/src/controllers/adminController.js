@@ -3,6 +3,7 @@ const pool = require('../config/database');
 const UserModel = require('../models/userModel');
 const EventModel = require('../models/eventModel');
 const { createResponse } = require('../utils/helpers');
+const emailService = require('../services/emailService');
 
 // ===============================
 // DASHBOARD & USER MANAGEMENT
