@@ -126,17 +126,6 @@ router.post('/events/:eventId/approve',
 );
 
 /**
- * POST /api/admin/events/:eventId/reject
- * Reject event with reason
- */
-router.post('/events/:eventId/reject',
-  validateUUIDParam('eventId'),
-  validate(rejectEventSchema),
-  logActivity('REJECT_EVENT', 'EVENT'),
-  EventController.rejectEvent
-);
-
-/**
  * GET /api/admin/events
  * Get all events (all statuses)
  */

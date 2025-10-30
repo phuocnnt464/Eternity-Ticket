@@ -532,8 +532,7 @@ class AdminController {
 
       await client.query('COMMIT');
 
-      // TODO: Send email notification
-      // await emailService.sendRefundApprovalEmail(refund);
+      await emailService.sendRefundApprovalEmail(refund);
 
       res.json(createResponse(
         true,
@@ -613,8 +612,7 @@ class AdminController {
 
       await client.query('COMMIT');
 
-      // TODO: Send email notification
-      // await emailService.sendRefundRejectionEmail(refund, reason);
+      await emailService.sendRefundRejectionEmail(refund, reason);
 
       res.json(createResponse(
         true,

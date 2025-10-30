@@ -199,6 +199,99 @@ class EmailService {
       html
     });
   }
+
+  /**
+   * Send event approval email
+   * @param {Object} eventData - Event data
+   */
+  async sendEventApproved(eventData) {
+    const { organizer_email, organizer_name, event_title, event_id } = eventData;
+    
+    const html = `
+      <h1>Your Event Has Been Approved!</h1>
+      <p>Hello ${organizer_name},</p>
+      <p>Congratulations! Your event "<strong>${event_title}</strong>" has been approved.</p>
+      <p>You can now manage your event and start selling tickets.</p>
+      <p><a href="${process.env.FRONTEND_URL}/events/${event_id}/dashboard">View Event Dashboard</a></p>
+    `;
+
+    return await this.sendEmail({
+      to: organizer_email,
+      subject: `Event Approved - ${event_title}`,
+      html
+    });
+  }
+
+  /**
+   * Send event rejection email
+   * @param {Object} eventData - Event data with rejection reason
+   */
+  async sendEventRejected(eventData) {
+    const { organizer_email, organizer_name, event_title, rejection_reason } = eventData;
+    
+    const html = `
+      <h1>Event Review Update</h1>
+      <p>Hello ${organizer_name},</p>
+      <p>Unfortunately, your event "<strong>${event_title}</strong>" was not approved.</p>
+      <h3>Reason:</h3>
+      <p>${rejection_reason}</p>
+      <p>Please review our guidelines and submit a new event.</p>
+    `;
+
+    return await this.sendEmail({
+      to: organizer_email,
+      subject: `Event Not Approved - ${event_title}`,
+      html
+    });
+  }
+
+  /**
+   * Send refund approval email
+   * @param {Object} refundData - Refund data
+   */
+  async sendRefundApprovalEmail(refundData) {
+    const { user_email, first_name, event_title, refund_amount, order_number } = refundData;
+    
+    const html = `
+      <h1>Refund Request Approved</h1>
+      <p>Hello ${first_name},</p>
+      <p>Your refund request for "<strong>${event_title}</strong>" has been approved.</p>
+      <p>Order Number: ${order_number}</p>
+      <p>Refund Amount: ${refund_amount} VND</p>
+      <p>Processing time: 5-7 business days.</p>
+    `;
+
+    return await this.sendEmail({
+      to: user_email,
+      subject: `Refund Approved - ${order_number}`,
+      html
+    });
+  }
+
+  /**
+   * Send refund rejection email
+   * @param {Object} refundData - Refund data
+   * @param {String} reason - Rejection reason
+   */
+  async sendRefundRejectionEmail(refundData, reason) {
+    const { user_email, first_name, event_title, order_number } = refundData;
+    
+    const html = `
+      <h1>Refund Request Rejected</h1>
+      <p>Hello ${first_name},</p>
+      <p>Unfortunately, your refund request for "<strong>${event_title}</strong>" has been rejected.</p>
+      <p>Order Number: ${order_number}</p>
+      <h3>Reason:</h3>
+      <p>${reason}</p>
+      <p>If you have questions, please contact support.</p>
+    `;
+
+    return await this.sendEmail({
+      to: user_email,
+      subject: `Refund Request Rejected - ${order_number}`,
+      html
+    });
+  }
 }
 
 // Export singleton instance

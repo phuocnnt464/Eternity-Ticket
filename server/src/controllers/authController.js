@@ -8,7 +8,6 @@ const {
   validatePassword
 } = require('../utils/helpers');
 
-// TODO: Implement later
 const emailService = require('../services/emailService');
 
 class AuthController {
@@ -78,9 +77,6 @@ class AuthController {
 
       const accessToken = generateAccessToken(tokenPayload);
       const refreshToken = generateRefreshToken(tokenPayload);
-
-      // TODO: Send verification email
-      // await emailService.sendVerificationEmail(result.user.email, result.verificationToken);
 
       // Log activity
       console.log(`🔑 Tokens generated for user: ${result.user.email}`);
