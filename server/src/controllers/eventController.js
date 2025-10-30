@@ -677,8 +677,7 @@ class EventController {
 
       const event = await EventModel.approve(id, adminId);
 
-      // TODO: Send notification to organizer
-      // await notificationService.sendEventApproved(event);
+      await notificationService.sendEventApproved(event);
 
       res.json(
         createResponse(
@@ -727,8 +726,7 @@ class EventController {
 
       const event = await EventModel.reject(id, adminId, reason);
 
-      // TODO: Send notification to organizer
-      // await notificationService.sendEventRejected(event, reason);
+      await notificationService.sendEventRejected(event, reason);
 
       res.json(
         createResponse(

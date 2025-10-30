@@ -61,7 +61,6 @@ class AuthController {
 
       console.log(`✅ User created successfully with ID: ${result.user.id}`);
 
-      // TODO: Send verification email
       await emailService.sendVerificationEmail(
         result.user.email, 
         result.verificationToken,

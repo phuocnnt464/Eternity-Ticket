@@ -89,7 +89,7 @@ router.get('/users',
  */
 router.patch('/users/:userId/role', 
   validateUUIDParam('userId'),
-  validate(updateUserRoleSchema),  // TODO: Create schema
+  validate(updateUserRoleSchema), 
   logAdminAudit('UPDATE_USER_ROLE', 'USER'),
   AdminController.updateUserRole
 );
@@ -191,7 +191,7 @@ router.post('/refunds/:refundId/approve',
 router.post('/refunds/:refundId/reject',
   sensitiveAdminLimiter,
   validateUUIDParam('refundId'),
-  validate(rejectRefundSchema),  // TODO: Create schema
+  validate(rejectRefundSchema), 
   logAdminAudit('REJECT_REFUND', 'REFUND'),
   AdminController.rejectRefund
 );
@@ -210,7 +210,7 @@ router.get('/settings',
  */
 router.put('/settings/:key',
   sensitiveAdminLimiter,
-  validate(updateSettingSchema),  // TODO: Create schema
+  validate(updateSettingSchema),
   logAdminAudit('UPDATE_SETTING', 'SYSTEM_SETTING'),
   AdminController.updateSetting
 );
