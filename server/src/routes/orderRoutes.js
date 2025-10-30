@@ -4,7 +4,9 @@ const rateLimit = require('express-rate-limit');
 const OrderController = require('../controllers/orderController');
 const { 
   authenticateToken, 
-  authorizeRoles
+  authorizeRoles,
+  checkPurchaseCooldown,
+  checkEarlyAccess
 } = require('../middleware/authMiddleware');
 const { validate } = require('../middleware/validationMiddleware');
 const {
@@ -46,7 +48,9 @@ router.use(authenticateToken);
  */
 router.post('/',
   orderCreationLimiter,
-  authorizeRoles(['participant']),
+  authorizeRoles('participant'),
+  checkPurchaseCooldown,
+  checkEarlyAccess,
   validate(createOrderSchema),
   OrderController.createOrder
 );
@@ -111,7 +115,7 @@ router.get('/:orderId/tickets',
  * @access  Private (Admin)
  */
 router.post('/cleanup/expired',
-  authorizeRoles(['admin', 'sub_admin']),
+  authorizeRoles('admin', 'sub_admin'),
   OrderController.cleanupExpiredOrders
 );
 

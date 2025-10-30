@@ -453,6 +453,11 @@ const pendingEventsQuerySchema = Joi.object({
     })
 });
 
+const addEventMemberSchema = Joi.object({
+  email: Joi.string().email().required(),
+  role: Joi.string().valid('owner', 'manager').required()
+});
+
 module.exports = {
   createEventSchema,
   updateEventSchema,
@@ -463,5 +468,6 @@ module.exports = {
   rejectEventSchema,
   myEventsQuerySchema,
   slugParamSchema,
-  pendingEventsQuerySchema
+  pendingEventsQuerySchema,
+  addEventMemberSchema
 };

@@ -26,7 +26,8 @@ const {
   searchQuerySchema,
   featuredEventsQuerySchema,
   rejectEventSchema,
-  slugParamSchema
+  slugParamSchema,
+  addEventMemberSchema
 } = require('../validations/eventValidation');
 
 const router = express.Router();
@@ -246,7 +247,18 @@ router.delete('/:id',
   EventController.deleteEvent
 );
 
-// Thêm vào cuối file trước module.exports
+/**
+ * @route   GET /api/events/:eventId/members
+ * @desc    Get event team members
+ * @access  Private (Event Team)
+ */
+router.get('/:eventId/members',
+  authenticateToken,
+  validateUUIDParam('eventId'),
+  authorizeEventOrganizer('eventId'),
+  requireEventRole('owner', 'manager'),
+  EventController.getEventMembers
+);
 
 /**
  * @route   POST /api/events/:eventId/members
@@ -259,24 +271,8 @@ router.post('/:eventId/members',
   validateUUIDParam('eventId'),
   authorizeEventOrganizer('eventId'),
   requireEventRole('owner', 'manager'),
-  validate(Joi.object({
-    email: Joi.string().email().required(),
-    role: Joi.string().valid('manager', 'checkin_staff').required()
-  })),
+  validate(addEventMemberSchema),
   EventController.addEventMember
-);
-
-/**
- * @route   GET /api/events/:eventId/members
- * @desc    Get event team members
- * @access  Private (Event Team)
- */
-router.get('/:eventId/members',
-  authenticateToken,
-  authorizeRoles('organizer'),
-  validateUUIDParam('eventId'),
-  authorizeEventOrganizer('eventId'),
-  EventController.getEventMembers
 );
 
 /**
@@ -292,6 +288,21 @@ router.delete('/:eventId/members/:memberId',
   requireEventRole('owner'),
   EventController.removeEventMember
 );
+
+/**
+ * @route   PATCH /api/events/:eventId/members/:memberId
+ * @desc    Update member role
+ * @access  Private (Event Owner)
+ */
+router.patch('/:eventId/members/:memberId',
+  authenticateToken,
+  validateUUIDParams('eventId', 'memberId'),
+  authorizeEventOrganizer('eventId'),
+  requireEventRole('owner'),
+  validate(updateMemberRoleSchema),
+  EventController.updateMemberRole
+);
+
 
 /**
  * @route   GET /api/events/health

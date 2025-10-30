@@ -64,7 +64,11 @@ class AuthController {
       console.log(`✅ User created successfully with ID: ${result.user.id}`);
 
       // TODO: Send verification email
-      // await emailService.sendVerificationEmail(result.user.email, result.verificationToken);
+      await emailService.sendVerificationEmail(
+        result.user.email, 
+        result.verificationToken,
+        `${result.user.first_name} ${result.user.last_name}`
+      );
 
       // Generate tokens
       const tokenPayload = {
@@ -148,7 +152,7 @@ class AuthController {
       const user = await UserModel.findByEmail(email);
       
       if (!user) {
-        console.log(`❌ Login failed: User not found: ${email}`);
+        console.log(`Login failed: User not found: ${email}`);
         return res.status(401).json(
           createResponse(false, 'Invalid email or password. Please try again.')
         );
@@ -156,7 +160,7 @@ class AuthController {
 
       // Check if user account is active
       if (!user.is_active) {
-        console.log(`❌ Login failed: Inactive account for email: ${email}`);
+        console.log(`Login failed: Inactive account for email: ${email}`);
         return res.status(403).json(
           createResponse(false, 'Your account has been deactivated. Please contact support.')
         );
@@ -167,11 +171,15 @@ class AuthController {
         const lockTimeRemaining = Math.ceil(
           (new Date(user.account_locked_until) - new Date()) / 1000 / 60
         );
-        console.log(`❌ Login failed: Account locked - ${email}`);
+        console.log(`❌ Login failed: Account locked - ${email} for ${lockTimeRemaining} minutes`);
         return res.status(423).json(
           createResponse(
             false, 
-            `Account is temporarily locked due to multiple failed login attempts. Please try again in ${lockTimeRemaining} minutes.`
+            `Account is temporarily locked due to multiple failed login attempts. Please try again in ${lockTimeRemaining} minutes.`,
+            {
+              locked_until: user.account_locked_until,
+              minutes_remaining: lockTimeRemaining
+            }
           )
         );
       }
@@ -193,22 +201,34 @@ class AuthController {
         
         // Check if should lock account
         const updatedUser = await UserModel.findById(user.id);
-        if (updatedUser.failed_login_attempts >= 5) {
+        const failedAttempts = updatedUser.failed_login_attempts || 0;
+
+        if (failedAttempts >= 5) {
           // Lock account for 15 minutes
           await UserModel.lockAccount(user.id, 15);
+
+          console.log(`🔒 Account locked after 5 failed attempts: ${email}`);
+
           return res.status(423).json(
             createResponse(
               false, 
-              'Too many failed login attempts. Your account has been locked for 15 minutes.'
+              'Too many failed login attempts. Your account has been locked for 15 minutes.',
+              {
+                locked_until: new Date(Date.now() + 15 * 60000)
+              }
             )
           );
         }
         
-        const attemptsLeft = 5 - (updatedUser.failed_login_attempts || 0);
+        const attemptsLeft = 5 - failedAttempts;
         return res.status(401).json(
           createResponse(
             false, 
-            `Invalid email or password. ${attemptsLeft} attempts remaining.`
+            `Invalid email or password. ${attemptsLeft} attempts remaining before account lock.`,
+            { 
+              failed_login_attempts: failedAttempts,
+              attempts_left: attemptsLeft
+            }
           )
         );
       }
@@ -251,9 +271,12 @@ class AuthController {
       const responseData = {
         user: {
           ...safeUser,
-          // membership: {
-          //   tier: user.membership_tier || 'basic'
-          // }
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          is_email_verified: user.is_email_verified,
           membership: membership || { tier: 'basic', is_active: false }
         },
         tokens: {

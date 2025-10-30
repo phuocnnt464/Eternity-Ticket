@@ -2,6 +2,7 @@
 const pool = require('../config/database');
 const { generateOrderNumber } = require('../utils/helpers');
 const QRCode = require('qrcode');
+const lockManager = require('../utils/lockManager');
 
 class OrderModel {
   /**
@@ -11,6 +12,15 @@ class OrderModel {
    * @returns {Object} Created order with tickets
    */
   static async createOrder(userId, orderData) {
+
+     // ACQUIRE DISTRIBUTED LOCK PER SESSION
+    const lockKey = `order:session:${session_id}`;
+    const lockToken = await lockManager.acquireLock(lockKey, 15000); // 15 seconds
+
+    if (!lockToken) {
+      throw new Error('System is busy processing orders. Please try again in a few seconds.');
+    }
+
     const client = await pool.connect();
     
     try {
@@ -30,6 +40,7 @@ class OrderModel {
         FROM event_sessions es
         JOIN events e ON es.event_id = e.id
         WHERE es.id = $1 AND es.event_id = $2 AND es.is_active = true
+        FOR UPDATE NOWAIT
       `, [session_id, event_id]);
 
       if (sessionCheck.rows.length === 0) {
@@ -116,21 +127,108 @@ class OrderModel {
 
       // Apply coupon discount if provided (simplified)
       let couponDiscount = 0;
-      if (coupon_code) {
-        const couponQuery = await client.query(`
-          SELECT * FROM coupons 
-          WHERE code = $1 AND is_active = true 
-          AND valid_from <= NOW() AND valid_until >= NOW()
-        `, [coupon_code]);
+      let appliedCoupon = null;
 
-        if (couponQuery.rows.length > 0) {
-          const coupon = couponQuery.rows[0];
-          if (coupon.type === 'percentage') {
-            couponDiscount = Math.min(subtotal * (coupon.discount_value / 100), coupon.max_discount_amount || subtotal);
-          } else {
-            couponDiscount = Math.min(coupon.discount_value, subtotal);
+      if (coupon_code) {
+        console.log(`Applying coupon code: ${coupon_code}`);
+
+        // const couponQuery = await client.query(`
+        //   SELECT * FROM coupons 
+        //   WHERE code = $1 AND is_active = true 
+        //   AND valid_from <= NOW() AND valid_until >= NOW()
+        // `, [coupon_code]);
+
+        // GET COUPON WITH USAGE COUNTS
+        const couponQuery = await client.query(`
+          SELECT 
+            c.*,
+            (SELECT COUNT(*) FROM coupon_usages WHERE coupon_id = c.id) as total_uses,
+            (SELECT COUNT(*) FROM coupon_usages WHERE coupon_id = c.id AND user_id = $2) as user_uses
+          FROM coupons c
+          WHERE c.code = $1 
+            AND c.is_active = true
+            AND c.valid_from <= NOW()
+            AND c.valid_until >= NOW()
+            AND (c.event_id IS NULL OR c.event_id = $3)
+          FOR UPDATE  -- ✅ Lock coupon row
+        `, [coupon_code, userId, event_id]);
+
+        // if (couponQuery.rows.length > 0) {
+        //   const coupon = couponQuery.rows[0];
+        //   if (coupon.type === 'percentage') {
+        //     couponDiscount = Math.min(subtotal * (coupon.discount_value / 100), coupon.max_discount_amount || subtotal);
+        //   } else {
+        //     couponDiscount = Math.min(coupon.discount_value, subtotal);
+        //   }
+        // }
+
+        if (couponQuery.rows.length === 0) {
+          throw new Error('Invalid, expired, or not applicable coupon code');
+        }
+
+        const coupon = couponQuery.rows[0];
+        
+        console.log(`Coupon details:`, {
+          code: coupon.code,
+          type: coupon.type,
+          discount_value: coupon.discount_value,
+          total_uses: coupon.total_uses,
+          usage_limit: coupon.usage_limit,
+          user_uses: coupon.user_uses,
+          usage_limit_per_user: coupon.usage_limit_per_user
+        });
+
+        // ✅ 1. CHECK GLOBAL USAGE LIMIT
+        if (coupon.usage_limit && parseInt(coupon.total_uses) >= coupon.usage_limit) {
+          throw new Error('This coupon has reached its usage limit');
+        }
+
+        // ✅ 2. CHECK USER USAGE LIMIT
+        if (parseInt(coupon.user_uses) >= coupon.usage_limit_per_user) {
+          throw new Error(`You have already used this coupon ${coupon.usage_limit_per_user} time(s)`);
+        }
+
+        // ✅ 3. CHECK MINIMUM ORDER AMOUNT
+        if (subtotal < parseFloat(coupon.min_order_amount || 0)) {
+          throw new Error(
+            `Minimum order amount for this coupon is ${coupon.min_order_amount}. Your subtotal is ${subtotal}`
+          );
+        }
+
+        // ✅ 4. CHECK MEMBERSHIP TIER RESTRICTION
+        if (coupon.membership_tiers && coupon.membership_tiers.length > 0) {
+          if (!coupon.membership_tiers.includes(membershipTier)) {
+            throw new Error(
+              `This coupon is only available for ${coupon.membership_tiers.join(', ')} members. Your tier: ${membershipTier}`
+            );
           }
         }
+
+        // ✅ 5. CALCULATE DISCOUNT (apply AFTER membership discount)
+        const discountableAmount = subtotal - membershipDiscount;
+        
+        if (coupon.type === 'percentage') {
+          couponDiscount = discountableAmount * (parseFloat(coupon.discount_value) / 100);
+          
+          // ✅ Apply max discount limit if exists
+          if (coupon.max_discount_amount) {
+            couponDiscount = Math.min(couponDiscount, parseFloat(coupon.max_discount_amount));
+          }
+        } else if (coupon.type === 'fixed_amount') {
+          couponDiscount = Math.min(parseFloat(coupon.discount_value), discountableAmount);
+        }
+
+        appliedCoupon = coupon;
+        
+        console.log(`✅ Coupon applied: ${coupon.code}, discount: ${couponDiscount}`);
+        
+        // ✅ 6. INCREMENT USED COUNT
+        await client.query(`
+          UPDATE coupons 
+          SET used_count = used_count + 1,
+              updated_at = NOW()
+          WHERE id = $1
+        `, [coupon.id]);
       }
 
       // Calculate VAT (10%)
@@ -222,6 +320,25 @@ class OrderModel {
         `, [ticketDetail.quantity, ticketDetail.ticket_type_id]);
       }
 
+      // SET PURCHASE COOLDOWN
+      await client.query(`
+        UPDATE users 
+        SET purchase_cooldown_until = NOW() + INTERVAL '2 minutes',
+            last_purchase_at = NOW(),
+            updated_at = NOW()
+        WHERE id = $1
+      `, [userId]);
+
+      // ✅ 7. INSERT COUPON USAGE RECORD (AFTER ORDER CREATED)
+      if (appliedCoupon) {
+        await client.query(`
+          INSERT INTO coupon_usages (coupon_id, user_id, order_id, discount_amount, used_at)
+          VALUES ($1, $2, $3, $4, NOW())
+        `, [appliedCoupon.id, userId, order.id, couponDiscount]);
+        
+        console.log(`📝 Coupon usage logged: ${appliedCoupon.code} for order ${order.order_number}`);
+      }
+
       await client.query('COMMIT');
 
       console.log(`Order created: ${orderNumber} for user: ${userId}, total: ${totalAmount}`);
@@ -237,6 +354,7 @@ class OrderModel {
       throw error;
     } finally {
       client.release();
+      await lockManager.releaseLock(lockKey, lockToken);
     }
   }
 

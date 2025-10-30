@@ -72,6 +72,7 @@ class EventController {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
+      const { access_code } = req.query;  // ✅ GET ACCESS CODE FROM QUERY
 
       console.log(`🎉 Getting event details for ID: ${id}`);
 
@@ -84,12 +85,30 @@ class EventController {
       }
 
       // Check privacy settings
-      if (event.privacy_type === 'private' && !event.user_role_in_event) {
-        const isAdmin = ['admin', 'sub_admin'].includes(req.user?.role);
+      // if (event.privacy_type === 'private' && !event.user_role_in_event) {
+      //   const isAdmin = ['admin', 'sub_admin'].includes(req.user?.role);
 
-        if (!isAdmin) {
-            return res.status(403).json(
-            createResponse(false, 'This is a private event. Access denied.')
+      //   if (!isAdmin) {
+      //       return res.status(403).json(
+      //       createResponse(false, 'This is a private event. Access denied.')
+      //     );
+      //   }
+      // }
+
+      // ✅ CHECK PRIVATE EVENT ACCESS
+      if (event.privacy_type === 'private') {
+        const hasAccess = 
+          event.user_role_in_event || // Is event member
+          ['admin', 'sub_admin'].includes(req.user?.role) || // Is admin
+          (access_code && access_code === event.private_access_code); // Has correct access code
+
+        if (!hasAccess) {
+          return res.status(403).json(
+            createResponse(
+              false, 
+              'This is a private event. Please provide a valid access code.',
+              { requires_access_code: true }
+            )
           );
         }
       }

@@ -1,0 +1,205 @@
+// server/src/services/emailService.js
+const nodemailer = require('nodemailer');
+const pool = require('../config/database');
+
+class EmailService {
+  constructor() {
+    this.transporter = nodemailer.createTransporter({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
+  }
+
+  /**
+   * Get email template from database
+   * @param {String} templateName - Template name
+   * @returns {Object} Template data
+   */
+  async getTemplate(templateName) {
+    try {
+      const result = await pool.query(`
+        SELECT html_content, text_content, subject, variables
+        FROM email_templates
+        WHERE name = $1 AND is_active = true
+      `, [templateName]);
+
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Get template error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Replace template variables
+   * @param {String} template - Template string
+   * @param {Object} variables - Variables to replace
+   * @returns {String} Processed template
+   */
+  replaceVariables(template, variables) {
+    let result = template;
+    Object.keys(variables).forEach(key => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      result = result.replace(regex, variables[key]);
+    });
+    return result;
+  }
+
+  /**
+   * Send email
+   * @param {Object} options - Email options
+   * @returns {Boolean} Success status
+   */
+  async sendEmail(options) {
+    try {
+      const { to, subject, html, text, attachments } = options;
+
+      const mailOptions = {
+        from: `"${process.env.SMTP_FROM_NAME || 'Eternity Ticket'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+        to,
+        subject,
+        html,
+        text,
+        attachments
+      };
+
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Email sent: ${info.messageId} to ${to}`);
+      return true;
+    } catch (error) {
+      console.error('Send email error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send verification email
+   * @param {String} email - User email
+   * @param {String} token - Verification token
+   * @param {String} userName - User name
+   */
+  async sendVerificationEmail(email, token, userName) {
+    const template = await this.getTemplate('email_verification');
+    
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+    
+    const variables = {
+      user_name: userName,
+      verification_url: verificationUrl,
+      current_year: new Date().getFullYear()
+    };
+
+    const html = template 
+      ? this.replaceVariables(template.html_content, variables)
+      : `
+        <h1>Verify Your Email</h1>
+        <p>Hello ${userName},</p>
+        <p>Please click the link below to verify your email:</p>
+        <a href="${verificationUrl}">${verificationUrl}</a>
+      `;
+
+    return await this.sendEmail({
+      to: email,
+      subject: template?.subject || 'Verify Your Email - Eternity Ticket',
+      html,
+      text: `Verify your email: ${verificationUrl}`
+    });
+  }
+
+  /**
+   * Send password reset email
+   * @param {String} email - User email
+   * @param {String} token - Reset token
+   * @param {String} userName - User name
+   */
+  async sendPasswordResetEmail(email, token, userName) {
+    const template = await this.getTemplate('password_reset');
+    
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+    
+    const variables = {
+      user_name: userName,
+      reset_url: resetUrl,
+      current_year: new Date().getFullYear()
+    };
+
+    const html = template 
+      ? this.replaceVariables(template.html_content, variables)
+      : `
+        <h1>Reset Your Password</h1>
+        <p>Hello ${userName},</p>
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+        <p>This link will expire in 1 hour.</p>
+      `;
+
+    return await this.sendEmail({
+      to: email,
+      subject: template?.subject || 'Reset Your Password - Eternity Ticket',
+      html,
+      text: `Reset your password: ${resetUrl}`
+    });
+  }
+
+  /**
+   * Send order confirmation email with tickets
+   * @param {Object} orderData - Order data
+   */
+  async sendOrderConfirmationEmail(orderData) {
+    const template = await this.getTemplate('order_confirmation');
+    
+    const { 
+      user_email, 
+      user_name, 
+      order_number, 
+      event_title, 
+      total_amount,
+      tickets 
+    } = orderData;
+
+    const variables = {
+      user_name,
+      order_number,
+      event_title,
+      total_amount,
+      order_url: `${process.env.FRONTEND_URL}/orders/${orderData.order_id}`,
+      current_year: new Date().getFullYear()
+    };
+
+    // Build tickets HTML
+    let ticketsHTML = tickets.map(ticket => `
+      <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd;">
+        <strong>${ticket.ticket_type_name}</strong><br>
+        Ticket Code: ${ticket.ticket_code}<br>
+        Holder: ${ticket.holder_name}
+      </div>
+    `).join('');
+
+    const html = template 
+      ? this.replaceVariables(template.html_content, variables) + ticketsHTML
+      : `
+        <h1>Order Confirmation</h1>
+        <p>Hello ${user_name},</p>
+        <p>Your order ${order_number} has been confirmed!</p>
+        <h3>Order Details:</h3>
+        <p>Event: ${event_title}</p>
+        <p>Total: ${total_amount} VND</p>
+        <h3>Tickets:</h3>
+        ${ticketsHTML}
+      `;
+
+    return await this.sendEmail({
+      to: user_email,
+      subject: template?.subject || `Order Confirmation - ${order_number}`,
+      html
+    });
+  }
+}
+
+// Export singleton instance
+module.exports = new EmailService();
