@@ -454,8 +454,31 @@ const pendingEventsQuerySchema = Joi.object({
 });
 
 const addEventMemberSchema = Joi.object({
-  email: Joi.string().email().required(),
-  role: Joi.string().valid('owner', 'manager').required()
+  email: Joi.string()
+    .email()
+    .required()
+    .messages({
+      'string.email': 'Please provide a valid email address',
+      'any.required': 'Email is required'
+    }),
+  
+  role: Joi.string()
+    .valid('owner', 'manager', 'checkin_staff')  
+    .required()
+    .messages({
+      'any.only': 'Role must be one of: owner, manager, checkin_staff',
+      'any.required': 'Role is required'
+    })
+});
+
+const updateMemberRoleSchema = Joi.object({
+  role: Joi.string()
+    .valid('owner', 'manager', 'checkin_staff')
+    .required()
+    .messages({
+      'any.only': 'Role must be one of: owner, manager, checkin_staff',
+      'any.required': 'Role is required'
+    })
 });
 
 module.exports = {
@@ -469,5 +492,6 @@ module.exports = {
   myEventsQuerySchema,
   slugParamSchema,
   pendingEventsQuerySchema,
-  addEventMemberSchema
+  addEventMemberSchema,
+  updateMemberRoleSchema
 };

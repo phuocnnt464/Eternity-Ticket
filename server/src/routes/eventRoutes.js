@@ -27,7 +27,8 @@ const {
   featuredEventsQuerySchema,
   rejectEventSchema,
   slugParamSchema,
-  addEventMemberSchema
+  addEventMemberSchema,
+  updateMemberRoleSchema
 } = require('../validations/eventValidation');
 
 const router = express.Router();
