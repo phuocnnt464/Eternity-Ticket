@@ -5,12 +5,12 @@ const pool = require('../config/database');
 class EmailService {
   constructor() {
     this.transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT) || 587,
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.EMAIL_PORT) || 587,
       secure: false, // true for 465, false for other ports
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
       }
     });
   }
@@ -60,7 +60,7 @@ class EmailService {
       const { to, subject, html, text, attachments } = options;
 
       const mailOptions = {
-        from: `"${process.env.SMTP_FROM_NAME || 'Eternity Ticket'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+        from: `"${process.env.EMAIL_FROM_NAME || 'Eternity Ticket'}" <${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER}>`,
         to,
         subject,
         html,
