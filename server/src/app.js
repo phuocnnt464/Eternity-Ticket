@@ -7,9 +7,6 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
-const queueProcessor = require('../src/utils/queueProcessor');
-  const redisService = require('../src/services/redisService');
-
 const app = express();
 
 // Trust proxy for rate limiting behind reverse proxy
@@ -150,6 +147,7 @@ app.use('/uploads', express.static(uploadsDir, {
 // =============================================
 if (process.env.NODE_ENV !== 'test') {
   const queueProcessor = require('./utils/queueProcessor');
+  const redisService = require('./services/redisService');
   
   queueProcessor.initialize().catch(err => {
     console.error('❌ Failed to initialize queue processor:', err);
@@ -161,6 +159,9 @@ if (process.env.NODE_ENV !== 'test') {
 // HEALTH CHECK
 // =============================================
 app.get('/api/health', async (req, res) => {
+  const queueProcessor = require('./utils/queueProcessor');
+  const redisService = require('./services/redisService');
+
   const queueStatus = queueProcessor.getStatus();
   const redisConnected = await redisService.ping().catch(() => false);
   res.json({
