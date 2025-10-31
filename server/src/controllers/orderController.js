@@ -1,5 +1,6 @@
 // src/controllers/orderController.js
 const OrderModel = require('../models/orderModel');
+const QueueController = require('../controllers/queueController');
 const pool = require('../config/database');
 const { createResponse } = require('../utils/helpers');
 
@@ -13,6 +14,25 @@ class OrderController {
     try {
       const userId = req.user.id;
       const orderData = req.body;
+
+      // ✅ CHECK QUEUE ACCESS
+      const canPurchase = await QueueController.checkCanPurchase(
+        userId, 
+        orderData.session_id
+      );
+
+      if (!canPurchase) {
+        return res.status(403).json(
+          createResponse(
+            false,
+            'You must join the waiting room first. You are not in an active purchase slot.',
+            {
+              action_required: 'join_queue',
+              waiting_room_enabled: true
+            }
+          )
+        );
+      }
 
       // ✅ VALIDATE TOTAL TICKETS
       const totalTickets = orderData.tickets.reduce((sum, t) => sum + t.quantity, 0);
@@ -55,6 +75,8 @@ class OrderController {
       console.log(`Creating order for user: ${userId}, tickets: ${totalTickets}`);
 
       const result = await OrderModel.createOrder(userId, orderData);
+
+      await QueueController.completeOrder(userId, orderData.session_id);
 
       const response = createResponse(
         true,

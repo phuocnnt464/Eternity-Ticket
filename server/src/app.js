@@ -7,6 +7,9 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
+const queueProcessor = require('../src/utils/queueProcessor');
+  const redisService = require('../src/services/redisService');
+
 const app = express();
 
 // Trust proxy for rate limiting behind reverse proxy
@@ -143,9 +146,23 @@ app.use('/uploads', express.static(uploadsDir, {
 }));
 
 // =============================================
+// INITIALIZE QUEUE PROCESSOR
+// =============================================
+if (process.env.NODE_ENV !== 'test') {
+  const queueProcessor = require('./utils/queueProcessor');
+  
+  queueProcessor.initialize().catch(err => {
+    console.error('❌ Failed to initialize queue processor:', err);
+    // Don't exit - allow API to work without queue processing
+  });
+}
+
+// =============================================
 // HEALTH CHECK
 // =============================================
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  const queueStatus = queueProcessor.getStatus();
+  const redisConnected = await redisService.ping().catch(() => false);
   res.json({
     success: true,
     data: {
@@ -159,6 +176,10 @@ app.get('/api/health', (req, res) => {
         used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
         total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
       }
+    },
+    services: {
+      redis: redisConnected ? 'connected' : 'disconnected',
+      queue_processor: queueStatus.isRunning ? 'running' : 'stopped'
     }
   });
 });
@@ -175,6 +196,7 @@ app.use(`${API_PREFIX}/events`, require('./routes/eventRoutes'));
 app.use(`${API_PREFIX}/event-sessions`, require('./routes/sessionTicketRoutes'));
 app.use(`${API_PREFIX}/orders`, require('./routes/orderRoutes'));
 app.use(`${API_PREFIX}/checkin`, require('./routes/checkinRoutes'));
+app.use(`${API_PREFIX}/queue`, require('./routes/queueRoutes'));
 
 // =============================================
 // ROOT ENDPOINT

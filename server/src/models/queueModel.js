@@ -1,0 +1,456 @@
+// server/src/models/queueModel.js
+const pool = require('../config/database');
+const redisService = require('../services/redisService');
+
+class QueueModel {
+  /**
+   * Get waiting room configuration
+   */
+  static async getWaitingRoomConfig(sessionId) {
+    try {
+      const query = `
+        SELECT 
+          wrc.*,
+          es.title as session_title,
+          es.start_time as session_start_time,
+          e.id as event_id,
+          e.title as event_title
+        FROM waiting_room_configs wrc
+        JOIN event_sessions es ON wrc.session_id = es.id
+        JOIN events e ON wrc.event_id = e.id
+        WHERE wrc.session_id = $1 AND wrc.is_enabled = true
+      `;
+
+      const result = await pool.query(query, [sessionId]);
+      return result.rows.length > 0 ? result.rows[0] : null;
+
+    } catch (error) {
+      throw new Error(`Failed to get waiting room config: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create waiting room config
+   */
+  static async createWaitingRoomConfig(configData) {
+    try {
+      const {
+        event_id,
+        session_id,
+        max_capacity = 1000,
+        queue_timeout_minutes = 15,
+        concurrent_purchase_limit = 100
+      } = configData;
+
+      const query = `
+        INSERT INTO waiting_room_configs (
+          event_id, session_id, max_capacity,
+          queue_timeout_minutes, concurrent_purchase_limit, is_enabled
+        ) VALUES ($1, $2, $3, $4, $5, true)
+        RETURNING *
+      `;
+
+      const result = await pool.query(query, [
+        event_id,
+        session_id,
+        max_capacity,
+        queue_timeout_minutes,
+        concurrent_purchase_limit
+      ]);
+
+      return result.rows[0];
+
+    } catch (error) {
+      throw new Error(`Failed to create waiting room config: ${error.message}`);
+    }
+  }
+
+  /**
+   * Add user to waiting queue (database)
+   */
+  static async addToQueue(queueData) {
+    try {
+      const {
+        user_id,
+        event_id,
+        session_id,
+        queue_number,
+        priority_score = 0,
+        ip_address = null
+      } = queueData;
+
+      const query = `
+        INSERT INTO waiting_queue (
+          user_id, event_id, session_id, queue_number,
+          status, priority_score, ip_address, entered_at
+        ) VALUES ($1, $2, $3, $4, 'waiting', $5, $6, NOW())
+        ON CONFLICT (event_id, session_id, queue_number)
+        DO UPDATE SET 
+          user_id = EXCLUDED.user_id,
+          entered_at = NOW(),
+          status = 'waiting'
+        RETURNING *
+      `;
+
+      const result = await pool.query(query, [
+        user_id,
+        event_id,
+        session_id,
+        queue_number,
+        priority_score,
+        ip_address
+      ]);
+
+      return result.rows[0];
+
+    } catch (error) {
+      throw new Error(`Failed to add to queue: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get next queue number
+   */
+  static async getNextQueueNumber(sessionId) {
+    try {
+      const query = `
+        SELECT COALESCE(MAX(queue_number), 0) + 1 as next_number
+        FROM waiting_queue
+        WHERE session_id = $1
+      `;
+
+      const result = await pool.query(query, [sessionId]);
+      return result.rows[0].next_number;
+
+    } catch (error) {
+      throw new Error(`Failed to get next queue number: ${error.message}`);
+    }
+  }
+
+  /**
+   * Activate user for purchase
+   */
+  static async activateUser(userId, sessionId, expiresAt) {
+    try {
+      const query = `
+        UPDATE waiting_queue
+        SET status = 'active',
+            activated_at = NOW(),
+            expires_at = $3,
+            last_heartbeat = NOW()
+        WHERE user_id = $1 
+          AND session_id = $2 
+          AND status = 'waiting'
+        RETURNING *
+      `;
+
+      const result = await pool.query(query, [userId, sessionId, expiresAt]);
+      
+      if (result.rows.length === 0) {
+        throw new Error('User not found in queue or already active');
+      }
+
+      return result.rows[0];
+
+    } catch (error) {
+      throw new Error(`Failed to activate user: ${error.message}`);
+    }
+  }
+
+  /**
+   * Mark order as completed
+   */
+  static async completeOrder(userId, sessionId) {
+    try {
+      const query = `
+        UPDATE waiting_queue
+        SET status = 'completed',
+            completed_at = NOW()
+        WHERE user_id = $1 
+          AND session_id = $2 
+          AND status = 'active'
+        RETURNING *
+      `;
+
+      const result = await pool.query(query, [userId, sessionId]);
+      return result.rows[0] || null;
+
+    } catch (error) {
+      throw new Error(`Failed to complete order: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get user's queue status from database
+   */
+  static async getUserQueueStatus(userId, sessionId) {
+    try {
+      const query = `
+        SELECT 
+          wq.*,
+          wrc.queue_timeout_minutes
+        FROM waiting_queue wq
+        LEFT JOIN waiting_room_configs wrc ON wq.session_id = wrc.session_id
+        WHERE wq.user_id = $1 
+          AND wq.session_id = $2
+        ORDER BY wq.entered_at DESC
+        LIMIT 1
+      `;
+
+      const result = await pool.query(query, [userId, sessionId]);
+      return result.rows[0] || null;
+
+    } catch (error) {
+      throw new Error(`Failed to get user queue status: ${error.message}`);
+    }
+  }
+
+  /**
+   * Cleanup expired sessions
+   */
+  static async cleanupExpiredSessions() {
+    try {
+      const query = `
+        UPDATE waiting_queue
+        SET status = 'expired'
+        WHERE status = 'active' 
+          AND expires_at < NOW()
+          AND completed_at IS NULL
+        RETURNING session_id
+      `;
+
+      const result = await pool.query(query);
+      const sessionIds = [...new Set(result.rows.map(r => r.session_id))];
+
+      console.log(`🧹 Cleaned up ${result.rowCount} expired sessions`);
+      return sessionIds;
+
+    } catch (error) {
+      throw new Error(`Failed to cleanup expired sessions: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update heartbeat timestamp
+   */
+  static async updateHeartbeat(userId, sessionId) {
+    try {
+      const query = `
+        UPDATE waiting_queue
+        SET last_heartbeat = NOW()
+        WHERE user_id = $1 
+          AND session_id = $2 
+          AND status = 'active'
+      `;
+
+      const result = await pool.query(query, [userId, sessionId]);
+      return result.rowCount > 0;
+
+    } catch (error) {
+      throw new Error(`Failed to update heartbeat: ${error.message}`);
+    }
+  }
+
+  /**
+   * Leave queue (cancel)
+   */
+  static async leaveQueue(userId, sessionId) {
+    try {
+      const query = `
+        UPDATE waiting_queue
+        SET status = 'cancelled',
+            completed_at = NOW()
+        WHERE user_id = $1 
+          AND session_id = $2 
+          AND status IN ('waiting', 'active')
+      `;
+
+      const result = await pool.query(query, [userId, sessionId]);
+      return result.rowCount > 0;
+
+    } catch (error) {
+      throw new Error(`Failed to leave queue: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get queue statistics
+   */
+  static async getQueueStatistics(sessionId) {
+    try {
+      const query = `
+        SELECT 
+          COUNT(*) FILTER (WHERE status = 'waiting') as waiting_count,
+          COUNT(*) FILTER (WHERE status = 'active') as active_count,
+          COUNT(*) FILTER (WHERE status = 'completed') as completed_count,
+          COUNT(*) FILTER (WHERE status = 'expired') as expired_count,
+          AVG(EXTRACT(EPOCH FROM (activated_at - entered_at)) / 60) 
+            FILTER (WHERE status = 'active' OR status = 'completed') as avg_wait_minutes
+        FROM waiting_queue
+        WHERE session_id = $1
+          AND entered_at >= NOW() - INTERVAL '24 hours'
+      `;
+
+      const result = await pool.query(query, [sessionId]);
+      return result.rows[0];
+
+    } catch (error) {
+      throw new Error(`Failed to get queue statistics: ${error.message}`);
+    }
+  }
+
+  // =============================================
+  // REDIS OPERATIONS
+  // =============================================
+
+  /**
+   * Add to Redis queue (FIFO)
+   */
+  static async addToRedisQueue(sessionId, userData) {
+    try {
+      const redis = redisService.getClient();
+      const queueKey = `queue:${sessionId}`;
+      const queueData = JSON.stringify(userData);
+
+      const length = await redis.rPush(queueKey, queueData);
+      return length;
+
+    } catch (error) {
+      throw new Error(`Failed to add to Redis queue: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get Redis queue length
+   */
+  static async getRedisQueueLength(sessionId) {
+    try {
+      const redis = redisService.getClient();
+      const queueKey = `queue:${sessionId}`;
+      
+      return await redis.lLen(queueKey);
+
+    } catch (error) {
+      throw new Error(`Failed to get queue length: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get user position in Redis queue
+   */
+  static async getRedisQueuePosition(sessionId, userId) {
+    try {
+      const redis = redisService.getClient();
+      const queueKey = `queue:${sessionId}`;
+      const queueData = await redis.lRange(queueKey, 0, -1);
+
+      for (let i = 0; i < queueData.length; i++) {
+        const data = JSON.parse(queueData[i]);
+        if (data.user_id === userId) {
+          return i + 1; // 1-indexed position
+        }
+      }
+
+      return null;
+
+    } catch (error) {
+      throw new Error(`Failed to get queue position: ${error.message}`);
+    }
+  }
+
+  /**
+   * Pop users from Redis queue (FIFO)
+   */
+  static async popFromRedisQueue(sessionId, count) {
+    try {
+      const redis = redisService.getClient();
+      const queueKey = `queue:${sessionId}`;
+      const users = [];
+
+      for (let i = 0; i < count; i++) {
+        const data = await redis.lPop(queueKey);
+        if (!data) break;
+        users.push(JSON.parse(data));
+      }
+
+      return users;
+
+    } catch (error) {
+      throw new Error(`Failed to pop from queue: ${error.message}`);
+    }
+  }
+
+  /**
+   * Set active user in Redis
+   */
+  static async setActiveUser(sessionId, userId, timeoutMinutes) {
+    try {
+      const redis = redisService.getClient();
+      const activeKey = `active:${sessionId}:${userId}`;
+      const expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
+
+      const data = JSON.stringify({
+        activated_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString()
+      });
+
+      await redis.setEx(activeKey, timeoutMinutes * 60, data);
+      return true;
+
+    } catch (error) {
+      throw new Error(`Failed to set active user: ${error.message}`);
+    }
+  }
+
+  /**
+   * Check if user is active in Redis
+   */
+  static async getActiveUser(sessionId, userId) {
+    try {
+      const redis = redisService.getClient();
+      const activeKey = `active:${sessionId}:${userId}`;
+      const data = await redis.get(activeKey);
+
+      if (!data) return null;
+
+      return JSON.parse(data);
+
+    } catch (error) {
+      throw new Error(`Failed to get active user: ${error.message}`);
+    }
+  }
+
+  /**
+   * Remove active user from Redis
+   */
+  static async removeActiveUser(sessionId, userId) {
+    try {
+      const redis = redisService.getClient();
+      const activeKey = `active:${sessionId}:${userId}`;
+      
+      await redis.del(activeKey);
+      return true;
+
+    } catch (error) {
+      throw new Error(`Failed to remove active user: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get active users count
+   */
+  static async getActiveUsersCount(sessionId) {
+    try {
+      const redis = redisService.getClient();
+      const pattern = `active:${sessionId}:*`;
+      const keys = await redis.keys(pattern);
+      
+      return keys.length;
+
+    } catch (error) {
+      throw new Error(`Failed to get active users count: ${error.message}`);
+    }
+  }
+}
+
+module.exports = QueueModel;
