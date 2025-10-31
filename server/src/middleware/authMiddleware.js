@@ -322,7 +322,6 @@ const authorizeEventOrganizer = (eventIdParam = 'eventId') => {
       }
 
       // Check if user is the event organizer or team member
-      const pool = require('../config/database');
       const query = `
         SELECT e.organizer_id, eom.role as member_role
         FROM events e

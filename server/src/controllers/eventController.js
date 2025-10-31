@@ -818,7 +818,6 @@ class EventController {
       
       console.log(`📊 Found ${eventsResult.rows.length} events`);
       
-      const { createResponse } = require('../utils/helpers');
       res.json(createResponse(true, 'Debug info for my events', {
         organizer_id: organizerId,
         events_count: eventsResult.rows.length,
@@ -827,7 +826,6 @@ class EventController {
       
     } catch (error) {
       console.error('❌ Debug my events error:', error.message);
-      const { createResponse } = require('../utils/helpers');
       res.status(500).json(createResponse(false, `Debug error: ${error.message}`));
     }
   }
