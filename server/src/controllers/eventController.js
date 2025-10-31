@@ -937,7 +937,7 @@ class EventController {
       console.log(`🔄 Updating member role: Event ${eventId}, Member ${memberId}, New Role: ${role}`);
 
       // Validate role
-      const validRoles = ['owner', 'manager', 'staff'];
+      const validRoles = ['owner', 'manager', 'checkin_staff'];
       if (!validRoles.includes(role)) {
         return res.status(400).json(
           createResponse(false, `Invalid role. Must be one of: ${validRoles.join(', ')}`)
