@@ -923,6 +923,96 @@ class EventController {
       res.status(500).json(createResponse(false, 'Failed to remove team member'));
     }
   }
+
+  /**
+   * Update event member role
+   * PATCH /api/events/:eventId/members/:memberId
+   * @access Private (Event Owner)
+   */
+  static async updateMemberRole(req, res) {
+    try {
+      const { eventId, memberId } = req.params;
+      const { role } = req.body;
+
+      console.log(`🔄 Updating member role: Event ${eventId}, Member ${memberId}, New Role: ${role}`);
+
+      // Validate role
+      const validRoles = ['owner', 'manager', 'staff'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json(
+          createResponse(false, `Invalid role. Must be one of: ${validRoles.join(', ')}`)
+        );
+      }
+
+      // Check if member exists and is active
+      const checkQuery = await pool.query(`
+        SELECT id, role, user_id 
+        FROM event_organizer_members 
+        WHERE event_id = $1 AND user_id = $2 AND is_active = true
+      `, [eventId, memberId]);
+
+      if (checkQuery.rows.length === 0) {
+        return res.status(404).json(
+          createResponse(false, 'Team member not found or inactive')
+        );
+      }
+
+      const currentRole = checkQuery.rows[0].role;
+
+      // Prevent changing owner role
+      if (currentRole === 'owner') {
+        return res.status(403).json(
+          createResponse(false, 'Cannot change the owner role')
+        );
+      }
+
+      // Prevent setting new owner (only one owner allowed)
+      if (role === 'owner') {
+        return res.status(403).json(
+          createResponse(false, 'Cannot assign owner role. There can only be one owner per event.')
+        );
+      }
+
+      // Update role
+      const result = await pool.query(`
+        UPDATE event_organizer_members 
+        SET role = $3, updated_at = NOW()
+        WHERE event_id = $1 AND user_id = $2 AND is_active = true
+        RETURNING 
+          id, event_id, user_id, role, 
+          created_at, updated_at, is_active
+      `, [eventId, memberId, role]);
+
+      // Get member details
+      const memberDetails = await pool.query(`
+        SELECT 
+          eom.*,
+          u.email, u.first_name, u.last_name
+        FROM event_organizer_members eom
+        JOIN users u ON eom.user_id = u.id
+        WHERE eom.id = $1
+      `, [result.rows[0].id]);
+
+      res.json(createResponse(
+        true,
+        `Team member role updated from "${currentRole}" to "${role}"`,
+        { member: memberDetails.rows[0] }
+      ));
+
+    } catch (error) {
+      console.error('❌ Update member role error:', error);
+      
+      let statusCode = 500;
+      let message = 'Failed to update team member role';
+
+      if (error.code === '23503') {
+        statusCode = 404;
+        message = 'Event or member not found';
+      }
+
+      res.status(statusCode).json(createResponse(false, message));
+    }
+  }
 }
 
 module.exports = EventController;
