@@ -1,14 +1,15 @@
 // server/src/utils/lockManager.js
-const redis = require('redis');
+const redisService = require('../services/redisService');
 
 class LockManager {
   constructor() {
-    this.client = redis.createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379'
-    });
-    
-    this.client.on('error', (err) => console.error('Redis error:', err));
-    this.client.connect().catch(console.error);
+    this.client = null;
+  }
+
+  async initialize() {
+    if (!this.client) {
+      this.client = await redisService.getClient ();
+    }
   }
 
   /**
@@ -18,6 +19,7 @@ class LockManager {
    * @returns {String|null} Lock token if acquired, null if failed
    */
   async acquireLock(key, ttl = 10000) {
+    await this.initialize();
     const lockKey = `lock:${key}`;
     const token = `${Date.now()}-${Math.random()}`;
     
@@ -40,6 +42,7 @@ class LockManager {
    * @param {String} token - Lock token
    */
   async releaseLock(key, token) {
+    await this.initialize();
     const lockKey = `lock:${key}`;
     
     try {
@@ -67,6 +70,7 @@ class LockManager {
    * @param {Number} ttl - New TTL in milliseconds
    */
   async extendLock(key, token, ttl = 10000) {
+    await this.initialize();
     const lockKey = `lock:${key}`;
     
     try {

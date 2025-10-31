@@ -131,59 +131,66 @@ class OrderModel {
       if (coupon_code) {
         console.log(`Applying coupon code: ${coupon_code}`);
 
-        // const couponQuery = await client.query(`
-        //   SELECT * FROM coupons 
-        //   WHERE code = $1 AND is_active = true 
-        //   AND valid_from <= NOW() AND valid_until >= NOW()
-        // `, [coupon_code]);
-
         // GET COUPON WITH USAGE COUNTS
+        // const couponQuery = await client.query(`
+        //   SELECT 
+        //     c.*,
+        //     (SELECT COUNT(*) FROM coupon_usages WHERE coupon_id = c.id) as total_uses,
+        //     (SELECT COUNT(*) FROM coupon_usages WHERE coupon_id = c.id AND user_id = $2) as user_uses
+        //   FROM coupons c
+        //   WHERE c.code = $1 
+        //     AND c.is_active = true
+        //     AND c.valid_from <= NOW()
+        //     AND c.valid_until >= NOW()
+        //     AND (c.event_id IS NULL OR c.event_id = $3)
+        //   FOR UPDATE  -- ✅ Lock coupon row
+        // `, [coupon_code, userId, event_id]);
+
+        // ✅ 1. GET AND LOCK COUPON
         const couponQuery = await client.query(`
-          SELECT 
-            c.*,
-            (SELECT COUNT(*) FROM coupon_usages WHERE coupon_id = c.id) as total_uses,
-            (SELECT COUNT(*) FROM coupon_usages WHERE coupon_id = c.id AND user_id = $2) as user_uses
+          SELECT c.*
           FROM coupons c
           WHERE c.code = $1 
             AND c.is_active = true
             AND c.valid_from <= NOW()
             AND c.valid_until >= NOW()
             AND (c.event_id IS NULL OR c.event_id = $3)
-          FOR UPDATE  -- ✅ Lock coupon row
+          FOR UPDATE  -- Lock coupon row
         `, [coupon_code, userId, event_id]);
-
-        // if (couponQuery.rows.length > 0) {
-        //   const coupon = couponQuery.rows[0];
-        //   if (coupon.type === 'percentage') {
-        //     couponDiscount = Math.min(subtotal * (coupon.discount_value / 100), coupon.max_discount_amount || subtotal);
-        //   } else {
-        //     couponDiscount = Math.min(coupon.discount_value, subtotal);
-        //   }
-        // }
 
         if (couponQuery.rows.length === 0) {
           throw new Error('Invalid, expired, or not applicable coupon code');
         }
 
         const coupon = couponQuery.rows[0];
+
+        // ✅ 2. GET AND LOCK USAGE RECORDS
+        const usageQuery = await client.query(`
+          SELECT 
+            COUNT(*) as total_uses,
+            COUNT(*) FILTER (WHERE user_id = $2) as user_uses
+          FROM coupon_usages
+          WHERE coupon_id = $1
+          FOR UPDATE  -- ✅ Lock usage records!
+        `, [coupon.id, userId]);
+
+        const { total_uses, user_uses } = usageQuery.rows[0];
         
         console.log(`Coupon details:`, {
           code: coupon.code,
-          type: coupon.type,
-          discount_value: coupon.discount_value,
-          total_uses: coupon.total_uses,
+          total_uses,
           usage_limit: coupon.usage_limit,
-          user_uses: coupon.user_uses,
+          user_uses,
           usage_limit_per_user: coupon.usage_limit_per_user
         });
 
         // ✅ 1. CHECK GLOBAL USAGE LIMIT
-        if (coupon.usage_limit && parseInt(coupon.total_uses) >= coupon.usage_limit) {
+        if (coupon.usage_limit && parseInt(total_uses) >= coupon.usage_limit) {
           throw new Error('This coupon has reached its usage limit');
         }
 
         // ✅ 2. CHECK USER USAGE LIMIT
-        if (parseInt(coupon.user_uses) >= coupon.usage_limit_per_user) {
+        if (parseInt(user_uses) >= coupon.usage_limit_per_user) {
           throw new Error(`You have already used this coupon ${coupon.usage_limit_per_user} time(s)`);
         }
 
@@ -353,7 +360,11 @@ class OrderModel {
       throw error;
     } finally {
       client.release();
-      await lockManager.releaseLock(lockKey, lockToken);
+      if (lockToken) {
+        await lockManager.releaseLock(lockKey, lockToken).catch((err) => {
+          console.error('Failed to release lock:', err);
+        });
+      }
     }
   }
 
