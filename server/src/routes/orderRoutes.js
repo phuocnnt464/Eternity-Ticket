@@ -107,6 +107,11 @@ router.get('/:orderId/tickets',
   OrderController.getOrderTickets
 );
 
+router.get('/:orderId/download-pdf',
+  validate(orderParamSchema, 'params'),
+  OrderController.downloadTicketsPDF
+);
+
 // Admin routes
 
 /**

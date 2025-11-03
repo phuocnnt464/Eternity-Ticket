@@ -304,6 +304,9 @@ router.patch('/:eventId/members/:memberId',
   EventController.updateMemberRole
 );
 
+router.get('/image-requirements',
+  EventController.getImageRequirements
+);
 
 /**
  * @route   GET /api/events/health

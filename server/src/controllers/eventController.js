@@ -4,6 +4,7 @@ const { createResponse, paginate } = require('../utils/helpers');
 const UserModel = require('../models/userModel');  
 const pool = require('../config/database');  
 const emailService = require('../services/emailService');
+const { IMAGE_CONFIGS } = require('../middleware/uploadMiddleware')
 
 class EventController {
   /**
@@ -1010,6 +1011,53 @@ class EventController {
 
       res.status(statusCode).json(createResponse(false, message));
     }
+  }
+
+  /**
+   * Get image upload requirements
+   * GET /api/events/image-requirements
+   */
+  static async getImageRequirements(req, res) {
+    const requirements = {
+      event_cover: {
+        recommended_size: `${IMAGE_CONFIGS.event_cover.width}x${IMAGE_CONFIGS.event_cover.height}`,
+        max_file_size: '2MB',
+        formats: ['PNG', 'JPEG', 'WebP'],
+        description: 'Event cover image (1280x720) - will be automatically resized',
+        fit: IMAGE_CONFIGS.event_cover.fit,
+        quality: IMAGE_CONFIGS.event_cover.quality
+      },
+      event_thumbnail: {
+        recommended_size: `${IMAGE_CONFIGS.event_thumbnail.width}x${IMAGE_CONFIGS.event_thumbnail.height}`,
+        max_file_size: '2MB',
+        formats: ['PNG', 'JPEG', 'WebP'],
+        description: 'Event thumbnail for listings (720x958)',
+        fit: IMAGE_CONFIGS.event_thumbnail.fit,
+        quality: IMAGE_CONFIGS.event_thumbnail.quality
+      },
+      event_logo: {
+        recommended_size: `${IMAGE_CONFIGS.event_logo.width}x${IMAGE_CONFIGS.event_logo.height}`,
+        max_file_size: '2MB',
+        formats: ['PNG', 'JPEG', 'WebP'],
+        description: 'Event logo (275x275) - square image',
+        fit: IMAGE_CONFIGS.event_logo.fit,
+        quality: IMAGE_CONFIGS.event_logo.quality
+      },
+      venue_map: {
+        recommended_size: `${IMAGE_CONFIGS.venue_map.width}x${IMAGE_CONFIGS.venue_map.height}`,
+        max_file_size: '2MB',
+        formats: ['PNG', 'JPEG', 'WebP'],
+        description: 'Venue seating map (1920x1080)',
+        fit: IMAGE_CONFIGS.venue_map.fit,
+        quality: IMAGE_CONFIGS.venue_map.quality
+      }
+    };
+
+    res.json(createResponse(
+      true,
+      'Image requirements retrieved',
+      requirements
+    ));
   }
 }
 

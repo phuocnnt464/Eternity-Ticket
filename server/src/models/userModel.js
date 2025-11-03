@@ -192,7 +192,6 @@ class UserModel {
       await pool.query(query, [userId]);
     } catch (error) {
       console.error('Error updating last login:', error.message);
-      // Don't throw error as this is not critical
       throw error;
     }
   }

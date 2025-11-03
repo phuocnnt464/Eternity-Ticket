@@ -3,6 +3,7 @@ const OrderModel = require('../models/orderModel');
 const QueueController = require('../controllers/queueController');
 const pool = require('../config/database');
 const { createResponse } = require('../utils/helpers');
+const PDFService = require('../services/pdfService');
 
 class OrderController {
   /**
@@ -451,6 +452,44 @@ class OrderController {
       );
       
       res.status(500).json(response);
+    }
+  }
+
+  /**
+   * Download order tickets as PDF
+   * GET /api/orders/:orderId/download-pdf
+   */
+  static async downloadTicketsPDF(req, res) {
+    try {
+      const { orderId } = req.params;
+      const userId = req.user.id;
+
+      const order = await OrderModel.findById(orderId, userId);
+
+      if (!order) {
+        return res.status(404).json(
+          createResponse(false, 'Order not found')
+        );
+      }
+
+      if (order.status !== 'paid') {
+        return res.status(400).json(
+          createResponse(false, 'PDF is only available for paid orders')
+        );
+      }
+      
+      const pdfBuffer = await PDFService.generateOrderTicketsPDF(order.tickets);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 
+        `attachment; filename="tickets-${order.order_number}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error('Download PDF error:', error.message);
+      res.status(500).json(
+        createResponse(false, 'Failed to generate PDF')
+      );
     }
   }
 }

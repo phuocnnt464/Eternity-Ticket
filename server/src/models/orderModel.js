@@ -126,7 +126,7 @@ class OrderModel {
       if (totalTickets > maxAllowed) {
         throw new Error(`Cannot order more than ${maxAllowed} tickets per session`);
       }
-      
+
       // Calculate membership discount
       let membershipDiscount = 0;
       if (membershipTier === 'premium') {
@@ -214,9 +214,23 @@ class OrderModel {
 
         // ✅ 4. CHECK MEMBERSHIP TIER RESTRICTION
         if (coupon.membership_tiers && coupon.membership_tiers.length > 0) {
+          // Guest (basic) can use general coupons
+          // Members can use member-exclusive coupons
           if (!coupon.membership_tiers.includes(membershipTier)) {
+
+            // ✅ Detailed message for different cases
+            const tierNames = {
+              'basic': 'General users',
+              'advanced': 'Advanced members',
+              'premium': 'Premium members'
+            };
+            
+            const allowedTiers = coupon.membership_tiers.map(t => tierNames[t] || t).join(', ');
+            const currentTierName = tierNames[membershipTier] || membershipTier;
+            
             throw new Error(
-              `This coupon is only available for ${coupon.membership_tiers.join(', ')} members. Your tier: ${membershipTier}`
+              // `This coupon is only available for ${coupon.membership_tiers.join(', ')} members. Your tier: ${membershipTier}`
+              `This coupon is only available for: ${allowedTiers}. Your tier: ${currentTierName}`
             );
           }
         }

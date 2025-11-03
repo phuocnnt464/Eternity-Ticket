@@ -205,6 +205,7 @@ app.use(`${API_PREFIX}/orders`, require('./routes/orderRoutes'));
 app.use(`${API_PREFIX}/checkin`, require('./routes/checkinRoutes'));
 app.use(`${API_PREFIX}/queue`, require('./routes/queueRoutes'));
 app.use(`${API_PREFIX}/membership`, require('./routes/membershipRoutes'));
+app.use(`${API_PREFIX}/notifications`, require('./routes/notificationRoutes'));
 
 // =============================================
 // ROOT ENDPOINT
