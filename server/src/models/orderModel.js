@@ -99,6 +99,18 @@ class OrderModel {
         });
       }
 
+      // Get user membership for discounts
+      const membershipQuery = await client.query(`
+        SELECT tier FROM memberships 
+        WHERE user_id = $1 
+          AND is_active = true
+          AND (end_date IS NULL OR end_date > NOW())
+        ORDER BY created_at DESC
+      LIMIT 1
+      `, [userId]);
+
+      const membershipTier = membershipQuery.rows.length > 0 ? membershipQuery.rows[0].tier : 'basic';
+
       // Check session max tickets limit
       let maxAllowed = session.max_tickets_per_order;
 
@@ -114,19 +126,7 @@ class OrderModel {
       if (totalTickets > maxAllowed) {
         throw new Error(`Cannot order more than ${maxAllowed} tickets per session`);
       }
-
-      // Get user membership for discounts
-      const membershipQuery = await client.query(`
-        SELECT tier FROM memberships 
-        WHERE user_id = $1 
-          AND is_active = true
-          AND (end_date IS NULL OR end_date > NOW())
-        ORDER BY created_at DESC
-      LIMIT 1
-      `, [userId]);
-
-      const membershipTier = membershipQuery.rows.length > 0 ? membershipQuery.rows[0].tier : 'basic';
-
+      
       // Calculate membership discount
       let membershipDiscount = 0;
       if (membershipTier === 'premium') {
