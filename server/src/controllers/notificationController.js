@@ -67,10 +67,11 @@ class NotificationController {
       const { notificationId } = req.params;
       const userId = req.user.id;
 
-      await pool.query(`
+      const result = await pool.query(`
         UPDATE notifications
         SET is_read = true, read_at = NOW()
         WHERE id = $1 AND user_id = $2
+        RETURNING *
       `, [notificationId, userId]);
 
       if (result.rows.length === 0) {
@@ -94,10 +95,11 @@ class NotificationController {
     try {
       const userId = req.user.id;
 
-      await pool.query(`
+      const result = await pool.query(`
         UPDATE notifications
         SET is_read = true, read_at = NOW()
         WHERE user_id = $1 AND is_read = false
+        RETURNING *
       `, [userId]);
 
       res.json(createResponse(true, 
@@ -120,9 +122,10 @@ class NotificationController {
       const { notificationId } = req.params;
       const userId = req.user.id;
 
-      await pool.query(`
+      const result = await pool.query(`
         DELETE FROM notifications
         WHERE id = $1 AND user_id = $2
+        RETURNING *
       `, [notificationId, userId]);
 
       if (result.rows.length === 0) {
