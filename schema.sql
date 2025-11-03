@@ -154,6 +154,11 @@ CREATE TABLE memberships (
     CONSTRAINT check_membership_dates CHECK (end_date IS NULL OR end_date > start_date)
 );
 
+-- Ensure one active membership per user
+CREATE UNIQUE INDEX idx_memberships_user_active_unique 
+  ON memberships(user_id) 
+  WHERE is_active = true;
+
 -- Categories table
 CREATE TABLE categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
