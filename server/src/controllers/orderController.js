@@ -35,7 +35,7 @@ class OrderController {
       }
 
       // ✅ VALIDATE TOTAL TICKETS
-      // const totalTickets = orderData.tickets.reduce((sum, t) => sum + t.quantity, 0);
+      const totalTickets = orderData.tickets.reduce((sum, t) => sum + t.quantity, 0);
       
       // ✅ GET SESSION LIMITS
       // const sessionLimits = await pool.query(`

@@ -39,7 +39,7 @@ router.get('/payment/vnpay-ipn', MembershipController.vnpayIPN);
  * @desc    Get current user's membership
  * @access  Private
  */
-router.get('/current', authenticate, MembershipController.getCurrentMembership);
+router.get('/current', authenticateToken, MembershipController.getCurrentMembership);
 
 /**
  * @route   POST /api/membership/orders
