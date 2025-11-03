@@ -357,11 +357,11 @@ class OrderModel {
       // SET PURCHASE COOLDOWN
       await client.query(`
         UPDATE users 
-        SET purchase_cooldown_until = NOW() + INTERVAL '${cooldownSeconds} seconds',
+        SET purchase_cooldown_until = NOW() + INTERVAL ($1 * '1 seconds'),
             last_purchase_at = NOW(),
             updated_at = NOW()
-        WHERE id = $1
-      `, [userId]);
+        WHERE id = $2
+      `, [cooldownSeconds, userId]);
 
       // await client.query(`
       //   UPDATE users 
