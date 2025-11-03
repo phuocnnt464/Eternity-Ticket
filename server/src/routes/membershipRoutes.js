@@ -90,7 +90,7 @@ router.post('/cancel', authenticateToken, MembershipController.cancelMembership)
 router.get(
   '/admin/all',
   authenticateToken,
-  authorizeRoles(['admin', 'sub_admin']),
+  authorizeRoles('admin', 'sub_admin'),
   MembershipController.adminGetAllMemberships
 );
 
@@ -102,7 +102,7 @@ router.get(
 router.put(
   '/admin/pricing/:tier',
   authenticateToken,
-  authorizeRoles(['admin']),
+  authorizeRoles('admin'),
   MembershipController.adminUpdatePricing
 );
 
