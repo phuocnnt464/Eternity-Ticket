@@ -13,9 +13,9 @@ class QueueController {
       const userId = req.user.id;
       const membershipTier = req.user.membership_tier || 'basic';
 
-      console.log(`🎫 User ${userId} joining queue for session ${session_id}`);
+      console.log(`User ${userId} joining queue for session ${session_id}`);
 
-      // 1. Get config
+      // Get config
       const config = await QueueModel.getWaitingRoomConfig(session_id);
 
       if (!config) {
@@ -37,7 +37,7 @@ class QueueController {
         event_id 
       } = config;
 
-      // 2. Check if already in queue (DB)
+      // Check if already in queue (DB)
       const existingStatus = await QueueModel.getUserQueueStatus(userId, session_id);
 
       if (existingStatus) {
@@ -76,7 +76,7 @@ class QueueController {
         }
       }
 
-      // 3. Check capacity
+      // Check capacity
       const queueLength = await QueueModel.getRedisQueueLength(session_id);
 
       if (queueLength >= max_capacity) {
@@ -92,10 +92,10 @@ class QueueController {
         ));
       }
 
-      // 4. Calculate priority
+      // Calculate priority
       const priorityScore = QueueController.calculatePriorityScore(membershipTier);
 
-      // 5. Add to Redis queue (FIFO)
+      // Add to Redis queue (FIFO)
       const userData = {
         user_id: userId,
         joined_at: new Date().toISOString(),
@@ -105,7 +105,7 @@ class QueueController {
 
       await QueueModel.addToRedisQueue(session_id, userData);
 
-      // 6. Add to database
+      // Add to database
       const queueNumber = await QueueModel.getNextQueueNumber(session_id);
 
       await QueueModel.addToQueue({
@@ -116,7 +116,7 @@ class QueueController {
         priority_score: priorityScore
       });
 
-      // 7. Try to activate immediately if slots available
+      // Try to activate immediately if slots available
       const activeCount = await QueueModel.getActiveUsersCount(session_id);
 
       if (activeCount < concurrent_purchase_limit) {
@@ -138,7 +138,7 @@ class QueueController {
         }
       }
 
-      // 8. Return queue position
+      // Return queue position
       const position = await QueueModel.getRedisQueuePosition(session_id, userId);
       const estimatedWait = Math.ceil(position * queue_timeout_minutes / concurrent_purchase_limit);
 
@@ -155,7 +155,7 @@ class QueueController {
       ));
 
     } catch (error) {
-      console.error('❌ Join queue error:', error);
+      console.error('Join queue error:', error);
       res.status(500).json(createResponse(
         false,
         'Failed to join queue. Please try again.'
@@ -241,7 +241,7 @@ class QueueController {
       ));
 
     } catch (error) {
-      console.error('❌ Get status error:', error);
+      console.error('Get status error:', error);
       res.status(500).json(createResponse(
         false,
         'Failed to get queue status'
@@ -266,7 +266,7 @@ class QueueController {
       ));
 
     } catch (error) {
-      console.error('❌ Heartbeat error:', error);
+      console.error('Heartbeat error:', error);
       res.status(500).json(createResponse(false, 'Heartbeat failed'));
     }
   }
@@ -290,7 +290,7 @@ class QueueController {
       ));
 
     } catch (error) {
-      console.error('❌ Leave queue error:', error);
+      console.error('Leave queue error:', error);
       res.status(500).json(createResponse(
         false,
         'Failed to leave queue'
@@ -343,7 +343,7 @@ class QueueController {
       ));
 
     } catch (error) {
-      console.error('❌ Get statistics error:', error);
+      console.error('Get statistics error:', error);
       res.status(500).json(createResponse(
         false,
         'Failed to get statistics'
@@ -377,11 +377,11 @@ class QueueController {
         await QueueModel.activateUser(userData.user_id, sessionId, expiresAt);
         await QueueModel.setActiveUser(sessionId, userData.user_id, queue_timeout_minutes);
 
-        console.log(`✅ Activated user ${userData.user_id}`);
+        console.log(`Activated user ${userData.user_id}`);
       }
 
     } catch (error) {
-      console.error('❌ Process queue error:', error);
+      console.error('Process queue error:', error);
     }
   }
 
@@ -394,10 +394,10 @@ class QueueController {
       await QueueModel.removeActiveUser(sessionId, userId);
       await QueueController.processQueue(sessionId);
 
-      console.log(`✅ Order completed for user ${userId}`);
+      console.log(`Order completed for user ${userId}`);
 
     } catch (error) {
-      console.error('❌ Complete order error:', error);
+      console.error('Complete order error:', error);
     }
   }
 
@@ -418,7 +418,7 @@ class QueueController {
       return expiresAt > new Date();
 
     } catch (error) {
-      console.error('❌ Check can purchase error:', error);
+      console.error('Check can purchase error:', error);
       return false;
     }
   }

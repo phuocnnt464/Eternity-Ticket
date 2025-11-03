@@ -34,7 +34,7 @@ const checkQueueAccess = async (req, res, next) => {
     next();
 
   } catch (error) {
-    console.error('❌ Queue access check error:', error);
+    console.error('Queue access check error:', error);
     next(); // Don't block on error
   }
 };

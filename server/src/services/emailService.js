@@ -292,6 +292,89 @@ class EmailService {
       html
     });
   }
+
+  /**
+   * Send membership activation email
+   */
+  async sendMembershipActivationEmail(user, membership) {
+    const subject = `🎉 Welcome to ${membership.tier.toUpperCase()} Membership!`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4F46E5;">Membership Activated!</h2>
+        
+        <p>Hi ${user.first_name},</p>
+        
+        <p>Your <strong>${membership.tier.toUpperCase()}</strong> membership has been successfully activated!</p>
+        
+        <div style="background: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Membership Details:</h3>
+          <p><strong>Tier:</strong> ${membership.tier.toUpperCase()}</p>
+          <p><strong>Start Date:</strong> ${new Date(membership.start_date).toLocaleDateString()}</p>
+          <p><strong>End Date:</strong> ${new Date(membership.end_date).toLocaleDateString()}</p>
+          <p><strong>Billing Period:</strong> ${membership.billing_period}</p>
+        </div>
+        
+        <h3>Your Benefits:</h3>
+        <ul>
+          ${membership.features ? JSON.parse(membership.features).map(f => `<li>${f}</li>`).join('') : ''}
+        </ul>
+        
+        <p>Start enjoying your exclusive benefits now!</p>
+        
+        <a href="${process.env.FRONTEND_URL}/membership" 
+          style="display: inline-block; background: #4F46E5; color: white; padding: 12px 24px; 
+                  text-decoration: none; border-radius: 6px; margin: 20px 0;">
+          View Membership
+        </a>
+        
+        <p style="color: #6B7280; font-size: 14px; margin-top: 30px;">
+          Questions? Contact us at ${process.env.SUPPORT_EMAIL}
+        </p>
+      </div>
+    `;
+
+    await this.sendEmail({
+      to: user.email,
+      subject,
+      html
+    });
+  }
+
+  /**
+   * Send membership expiry reminder
+   */
+  async sendMembershipExpiryReminder(user, membership, daysLeft) {
+    const subject = `⏰ Your ${membership.tier.toUpperCase()} Membership Expires in ${daysLeft} Days`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #F59E0B;">Membership Expiring Soon</h2>
+        
+        <p>Hi ${user.first_name},</p>
+        
+        <p>Your <strong>${membership.tier.toUpperCase()}</strong> membership will expire in <strong>${daysLeft} days</strong>.</p>
+        
+        <div style="background: #FEF3C7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Expiry Date:</strong> ${new Date(membership.end_date).toLocaleDateString()}</p>
+        </div>
+        
+        <p>Renew now to continue enjoying your exclusive benefits!</p>
+        
+        <a href="${process.env.FRONTEND_URL}/membership/renew" 
+          style="display: inline-block; background: #F59E0B; color: white; padding: 12px 24px; 
+                  text-decoration: none; border-radius: 6px; margin: 20px 0;">
+          Renew Membership
+        </a>
+      </div>
+    `;
+
+    await this.sendEmail({
+      to: user.email,
+      subject,
+      html
+    });
+  }
 }
 
 // Export singleton instance

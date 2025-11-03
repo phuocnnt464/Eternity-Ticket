@@ -1,5 +1,6 @@
 // src/middleware/validationMiddleware.js
 const { createResponse, validateUUID } = require('../utils/helpers');
+const Joi = require('joi');
 
 /**
  * Validation middleware factory
@@ -553,6 +554,58 @@ const requireFields = (...requiredFields) => {
   };
 };
 
+/**
+ * Validate membership order creation
+ */
+const validateMembershipOrder = (req, res, next) => {
+  const schema = Joi.object({
+    tier: Joi.string()
+      .valid('basic', 'advanced', 'premium')
+      .required()
+      .messages({
+        'any.only': 'Tier must be one of: basic, advanced, premium',
+        'any.required': 'Tier is required'
+      }),
+    
+    billing_period: Joi.string()
+      .valid('monthly', 'quarterly', 'yearly')
+      .required()
+      .messages({
+        'any.only': 'Billing period must be one of: monthly, quarterly, yearly',
+        'any.required': 'Billing period is required'
+      }),
+    
+    coupon_code: Joi.string()
+      .max(50)
+      .optional()
+      .allow('', null),
+    
+    return_url: Joi.string()
+      .uri()
+      .optional()
+      .allow('', null)
+  });
+
+  const { error } = schema.validate(req.body, { abortEarly: false });
+
+  if (error) {
+    const errors = error.details.map(detail => ({
+      field: detail.path.join('.'),
+      message: detail.message
+    }));
+
+    return res.status(400).json({
+      success: false,
+      error: {
+        message: 'Validation failed',
+        details: errors
+      }
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   // Core validation
   validate,
@@ -574,6 +627,10 @@ module.exports = {
   
   // Security
   sanitizeInput,
-  requireFields
+  requireFields,
+  sanitizeHTML,
+
+  // Custom validators
+  validateMembershipOrder,
 
 };

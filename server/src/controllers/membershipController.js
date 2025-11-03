@@ -1,0 +1,478 @@
+// server/src/controllers/membershipController.js
+const MembershipModel = require('../models/membershipModel');
+const VNPayService = require('../services/vnpayService');
+
+class MembershipController {
+  /**
+   * Get membership pricing
+   * GET /api/membership/pricing
+   */
+  static async getPricing(req, res, next) {
+    try {
+      const pricing = await MembershipModel.getPricing();
+
+      res.json({
+        success: true,
+        data: pricing
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get current user's membership
+   * GET /api/membership/current
+   */
+  static async getCurrentMembership(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const membership = await MembershipModel.getUserMembership(userId);
+
+      res.json({
+        success: true,
+        data: membership || {
+          tier: 'basic',
+          is_active: true,
+          features: []
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Create membership order
+   * POST /api/membership/orders
+   */
+  static async createOrder(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const { tier, billing_period, coupon_code, return_url } = req.body;
+
+      // Validate tier
+      if (!['basic', 'advanced', 'premium'].includes(tier)) {
+        return res.status(400).json({
+          success: false,
+          error: { message: 'Invalid membership tier' }
+        });
+      }
+
+      // Validate billing period
+      if (!['monthly', 'quarterly', 'yearly'].includes(billing_period)) {
+        return res.status(400).json({
+          success: false,
+          error: { message: 'Invalid billing period' }
+        });
+      }
+
+      // Create order
+      const order = await MembershipModel.createMembershipOrder(userId, {
+        tier,
+        billing_period,
+        coupon_code
+      });
+
+      // If free tier (basic), activate immediately
+      if (order.total_amount === 0) {
+        await MembershipModel.completeMembershipPayment(order.id, {
+          payment_method: 'free',
+          payment_transaction_id: `FREE-${Date.now()}`,
+          payment_data: { type: 'free_tier' }
+        });
+
+        return res.json({
+          success: true,
+          data: {
+            order,
+            payment_required: false,
+            message: 'Membership activated successfully'
+          }
+        });
+      }
+
+      // Generate VNPay payment URL
+      const ipAddr = req.headers['x-forwarded-for'] || 
+                     req.connection.remoteAddress || 
+                     req.socket.remoteAddress ||
+                     req.ip;
+
+      const paymentUrl = VNPayService.createPaymentUrl({
+        orderId: order.order_number,
+        amount: order.total_amount,
+        orderInfo: `Membership ${tier} - ${billing_period}`,
+        orderType: 'membership',
+        ipAddr,
+        returnUrl: return_url || `${process.env.FRONTEND_URL}/membership/payment/result`
+      });
+
+      res.json({
+        success: true,
+        data: {
+          order,
+          payment_url: paymentUrl,
+          payment_required: true
+        }
+      });
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * VNPay payment callback
+   * GET /api/membership/payment/vnpay-return
+   */
+  static async vnpayReturn(req, res, next) {
+    try {
+      const vnpayParams = req.query;
+
+      // Verify VNPay signature
+      const isValid = VNPayService.verifyReturnUrl(vnpayParams);
+
+      if (!isValid) {
+        return res.status(400).json({
+          success: false,
+          error: { message: 'Invalid payment signature' }
+        });
+      }
+
+      const orderNumber = vnpayParams.vnp_TxnRef;
+      const responseCode = vnpayParams.vnp_ResponseCode;
+      const transactionId = vnpayParams.vnp_TransactionNo;
+      const amount = parseInt(vnpayParams.vnp_Amount) / 100;
+
+      // Get order
+      const orderQuery = await require('../config/database').query(`
+        SELECT * FROM membership_orders WHERE order_number = $1
+      `, [orderNumber]);
+
+      if (orderQuery.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Order not found' }
+        });
+      }
+
+      const order = orderQuery.rows[0];
+
+      // Check if payment successful
+      if (responseCode === '00') {
+        // Complete payment
+        await MembershipModel.completeMembershipPayment(order.id, {
+          payment_method: 'vnpay',
+          payment_transaction_id: transactionId,
+          payment_data: vnpayParams
+        });
+
+        // Send success notification
+        // TODO: Send email notification
+
+        return res.json({
+          success: true,
+          data: {
+            order_number: orderNumber,
+            status: 'success',
+            message: 'Membership payment successful'
+          }
+        });
+      } else {
+        // Update order to failed
+        await require('../config/database').query(`
+          UPDATE membership_orders
+          SET status = 'failed',
+              payment_data = $1,
+              updated_at = NOW()
+          WHERE id = $2
+        `, [JSON.stringify(vnpayParams), order.id]);
+
+        return res.json({
+          success: false,
+          data: {
+            order_number: orderNumber,
+            status: 'failed',
+            message: 'Payment failed',
+            error_code: responseCode
+          }
+        });
+      }
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * VNPay IPN callback
+   * GET /api/membership/payment/vnpay-ipn
+   */
+  static async vnpayIPN(req, res, next) {
+    try {
+      const vnpayParams = req.query;
+
+      // Verify signature
+      const isValid = VNPayService.verifyReturnUrl(vnpayParams);
+
+      if (!isValid) {
+        return res.json({ RspCode: '97', Message: 'Invalid signature' });
+      }
+
+      const orderNumber = vnpayParams.vnp_TxnRef;
+      const responseCode = vnpayParams.vnp_ResponseCode;
+      const transactionId = vnpayParams.vnp_TransactionNo;
+
+      // Get order
+      const orderQuery = await require('../config/database').query(`
+        SELECT * FROM membership_orders WHERE order_number = $1
+      `, [orderNumber]);
+
+      if (orderQuery.rows.length === 0) {
+        return res.json({ RspCode: '01', Message: 'Order not found' });
+      }
+
+      const order = orderQuery.rows[0];
+
+      // Check if already processed
+      if (order.status === 'paid') {
+        return res.json({ RspCode: '00', Message: 'Already confirmed' });
+      }
+
+      // Process payment
+      if (responseCode === '00') {
+        await MembershipModel.completeMembershipPayment(order.id, {
+          payment_method: 'vnpay',
+          payment_transaction_id: transactionId,
+          payment_data: vnpayParams
+        });
+
+        return res.json({ RspCode: '00', Message: 'Confirm success' });
+      } else {
+        return res.json({ RspCode: responseCode, Message: 'Payment failed' });
+      }
+
+    } catch (error) {
+      console.error('VNPay IPN error:', error);
+      return res.json({ RspCode: '99', Message: 'Unknown error' });
+    }
+  }
+
+  /**
+   * Get membership order details
+   * GET /api/membership/orders/:orderNumber
+   */
+  static async getOrderDetails(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const { orderNumber } = req.params;
+
+      const query = `
+        SELECT * FROM membership_orders
+        WHERE order_number = $1 AND user_id = $2
+      `;
+
+      const result = await require('../config/database').query(query, [orderNumber, userId]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Order not found' }
+        });
+      }
+
+      const order = result.rows[0];
+
+      res.json({
+        success: true,
+        data: {
+          ...order,
+          amount: parseFloat(order.amount),
+          discount_amount: parseFloat(order.discount_amount),
+          vat_amount: parseFloat(order.vat_amount),
+          total_amount: parseFloat(order.total_amount),
+          payment_data: typeof order.payment_data === 'string' 
+            ? JSON.parse(order.payment_data) 
+            : order.payment_data
+        }
+      });
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get membership history
+   * GET /api/membership/history
+   */
+  static async getHistory(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const history = await MembershipModel.getMembershipHistory(userId);
+
+      res.json({
+        success: true,
+        data: history
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Cancel membership auto-renewal
+   * POST /api/membership/cancel
+   */
+  static async cancelMembership(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const { reason } = req.body;
+
+      const success = await MembershipModel.cancelMembership(userId, reason);
+
+      if (!success) {
+        return res.status(404).json({
+          success: false,
+          error: { message: 'No active membership found' }
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Membership auto-renewal cancelled. Your membership will remain active until the end of the billing period.'
+      });
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Get all memberships
+   * GET /api/admin/memberships
+   */
+  static async adminGetAllMemberships(req, res, next) {
+    try {
+      const { page = 1, limit = 20, tier, status } = req.query;
+      const offset = (page - 1) * limit;
+
+      let whereConditions = [];
+      let queryParams = [];
+      let paramCount = 1;
+
+      if (tier) {
+        whereConditions.push(`m.tier = $${paramCount}`);
+        queryParams.push(tier);
+        paramCount++;
+      }
+
+      if (status === 'active') {
+        whereConditions.push(`m.is_active = true AND (m.end_date IS NULL OR m.end_date > NOW())`);
+      } else if (status === 'expired') {
+        whereConditions.push(`m.is_active = true AND m.end_date < NOW()`);
+      }
+
+      const whereClause = whereConditions.length > 0 
+        ? `WHERE ${whereConditions.join(' AND ')}`
+        : '';
+
+      const query = `
+        SELECT 
+          m.*,
+          u.email,
+          u.first_name,
+          u.last_name,
+          mo.order_number,
+          mo.total_amount as payment_amount
+        FROM memberships m
+        JOIN users u ON m.user_id = u.id
+        LEFT JOIN membership_orders mo ON m.order_id = mo.id
+        ${whereClause}
+        ORDER BY m.created_at DESC
+        LIMIT $${paramCount} OFFSET $${paramCount + 1}
+      `;
+
+      queryParams.push(limit, offset);
+
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM memberships m
+        ${whereClause}
+      `;
+
+      const [membershipsResult, countResult] = await Promise.all([
+        require('../config/database').query(query, queryParams),
+        require('../config/database').query(countQuery, queryParams.slice(0, -2))
+      ]);
+
+      const memberships = membershipsResult.rows;
+      const totalCount = parseInt(countResult.rows[0].total);
+      const totalPages = Math.ceil(totalCount / limit);
+
+      res.json({
+        success: true,
+        data: memberships,
+        pagination: {
+          current_page: parseInt(page),
+          total_pages: totalPages,
+          total_count: totalCount,
+          per_page: parseInt(limit)
+        }
+      });
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Update membership pricing
+   * PUT /api/admin/memberships/pricing/:tier
+   */
+  static async adminUpdatePricing(req, res, next) {
+    try {
+      const { tier } = req.params;
+      const { monthly_price, quarterly_price, yearly_price, features, description } = req.body;
+
+      const query = `
+        UPDATE membership_pricing
+        SET monthly_price = COALESCE($1, monthly_price),
+            quarterly_price = COALESCE($2, quarterly_price),
+            yearly_price = COALESCE($3, yearly_price),
+            features = COALESCE($4, features),
+            description = COALESCE($5, description),
+            updated_at = NOW()
+        WHERE tier = $6
+        RETURNING *
+      `;
+
+      const result = await require('../config/database').query(query, [
+        monthly_price,
+        quarterly_price,
+        yearly_price,
+        features ? JSON.stringify(features) : null,
+        description,
+        tier
+      ]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Pricing tier not found' }
+        });
+      }
+
+      res.json({
+        success: true,
+        data: result.rows[0],
+        message: 'Pricing updated successfully'
+      });
+
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
+module.exports = MembershipController;

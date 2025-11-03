@@ -155,6 +155,12 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
+// Initialize membership cron jobs
+if (process.env.NODE_ENV !== 'test') {
+  const membershipCron = require('./utils/membershipCron');
+  membershipCron.initialize();
+}
+
 // =============================================
 // HEALTH CHECK
 // =============================================
@@ -198,6 +204,7 @@ app.use(`${API_PREFIX}/event-sessions`, require('./routes/sessionTicketRoutes'))
 app.use(`${API_PREFIX}/orders`, require('./routes/orderRoutes'));
 app.use(`${API_PREFIX}/checkin`, require('./routes/checkinRoutes'));
 app.use(`${API_PREFIX}/queue`, require('./routes/queueRoutes'));
+app.use(`${API_PREFIX}/membership`, require('./routes/membershipRoutes'));
 
 // =============================================
 // ROOT ENDPOINT

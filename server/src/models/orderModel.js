@@ -226,9 +226,9 @@ class OrderModel {
 
         appliedCoupon = coupon;
         
-        console.log(`✅ Coupon applied: ${coupon.code}, discount: ${couponDiscount}`);
+        console.log(`Coupon applied: ${coupon.code}, discount: ${couponDiscount}`);
         
-        // ✅ 6. INCREMENT USED COUNT
+        // INCREMENT USED COUNT
         await client.query(`
           UPDATE coupons 
           SET used_count = used_count + 1,

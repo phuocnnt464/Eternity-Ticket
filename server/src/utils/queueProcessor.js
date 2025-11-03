@@ -16,25 +16,25 @@ class QueueProcessor {
    */
   async initialize() {
     if (this.isRunning) {
-      console.log('⚠️ Queue processor already running');
+      console.log('Queue processor already running');
       return;
     }
 
     try {
-      console.log('🎯 Initializing queue processor...');
+      console.log('Initializing queue processor...');
 
       const redisService = require('../services/redisService');
       await redisService.connect();
-      console.log('✅ Redis connected for queue processing');
+      console.log('Redis connected for queue processing');
 
       this.start();
       this.startCleanupScheduler();
       this.setupGracefulShutdown();
 
-      console.log('✅ Queue processor initialized successfully');
+      console.log('Queue processor initialized successfully');
 
     } catch (error) {
-      console.error('❌ Failed to initialize queue processor:', error);
+      console.error('Failed to initialize queue processor:', error);
       throw error;
     }
   }
@@ -49,12 +49,12 @@ class QueueProcessor {
     this.isRunning = true;
 
     this.processAllQueues().catch(err => {
-      console.error('❌ Initial queue processing failed:', err);
+      console.error('Initial queue processing failed:', err);
     });
 
     this.intervalId = setInterval(() => {
       this.processAllQueues().catch(err => {
-        console.error('❌ Queue processing error:', err);
+        console.error('Queue processing error:', err);
       });
     }, this.interval);
   }
@@ -74,7 +74,7 @@ class QueueProcessor {
     }
 
     this.isRunning = false;
-    console.log('🛑 Queue processor stopped');
+    console.log('Queue processor stopped');
   }
 
   /**
@@ -98,12 +98,12 @@ class QueueProcessor {
         try {
           await QueueController.processQueue(sessionId);
         } catch (error) {
-          console.error(`❌ Error processing queue ${sessionId}:`, error.message);
+          console.error(`Error processing queue ${sessionId}:`, error.message);
         }
       }
 
     } catch (error) {
-      console.error('❌ Error in processAllQueues:', error);
+      console.error('Error in processAllQueues:', error);
     }
   }
 
@@ -115,7 +115,7 @@ class QueueProcessor {
 
     this.cleanupIntervalId = setInterval(() => {
       this.cleanupExpired().catch(err => {
-        console.error('❌ Cleanup error:', err);
+        console.error('Cleanup error:', err);
       });
     }, 60 * 1000);
   }
@@ -125,7 +125,7 @@ class QueueProcessor {
    */
   async cleanupExpired() {
     try {
-      console.log('🧹 Running cleanup...');
+      console.log('Running cleanup...');
       
       const sessionIds = await QueueModel.cleanupExpiredSessions();
       
@@ -134,11 +134,11 @@ class QueueProcessor {
       }
 
       if (sessionIds.length > 0) {
-        console.log(`✅ Cleanup complete: ${sessionIds.length} sessions affected`);
+        console.log(`Cleanup complete: ${sessionIds.length} sessions affected`);
       }
 
     } catch (error) {
-      console.error('❌ Error in cleanupExpired:', error);
+      console.error('Error in cleanupExpired:', error);
     }
   }
 
@@ -147,14 +147,14 @@ class QueueProcessor {
    */
   setupGracefulShutdown() {
     const shutdown = async () => {
-      console.log('\n🛑 Shutting down queue processor...');
+      console.log('\n Shutting down queue processor...');
       
       this.stop();
       
       const redisService = require('../services/redisService');
       await redisService.disconnect();
       
-      console.log('✅ Queue processor shutdown complete');
+      console.log('Queue processor shutdown complete');
       process.exit(0);
     };
 

@@ -21,7 +21,7 @@ class RedisService {
         socket: {
           reconnectStrategy: (retries) => {
             if (retries > 10) {
-              console.error('❌ Redis max retries reached');
+              console.error('Redis max retries reached');
               return new Error('Max retries reached');
             }
             return Math.min(retries * 100, 3000);
@@ -30,7 +30,7 @@ class RedisService {
       });
 
       this.client.on('connect', () => {
-        console.log('✅ Redis connected');
+        console.log('Redis connected');
         this.isConnected = true;
       });
 
@@ -40,14 +40,14 @@ class RedisService {
       });
 
       this.client.on('reconnecting', () => {
-        console.log('🔄 Redis reconnecting...');
+        console.log('Redis reconnecting...');
       });
 
       await this.client.connect();
       return this.client;
 
     } catch (error) {
-      console.error('❌ Redis connection failed:', error);
+      console.error('Redis connection failed:', error);
       throw error;
     }
   }
