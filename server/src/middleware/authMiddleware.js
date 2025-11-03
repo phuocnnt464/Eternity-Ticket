@@ -523,10 +523,18 @@ const checkEarlyAccess = async (req, res, next) => {
 
     const now = new Date();
 
+    // Hardcode 5 hours (300 minutes) early access for Premium members
+    const PREMIUM_EARLY_ACCESS_MINUTES = 300; // 5 hours = 300 minutes (SYSTEM REQUIREMENT)
+
     for (const ticketType of result.rows) {
       const saleStartTime = new Date(ticketType.sale_start_time);
+      // const earlyAccessStart = new Date(
+      //   saleStartTime.getTime() - ticketType.premium_early_access_minutes * 60000
+      // );
+
+      // ✅ Premium members get 5 hours early access
       const earlyAccessStart = new Date(
-        saleStartTime.getTime() - ticketType.premium_early_access_minutes * 60000
+        saleStartTime.getTime() - PREMIUM_EARLY_ACCESS_MINUTES * 60000
       );
 
       // Check if in early access period
@@ -542,7 +550,9 @@ const checkEarlyAccess = async (req, res, next) => {
                 ticket_type: ticketType.name,
                 public_sale_start: saleStartTime,
                 current_tier: userTier,
-                required_tier: 'premium'
+                required_tier: 'premium',
+                time_remaining_minutes: minutesRemaining,
+                premium_early_access_hours: 5
               }
             )
           );

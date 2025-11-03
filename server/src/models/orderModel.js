@@ -100,8 +100,19 @@ class OrderModel {
       }
 
       // Check session max tickets limit
-      if (totalTickets > session.max_tickets_per_order) {
-        throw new Error(`Cannot order more than ${session.max_tickets_per_order} tickets per session`);
+      let maxAllowed = session.max_tickets_per_order;
+
+      if (membershipTier === 'premium') {
+        maxAllowed = Math.min(5, session.max_tickets_per_order);
+        
+        if (totalTickets > 5) {
+          throw new Error(`Premium members can order maximum 5 tickets per order. You selected ${totalTickets}.`);
+        }
+      }
+
+      // Check session max tickets limit
+      if (totalTickets > maxAllowed) {
+        throw new Error(`Cannot order more than ${maxAllowed} tickets per session`);
       }
 
       // Get user membership for discounts
