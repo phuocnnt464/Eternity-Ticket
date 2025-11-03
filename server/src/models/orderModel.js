@@ -352,24 +352,24 @@ class OrderModel {
       }
 
       // Random cooldown between 2-3 minutes (120-180 seconds)
-      // const cooldownSeconds = Math.floor(Math.random() * 61) + 120; // 120-180 seconds
+      const cooldownSeconds = Math.floor(Math.random() * 61) + 120; // 120-180 seconds
 
       // SET PURCHASE COOLDOWN
-      // await client.query(`
-      //   UPDATE users 
-      //   SET purchase_cooldown_until = NOW() + INTERVAL '${cooldownSeconds} seconds',
-      //       last_purchase_at = NOW(),
-      //       updated_at = NOW()
-      //   WHERE id = $1
-      // `, [userId]);
-
       await client.query(`
         UPDATE users 
-        SET purchase_cooldown_until = NOW() + INTERVAL '2 minutes',
+        SET purchase_cooldown_until = NOW() + INTERVAL '${cooldownSeconds} seconds',
             last_purchase_at = NOW(),
             updated_at = NOW()
         WHERE id = $1
       `, [userId]);
+
+      // await client.query(`
+      //   UPDATE users 
+      //   SET purchase_cooldown_until = NOW() + INTERVAL '2 minutes',
+      //       last_purchase_at = NOW(),
+      //       updated_at = NOW()
+      //   WHERE id = $1
+      // `, [userId]);
 
       // ✅ 7. INSERT COUPON USAGE RECORD (AFTER ORDER CREATED)
       if (appliedCoupon) {
