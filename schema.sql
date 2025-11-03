@@ -744,6 +744,13 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_created_at ON orders(created_
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_order_id ON tickets(order_id);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_qr_code ON tickets(qr_code_data) WHERE status = 'valid';
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read) WHERE is_read = false;
+
+-- For event search by title
+CREATE INDEX idx_events_title_gin ON events USING gin(to_tsvector('english', title));
+
+-- For ticket lookup by holder email
+CREATE INDEX idx_tickets_holder_email ON tickets(holder_email) 
+WHERE holder_email IS NOT NULL;
  
 -- =============================================
 -- TRIGGERS FOR AUTOMATIC UPDATES
@@ -792,6 +799,8 @@ CREATE TRIGGER update_waiting_room_configs_updated_at BEFORE UPDATE ON waiting_r
 CREATE TRIGGER update_email_templates_updated_at BEFORE UPDATE ON email_templates 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER trigger_refund_tickets AFTER UPDATE ON orders
+    FOR EACH ROW EXECUTE FUNCTION auto_update_tickets_on_refund();
 -- =============================================
 -- STORED FUNCTIONS
 -- =============================================
@@ -965,6 +974,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Auto update tickets when order is refunded
+CREATE OR REPLACE FUNCTION auto_update_tickets_on_refund()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.status = 'refunded' AND OLD.status != 'refunded' THEN
+        UPDATE tickets 
+        SET status = 'refunded', refunded_at = NOW()
+        WHERE order_id = NEW.id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- =============================================
 -- VIEWS FOR COMMON QUERIES
 -- =============================================
@@ -1075,6 +1097,19 @@ SELECT
     AVG(payment_amount) as avg_payment
 FROM memberships
 GROUP BY tier;
+
+-- Active events with ticket info
+CREATE VIEW v_active_events_summary AS
+SELECT 
+    e.id, e.title, e.status,
+    COUNT(DISTINCT tt.id) as ticket_types_count,
+    SUM(tt.total_quantity) as total_tickets,
+    SUM(tt.sold_quantity) as sold_tickets,
+    MIN(tt.price) as min_price
+FROM events e
+LEFT JOIN ticket_types tt ON e.id = tt.event_id AND tt.is_active = true
+WHERE e.status = 'active'
+GROUP BY e.id;
 
 -- =============================================
 -- INITIAL DATA
