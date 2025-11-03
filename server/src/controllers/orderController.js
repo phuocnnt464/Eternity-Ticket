@@ -35,42 +35,42 @@ class OrderController {
       }
 
       // ✅ VALIDATE TOTAL TICKETS
-      const totalTickets = orderData.tickets.reduce((sum, t) => sum + t.quantity, 0);
+      // const totalTickets = orderData.tickets.reduce((sum, t) => sum + t.quantity, 0);
       
       // ✅ GET SESSION LIMITS
-      const sessionLimits = await pool.query(`
-        SELECT min_tickets_per_order, max_tickets_per_order
-        FROM event_sessions
-        WHERE id = $1 AND is_active = true
-      `, [orderData.session_id]);
+      // const sessionLimits = await pool.query(`
+      //   SELECT min_tickets_per_order, max_tickets_per_order
+      //   FROM event_sessions
+      //   WHERE id = $1 AND is_active = true
+      // `, [orderData.session_id]);
 
-      if (sessionLimits.rows.length === 0) {
-        return res.status(400).json(
-          createResponse(false, 'Invalid session')
-        );
-      }
+      // if (sessionLimits.rows.length === 0) {
+      //   return res.status(400).json(
+      //     createResponse(false, 'Invalid session')
+      //   );
+      // }
 
-      const { min_tickets_per_order, max_tickets_per_order } = sessionLimits.rows[0];
+      // const { min_tickets_per_order, max_tickets_per_order } = sessionLimits.rows[0];
 
       // ✅ CHECK MIN TICKETS
-      if (totalTickets < min_tickets_per_order) {
-        return res.status(400).json(
-          createResponse(
-            false, 
-            `Minimum ${min_tickets_per_order} ticket(s) required per order. You selected ${totalTickets}.`
-          )
-        );
-      }
+      // if (totalTickets < min_tickets_per_order) {
+      //   return res.status(400).json(
+      //     createResponse(
+      //       false, 
+      //       `Minimum ${min_tickets_per_order} ticket(s) required per order. You selected ${totalTickets}.`
+      //     )
+      //   );
+      // }
 
-      // ✅ CHECK MAX TICKETS
-      if (totalTickets > max_tickets_per_order) {
-        return res.status(400).json(
-          createResponse(
-            false, 
-            `Maximum ${max_tickets_per_order} ticket(s) allowed per order. You selected ${totalTickets}.`
-          )
-        );
-      }
+      // // ✅ CHECK MAX TICKETS
+      // if (totalTickets > max_tickets_per_order) {
+      //   return res.status(400).json(
+      //     createResponse(
+      //       false, 
+      //       `Maximum ${max_tickets_per_order} ticket(s) allowed per order. You selected ${totalTickets}.`
+      //     )
+      //   );
+      // }
 
       console.log(`Creating order for user: ${userId}, tickets: ${totalTickets}`);
 
@@ -110,6 +110,9 @@ class OrderController {
         message = error.message;
       } else if (error.message.includes('Cannot order more than')) {
         statusCode = 400;
+        message = error.message;
+      } else if (error.message.includes('System is busy')) {
+        statusCode = 503;
         message = error.message;
       }
 

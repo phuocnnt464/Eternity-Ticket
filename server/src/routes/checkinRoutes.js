@@ -1,5 +1,6 @@
 // src/routes/checkinRoutes.js
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const CheckinController = require('../controllers/checkinController');
 const { 
   authenticateToken, 
@@ -11,6 +12,15 @@ const { createResponse } = require('../utils/helpers');
 const pool = require('../config/database');
 
 const router = express.Router();
+
+const checkinLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // max 10 checkin attempts per minute per IP
+  message: {
+    success: false,
+    error: { message: 'Too many check-in attempts. Please wait.' }
+  }
+});
 
 /**
  * Helper middleware: Lấy eventId từ ticketCode nếu cần
@@ -100,6 +110,7 @@ router.get('/verify/:ticketCode',
  * @access  Private (Event Staff)
  */
 router.post('/:ticketCode',
+  checkinLimiter,
   extractEventIdFromTicket,
   authorizeEventOrganizer(),
   requireEventRole('manager','checkin_staff'),

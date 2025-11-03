@@ -39,7 +39,7 @@ class OrderModel {
         FROM event_sessions es
         JOIN events e ON es.event_id = e.id
         WHERE es.id = $1 AND es.event_id = $2 AND es.is_active = true
-        FOR UPDATE NOWAIT
+        FOR UPDATE 
       `, [session_id, event_id]);
 
       if (sessionCheck.rows.length === 0) {

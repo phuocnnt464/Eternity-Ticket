@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const MembershipController = require('../controllers/membershipController');
-const { authenticate, authorize } = require('../middleware/authMiddleware');
+const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 const { validateMembershipOrder } = require('../middleware/validationMiddleware');
 
 // =============================================
@@ -48,7 +48,7 @@ router.get('/current', authenticate, MembershipController.getCurrentMembership);
  */
 router.post(
   '/orders',
-  authenticate,
+  authenticateToken,
   validateMembershipOrder,
   MembershipController.createOrder
 );
@@ -60,7 +60,7 @@ router.post(
  */
 router.get(
   '/orders/:orderNumber',
-  authenticate,
+  authenticateToken,
   MembershipController.getOrderDetails
 );
 
@@ -69,14 +69,14 @@ router.get(
  * @desc    Get membership history
  * @access  Private
  */
-router.get('/history', authenticate, MembershipController.getHistory);
+router.get('/history', authenticateToken, MembershipController.getHistory);
 
 /**
  * @route   POST /api/membership/cancel
  * @desc    Cancel membership auto-renewal
  * @access  Private
  */
-router.post('/cancel', authenticate, MembershipController.cancelMembership);
+router.post('/cancel', authenticateToken, MembershipController.cancelMembership);
 
 // =============================================
 // ADMIN ROUTES
@@ -89,8 +89,8 @@ router.post('/cancel', authenticate, MembershipController.cancelMembership);
  */
 router.get(
   '/admin/all',
-  authenticate,
-  authorize(['admin', 'sub_admin']),
+  authenticateToken,
+  authorizeRoles(['admin', 'sub_admin']),
   MembershipController.adminGetAllMemberships
 );
 
@@ -101,8 +101,8 @@ router.get(
  */
 router.put(
   '/admin/pricing/:tier',
-  authenticate,
-  authorize(['admin']),
+  authenticateToken,
+  authorizeRoles(['admin']),
   MembershipController.adminUpdatePricing
 );
 

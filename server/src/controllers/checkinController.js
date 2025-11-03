@@ -130,6 +130,9 @@ class CheckinController {
       if (error.message === 'Ticket not found') {
         statusCode = 404;
         message = 'Ticket not found';
+      } else if (error.message.includes('Already checked in')) {
+        statusCode = 409;
+        message = error.message;
       } else if (error.message.includes('not paid')) {
         statusCode = 400;
         message = 'Ticket order is not paid';

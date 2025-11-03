@@ -8,7 +8,7 @@ class LockManager {
 
   async initialize() {
     if (!this.client) {
-      this.client = await redisService.getClient ();
+      this.client = await redisService.getClient();
     }
   }
 

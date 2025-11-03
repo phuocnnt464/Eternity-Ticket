@@ -14,6 +14,11 @@ const startServer = async () => {
     await pool.query('SELECT NOW()');
     console.log('✅ Database connected successfully');
 
+     // Initialize Redis BEFORE starting server
+    const redisService = require('./src/services/redisService');
+    await redisService.connect();
+    console.log('✅ Redis connected successfully');
+
     server = app.listen(PORT, () => {
       console.log(`🚀 Eternity Ticket Server is running on port ${PORT}`);
       console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -45,7 +50,7 @@ const gracefulShutdown = async (signal) => {
       process.exit(0);
     });
 
-    // Force shutdown after 10 seconds
+    // Force shutdown after 60 seconds
     setTimeout(() => {
       console.error('⚠️ Forced shutdown after timeout');
       process.exit(1);
