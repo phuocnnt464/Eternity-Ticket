@@ -16,7 +16,7 @@ class OrderController {
       const userId = req.user.id;
       const orderData = req.body;
 
-      // ✅ CHECK QUEUE ACCESS
+      // CHECK QUEUE ACCESS
       const canPurchase = await QueueController.checkCanPurchase(
         userId, 
         orderData.session_id
@@ -39,10 +39,27 @@ class OrderController {
       const totalTickets = orderData.tickets.reduce((sum, t) => sum + t.quantity, 0);
 
       console.log(`Creating order for user: ${userId}, tickets: ${totalTickets}`);
+      
+      let result;
+      try {
+        result = await OrderModel.createOrder(userId, orderData);
 
-      const result = await OrderModel.createOrder(userId, orderData);
+        await QueueController.completeOrder(userId, orderData.session_id);
+      } catch (error) {
+        // ✅ FAIL: Still cleanup Redis to free slot
+        console.error(`Order creation failed for user ${userId}:`, error.message);
+        try {
+          const QueueModel = require('../models/queueModel');
+          await QueueModel.removeActiveUser(orderData.session_id, userId);
+          await QueueController.processQueue(orderData.session_id);
+          console.log(`✅ Freed Redis slot after order failure for user ${userId}`);
+        } catch (cleanupError) {
+          console.error('❌ Failed to cleanup Redis after order error:', cleanupError);
+        }
 
-      await QueueController.completeOrder(userId, orderData.session_id);
+        throw error; // Re-throw to handle in outer catch
+      }
+
 
       const response = createResponse(
         true,

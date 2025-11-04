@@ -20,11 +20,20 @@ class OrderModel {
         coupon_code
     } = orderData;
 
-     // ACQUIRE DISTRIBUTED LOCK PER SESSION
-    const lockKey = `order:session:${session_id}`;
-    const lockToken = await lockManager.acquireLock(lockKey, 15000); // 15 seconds
+     // ACQUIRE DISTRIBUTED LOCK PER SESSION Prevent concurrent orders from same user
+    const userLockKey = `order:user:${userId}:session:${session_id}`;
+    const userLockToken = await lockManager.acquireLock(userLockKey, 30000); // 30 seconds
 
-    if (!lockToken) {
+    if (!userLockToken) {
+      throw new Error('You already have an order in progress. Please wait or complete your current order before trying again in a few seconds.');
+    }
+
+    // ✅ 2. SESSION LOCK - Prevent ticket overselling
+    const sessionLockKey = `order:session:${session_id}`;
+    const sessionLockToken = await lockManager.acquireLock(sessionLockKey, 15000);
+
+    if (!sessionLockToken) {
+      await lockManager.releaseLock(userLockKey, userLockToken);
       throw new Error('System is busy processing orders. Please try again in a few seconds.');
     }
 
@@ -32,6 +41,28 @@ class OrderModel {
     
     try {
       await client.query('BEGIN');
+
+       //  CHECK EXISTING PENDING ORDER
+      const pendingOrderCheck = await client.query(`
+        SELECT id, order_number, created_at, reserved_until
+        FROM orders
+        WHERE user_id = $1 
+          AND session_id = $2 
+          AND status = 'pending'
+          AND reserved_until > NOW()
+        LIMIT 1
+        FOR UPDATE
+      `, [userId, session_id]);
+
+      if (pendingOrderCheck.rows.length > 0) {
+        const existing = pendingOrderCheck.rows[0];
+        const minutesLeft = Math.ceil((new Date(existing.reserved_until) - new Date()) / 60000);
+        
+        throw new Error(
+          `You already have a pending order (${existing.order_number}) for this session. ` +
+          `Please complete payment within ${minutesLeft} minutes or wait for it to expire.`
+        );
+      }
 
       // Verify session exists and belongs to event
       const sessionCheck = await client.query(`
@@ -396,8 +427,13 @@ class OrderModel {
       throw error;
     } finally {
       client.release();
-      if (lockToken) {
-        await lockManager.releaseLock(lockKey, lockToken).catch((err) => {
+      if (sessionLockKey) {
+        await lockManager.releaseLock(sessionLockKey, sessionLockToken).catch((err) => {
+          console.error('Failed to release lock:', err);
+        });
+      }
+      if (userLockKey) {
+        await lockManager.releaseLock(userLockKey, userLockToken).catch((err) => {
           console.error('Failed to release lock:', err);
         });
       }

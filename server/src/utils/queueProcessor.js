@@ -127,30 +127,29 @@ class QueueProcessor {
     try {
       console.log('Running cleanup...');
       
+      // CLEANUP POSTGRESQL
       const sessionIds = await QueueModel.cleanupExpiredSessions();
 
       // Cleanup Redis active users
       const redis = require('../services/redisService').getClient();
 
-      // Get all session IDs có active users
-      // const activeSessions = await redis.keys('active_set:*');
-
       // Check null
       if (!redis) {
         console.warn('⚠️ Redis unavailable - skipping Redis cleanup');
-        
         // Still process queues from DB
         for (const sessionId of sessionIds) {
           await QueueController.processQueue(sessionId);
         }
-        
         return;
       }
 
-      let cursor = '0';
       let expiredActiveCount = 0;
+      let expiredQueueCount = 0;
+      let removedCounterKeys = 0;
       const processedSets = new Set();
 
+      // CLEANUP REDIS ACTIVE USERS 
+      let cursor = '0';
       do {
         // SCAN với pattern 'active_set:*'
         const [newCursor, keys] = await redis.scan(cursor, {
@@ -207,17 +206,151 @@ class QueueProcessor {
           }
         }
       } while (cursor !== '0');
+
+      // ✅ 3. NEW: CLEANUP REDIS QUEUE LISTS (waiting users)
+      cursor = '0';
+      const processedQueues = new Set();
       
-      if (expiredActiveCount > 0) {
-        console.log(`Cleaned up ${expiredActiveCount} expired active users from Redis`);
-      }
+      do {
+        const [newCursor, keys] = await redis.scan(cursor, {
+          MATCH: 'queue:*',
+          COUNT: 10
+        });
+        
+        cursor = newCursor;
+        
+        for (const queueKey of keys) {
+          if (processedQueues.has(queueKey)) continue;
+          processedQueues.add(queueKey);
+          
+          try {
+            const sessionId = queueKey.replace('queue:', '');
+            
+            // ✅ Check if session still exists and is active
+            const sessionCheck = await pool.query(`
+              SELECT 
+                wrc.is_enabled,
+                es.end_time,
+                es.start_time
+              FROM waiting_room_configs wrc
+              JOIN event_sessions es ON wrc.session_id = es.id
+              WHERE wrc.session_id = $1
+            `, [sessionId]);
+            
+            let shouldDelete = false;
+            
+            if (sessionCheck.rows.length === 0) {
+              // Session không tồn tại → delete
+              shouldDelete = true;
+              console.log(`📝 Queue for non-existent session: ${sessionId}`);
+            } else {
+              const session = sessionCheck.rows[0];
+              const now = new Date();
+              const endTime = new Date(session.end_time);
+              
+              // Delete if:
+              // - Waiting room disabled
+              // - Session ended > 1 hour ago (grace period)
+              if (!session.is_enabled || (endTime < now && (now - endTime) > 3600000)) {
+                shouldDelete = true;
+                console.log(`📝 Expired session queue: ${sessionId}`);
+              }
+            }
+            
+            if (shouldDelete) {
+              const queueLength = await redis.lLen(queueKey);
+              
+              if (queueLength > 0) {
+                await redis.del(queueKey);
+                expiredQueueCount += queueLength;
+                console.log(`🗑️ Deleted queue: ${queueKey} (${queueLength} users)`);
+              }
+            }
+            
+          } catch (err) {
+            console.error(`Error processing queue ${queueKey}:`, err);
+          }
+        }
+      } while (cursor !== '0');
+
+      // ✅ 4. NEW: CLEANUP REDIS QUEUE COUNTERS
+      cursor = '0';
+      const processedCounters = new Set();
       
+      do {
+        const [newCursor, keys] = await redis.scan(cursor, {
+          MATCH: 'queue_counter:*',
+          COUNT: 10
+        });
+        
+        cursor = newCursor;
+        
+        for (const counterKey of keys) {
+          if (processedCounters.has(counterKey)) continue;
+          processedCounters.add(counterKey);
+          
+          try {
+            const sessionId = counterKey.replace('queue_counter:', '');
+            
+            // Check if corresponding queue exists
+            const queueKey = `queue:${sessionId}`;
+            const queueExists = await redis.exists(queueKey);
+            
+            // Also check if session still active
+            const sessionCheck = await pool.query(`
+              SELECT 
+                wrc.is_enabled,
+                es.end_time
+              FROM waiting_room_configs wrc
+              JOIN event_sessions es ON wrc.session_id = es.id
+              WHERE wrc.session_id = $1
+            `, [sessionId]);
+            
+            let shouldDelete = false;
+            
+            if (!queueExists || sessionCheck.rows.length === 0) {
+              shouldDelete = true;
+            } else {
+              const session = sessionCheck.rows[0];
+              const now = new Date();
+              const endTime = new Date(session.end_time);
+              
+              if (!session.is_enabled || (endTime < now && (now - endTime) > 3600000)) {
+                shouldDelete = true;
+              }
+            }
+            
+            if (shouldDelete) {
+              await redis.del(counterKey);
+              removedCounterKeys++;
+              console.log(`🗑️ Deleted counter: ${counterKey}`);
+            }
+            
+          } catch (err) {
+            console.error(`Error processing counter ${counterKey}:`, err);
+          }
+        }
+      } while (cursor !== '0');
+
+      // Process remaining queues
       for (const sessionId of sessionIds) {
         await QueueController.processQueue(sessionId);
       }
 
+      if (expiredActiveCount > 0) {
+        console.log(`Cleaned up ${expiredActiveCount} expired active users from Redis`);
+      }
+      
+      if (expiredQueueCount > 0) {
+        console.log(`Cleaned up ${expiredQueueCount} expired queued users from Redis`);
+      }
+
+      if (removedCounterKeys > 0) {
+        console.log(`Removed ${removedCounterKeys} obsolete queue counters from Redis`);
+      }
+
       if (sessionIds.length > 0) {
-        console.log(`Cleanup complete: ${sessionIds.length} sessions affected`);
+        console.log(`Cleanup complete DB: ${sessionIds.length} sessions affected`);
       }
 
     } catch (error) {
