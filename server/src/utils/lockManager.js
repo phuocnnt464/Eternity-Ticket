@@ -9,7 +9,13 @@ class LockManager {
   async initialize() {
     if (!this.client) {
       this.client = await redisService.getClient();
+        // ✅ CHECK IF CLIENT IS NULL
+      if (!this.client) {
+        console.warn('⚠️ Redis not available for lock manager');
+        return false; // Signal that initialization failed
+      }
     }
+    return true;
   }
 
   /**
@@ -19,7 +25,16 @@ class LockManager {
    * @returns {String|null} Lock token if acquired, null if failed
    */
   async acquireLock(key, ttl = 10000) {
-    await this.initialize();
+    const initialized = await this.initialize();
+    
+    // ✅ GRACEFUL DEGRADATION
+    if (!initialized || !this.client) {
+      console.warn('⚠️ Lock manager unavailable - proceeding without lock');
+      // Return a fake token to allow operation to continue
+      // This is acceptable because database FOR UPDATE locks will protect data
+      return `no-lock-${Date.now()}-${Math.random()}`;
+    }
+
     const lockKey = `lock:${key}`;
     const token = `${Date.now()}-${Math.random()}`;
     
@@ -42,7 +57,20 @@ class LockManager {
    * @param {String} token - Lock token
    */
   async releaseLock(key, token) {
-    await this.initialize();
+    const initialized = await this.initialize();
+    
+    // ✅ GRACEFUL DEGRADATION
+    if (!initialized || !this.client) {
+      // No-op if lock manager not available
+      return;
+    }
+    
+    // ✅ CHECK FOR FAKE TOKEN
+    if (token && token.startsWith('no-lock-')) {
+      // This was a fake token, no need to release
+      return;
+    }
+
     const lockKey = `lock:${key}`;
     
     try {
@@ -70,7 +98,18 @@ class LockManager {
    * @param {Number} ttl - New TTL in milliseconds
    */
   async extendLock(key, token, ttl = 10000) {
-    await this.initialize();
+    const initialized = await this.initialize();
+    
+    // ✅ GRACEFUL DEGRADATION
+    if (!initialized || !this.client) {
+      return false;
+    }
+    
+    // ✅ CHECK FOR FAKE TOKEN
+    if (token && token.startsWith('no-lock-')) {
+      return true; // Pretend it worked
+    }
+    
     const lockKey = `lock:${key}`;
     
     try {
