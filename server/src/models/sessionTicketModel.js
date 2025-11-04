@@ -393,7 +393,23 @@ class SessionTicketModel {
       if (updateData.price !== undefined && updateData.price < 0) {
         throw new Error('Price cannot be negative');
       }
-      
+
+      if (currentTicket.sold_quantity > 0) {
+        const restrictedFields = ['sale_start_time', 'sale_end_time', 'price'];
+        const attemptingRestricted = restrictedFields.filter(field => 
+          updateData[field] !== undefined && 
+          String(updateData[field]) !== String(currentTicket[field])
+        );
+        
+        if (attemptingRestricted.length > 0) {
+          throw new Error(
+            `Cannot change ${attemptingRestricted.join(', ')} after tickets have been sold. ` +
+            `Current sold: ${currentTicket.sold_quantity} tickets. ` +
+            `Please contact support if you need to make changes.`
+          );
+        }
+      }
+            
       if (updateData.total_quantity !== undefined) {
         if (updateData.total_quantity < currentTicket.sold_quantity) {
           throw new Error(

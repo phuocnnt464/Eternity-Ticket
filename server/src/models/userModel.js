@@ -838,13 +838,13 @@ class UserModel {
         m.tier as membership_tier
       FROM users u
       LEFT JOIN memberships m ON u.id = m.user_id AND m.is_active = true
-      WHERE u.created_at >= NOW() - INTERVAL '${days} days'
+      WHERE u.created_at >= NOW() - ($1 || ' days')::INTERVAL
       ORDER BY u.created_at DESC
-      LIMIT $1
+      LIMIT $2
     `;
 
     try {
-      const result = await pool.query(query, [limit]);
+      const result = await pool.query(query, [days, limit]);
       return result.rows;
     } catch (error) {
       throw new Error(`Error getting recent users: ${error.message}`);

@@ -128,6 +128,27 @@ class QueueProcessor {
       console.log('Running cleanup...');
       
       const sessionIds = await QueueModel.cleanupExpiredSessions();
+
+      // Cleanup Redis active users
+      const redis = require('../services/redisService').getClient();
+      const activePattern = 'active:*';
+      const activeKeys = await redis.keys(activePattern);
+      
+      let expiredActiveCount = 0;
+      for (const key of activeKeys) {
+        const data = await redis.get(key);
+        if (data) {
+          const parsed = JSON.parse(data);
+          if (new Date(parsed.expires_at) < new Date()) {
+            await redis.del(key);
+            expiredActiveCount++;
+          }
+        }
+      }
+      
+      if (expiredActiveCount > 0) {
+        console.log(`  ✓ Cleaned up ${expiredActiveCount} expired active users from Redis`);
+      }
       
       for (const sessionId of sessionIds) {
         await QueueController.processQueue(sessionId);

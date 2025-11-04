@@ -519,7 +519,7 @@ class AdminController {
 
       // 6. Create notification for user
       await client.query(`
-        INSERT INTO notifications (user_id, type, title, message, data)
+        INSERT INTO notifications (user_id, type, title, content, data)
         VALUES ($1, 'refund_approved', 'Refund Approved', $2, $3)
       `, [
         refund.user_id,
@@ -599,7 +599,7 @@ class AdminController {
 
       // 3. Create notification
       await client.query(`
-        INSERT INTO notifications (user_id, type, title, message, data)
+        INSERT INTO notifications (user_id, type, title, content, data)
         VALUES ($1, 'refund_rejected', 'Refund Rejected', $2, $3)
       `, [
         refund.user_id,

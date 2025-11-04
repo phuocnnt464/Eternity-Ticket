@@ -738,9 +738,6 @@ CREATE INDEX idx_user_sessions_expires ON user_sessions(expires_at);
 CREATE INDEX idx_user_sessions_active ON user_sessions(user_id, is_active) 
     WHERE is_active = true;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_user_id ON orders(user_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_status ON orders(status);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_order_id ON tickets(order_id);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_qr_code ON tickets(qr_code_data) WHERE status = 'valid';
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read) WHERE is_read = false;
