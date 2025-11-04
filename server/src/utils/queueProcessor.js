@@ -131,23 +131,52 @@ class QueueProcessor {
 
       // Cleanup Redis active users
       const redis = require('../services/redisService').getClient();
-      const activePattern = 'active:*';
-      const activeKeys = await redis.keys(activePattern);
+      // const activePattern = 'active:*';
+      // const activeKeys = await redis.keys(activePattern);
+
+       // Get all session IDs có active users
+      const activeSessions = await redis.keys('active_set:*');
       
       let expiredActiveCount = 0;
-      for (const key of activeKeys) {
-        const data = await redis.get(key);
-        if (data) {
-          const parsed = JSON.parse(data);
-          if (new Date(parsed.expires_at) < new Date()) {
-            await redis.del(key);
+      // for (const key of activeKeys) {
+      //   const data = await redis.get(key);
+      //   if (data) {
+      //     const parsed = JSON.parse(data);
+      //     if (new Date(parsed.expires_at) < new Date()) {
+      //       await redis.del(key);
+      //       expiredActiveCount++;
+      //     }
+      //   }
+      // }
+
+      for (const setKey of activeSessions) {
+        const sessionId = setKey.replace('active_set:', '');
+        
+        // Get all members trong SET
+        const userIds = await redis.sMembers(setKey);
+        
+        // Check từng user có expired không
+        for (const userId of userIds) {
+          const activeKey = `active:${sessionId}:${userId}`;
+          const data = await redis.get(activeKey);
+          
+          if (!data) {
+            // Key đã expired tự động, remove khỏi SET
+            await redis.sRem(setKey, userId);
             expiredActiveCount++;
+          } else {
+            const parsed = JSON.parse(data);
+            if (new Date(parsed.expires_at) < new Date()) {
+              await redis.del(activeKey);
+              await redis.sRem(setKey, userId);
+              expiredActiveCount++;
+            }
           }
         }
       }
       
       if (expiredActiveCount > 0) {
-        console.log(`  ✓ Cleaned up ${expiredActiveCount} expired active users from Redis`);
+        console.log(`Cleaned up ${expiredActiveCount} expired active users from Redis`);
       }
       
       for (const sessionId of sessionIds) {
