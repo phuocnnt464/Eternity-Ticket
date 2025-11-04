@@ -131,49 +131,70 @@ class QueueProcessor {
 
       // Cleanup Redis active users
       const redis = require('../services/redisService').getClient();
-      // const activePattern = 'active:*';
-      // const activeKeys = await redis.keys(activePattern);
 
-       // Get all session IDs có active users
-      const activeSessions = await redis.keys('active_set:*');
+      // Get all session IDs có active users
+      // const activeSessions = await redis.keys('active_set:*');
       
+      let cursor = '0';
       let expiredActiveCount = 0;
-      // for (const key of activeKeys) {
-      //   const data = await redis.get(key);
-      //   if (data) {
-      //     const parsed = JSON.parse(data);
-      //     if (new Date(parsed.expires_at) < new Date()) {
-      //       await redis.del(key);
-      //       expiredActiveCount++;
-      //     }
-      //   }
-      // }
+      const processedSets = new Set();
 
-      for (const setKey of activeSessions) {
-        const sessionId = setKey.replace('active_set:', '');
+      do {
+        // SCAN với pattern 'active_set:*'
+        const [newCursor, keys] = await redis.scan(cursor, {
+          MATCH: 'active_set:*',
+          COUNT: 10 // Process 10 keys per iteration
+        });
         
-        // Get all members trong SET
-        const userIds = await redis.sMembers(setKey);
+        cursor = newCursor;
         
-        // Check từng user có expired không
-        for (const userId of userIds) {
-          const activeKey = `active:${sessionId}:${userId}`;
-          const data = await redis.get(activeKey);
+        for (const setKey of keys) {
+          // Skip if already processed
+          if (processedSets.has(setKey)) continue;
+          processedSets.add(setKey);
           
-          if (!data) {
-            // Key đã expired tự động, remove khỏi SET
-            await redis.sRem(setKey, userId);
-            expiredActiveCount++;
-          } else {
-            const parsed = JSON.parse(data);
-            if (new Date(parsed.expires_at) < new Date()) {
-              await redis.del(activeKey);
-              await redis.sRem(setKey, userId);
-              expiredActiveCount++;
+          try {
+            const sessionId = setKey.replace('active_set:', '');
+            
+            // Get all members trong SET
+            const userIds = await redis.sMembers(setKey);
+            
+            // Check từng user có expired không
+            for (const userId of userIds) {
+              const activeKey = `active:${sessionId}:${userId}`;
+              
+              try {
+                const data = await redis.get(activeKey);
+                
+                if (!data) {
+                  // Key đã expired tự động, remove khỏi SET
+                  await redis.sRem(setKey, userId);
+                  expiredActiveCount++;
+                } else {
+                  const parsed = JSON.parse(data);
+                  if (new Date(parsed.expires_at) < new Date()) {
+                    await redis.del(activeKey);
+                    await redis.sRem(setKey, userId);
+                    expiredActiveCount++;
+                  }
+                }
+              } catch (err) {
+                console.error(`Error processing user ${userId}:`, err);
+              }
             }
+            
+            // ✅ Xóa SET nếu rỗng
+            const remaining = await redis.sCard(setKey);
+            if (remaining === 0) {
+              await redis.del(setKey);
+              console.log(`🗑️ Removed empty set: ${setKey}`);
+            }
+            
+          } catch (err) {
+            console.error(`Error processing set ${setKey}:`, err);
           }
         }
-      }
+      } while (cursor !== '0');
       
       if (expiredActiveCount > 0) {
         console.log(`Cleaned up ${expiredActiveCount} expired active users from Redis`);
