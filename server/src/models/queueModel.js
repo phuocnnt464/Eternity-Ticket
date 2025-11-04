@@ -313,6 +313,13 @@ class QueueModel {
       const queueData = JSON.stringify(userData);
 
       const length = await redis.rPush(queueKey, queueData);
+
+      // ✅ Set TTL 2 giờ cho queue key (nếu chưa có TTL)
+      const ttl = await redis.ttl(queueKey);
+      if (ttl === -1) { // -1 = key tồn tại nhưng không có TTL
+        await redis.expire(queueKey, 2 * 60 * 60); // 2 hours
+      }
+
       return length;
 
     } catch (error) {

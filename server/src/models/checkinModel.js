@@ -65,11 +65,32 @@ class CheckinModel {
       await client.query('BEGIN');
 
       // Get ticket details
-      const ticket = await this.verifyTicket(ticketCode);
+      // const ticket = await this.verifyTicket(ticketCode);
 
-      if (!ticket) {
+      // if (!ticket) {
+      //   throw new Error('Ticket not found');
+      // }
+
+      const verifyQuery = `
+        SELECT t.*, tt.name as ticket_type_name, 
+              e.title as event_title, es.title as session_title,
+              o.status as order_status
+        FROM tickets t
+        JOIN ticket_types tt ON t.ticket_type_id = tt.id
+        JOIN events e ON t.event_id = e.id
+        JOIN event_sessions es ON t.session_id = es.id
+        JOIN orders o ON t.order_id = o.id
+        WHERE t.ticket_code = $1
+        FOR UPDATE  -- Khóa row cho đến khi COMMIT
+      `;
+      
+      const result = await client.query(verifyQuery, [ticketCode]);
+      
+      if (result.rows.length === 0) {
         throw new Error('Ticket not found');
       }
+      
+      const ticket = result.rows[0];
 
       // Verify ticket is valid for check-in
       if (ticket.order_status !== 'paid') {
