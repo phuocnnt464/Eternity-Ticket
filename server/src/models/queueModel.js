@@ -112,19 +112,41 @@ class QueueModel {
    * Get next queue number
    */
   static async getNextQueueNumber(sessionId) {
+    // const client = await pool.connect();
     try {
-      const query = `
-        SELECT COALESCE(MAX(queue_number), 0) + 1 as next_number
-        FROM waiting_queue
-        WHERE session_id = $1
-      `;
+      // await client.query('BEGIN');
+      // const query = `
+      //   SELECT COALESCE(MAX(queue_number), 0) + 1 as next_number
+      //   FROM waiting_queue
+      //   WHERE session_id = $1
+      //   FOR UPDATE
+      // `;
 
-      const result = await pool.query(query, [sessionId]);
-      return result.rows[0].next_number;
+      // const result = await client.query(query, [sessionId]);
+      // const nextNumber = result.rows[0].next_number;
 
+      // await client.query('COMMIT');
+
+      const redis = redisService.getClient();
+      const counterKey = `queue_counter:${sessionId}`;
+      
+      // ✅ Atomic increment
+      const nextNumber = await redis.incr(counterKey);
+      
+      // Set TTL 24 hours nếu chưa có
+      const ttl = await redis.ttl(counterKey);
+      if (ttl === -1) {
+        await redis.expire(counterKey, 86400);
+      }
+
+      return nextNumber;
     } catch (error) {
+      // await client.query('ROLLBACK');
       throw new Error(`Failed to get next queue number: ${error.message}`);
-    }
+    } 
+    // finally {
+    //   client.release();
+    // }
   }
 
   /**
@@ -393,6 +415,7 @@ class QueueModel {
   static async setActiveUser(sessionId, userId, timeoutMinutes) {
     try {
       const redis = redisService.getClient();
+      const activeSetKey = `active_set:${sessionId}`;
       const activeKey = `active:${sessionId}:${userId}`;
       const expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
 
@@ -401,7 +424,15 @@ class QueueModel {
         expires_at: expiresAt.toISOString()
       });
 
-      await redis.setEx(activeKey, timeoutMinutes * 60, data);
+      // await redis.setEx(activeKey, timeoutMinutes * 60, data);
+
+      // Pipeline to atomic operations
+      const pipeline = redis.pipeline();
+      pipeline.setEx(activeKey, timeoutMinutes * 60, data);
+      pipeline.sAdd(activeSetKey, userId);  // Add to SET
+      pipeline.expire(activeSetKey, timeoutMinutes * 60 + 60); // Buffer 1 min
+      await pipeline.exec();
+
       return true;
 
     } catch (error) {
@@ -434,8 +465,14 @@ class QueueModel {
     try {
       const redis = redisService.getClient();
       const activeKey = `active:${sessionId}:${userId}`;
+      const activeSetKey = `active_set:${sessionId}`;
       
-      await redis.del(activeKey);
+      // await redis.del(activeKey);
+      // Atomic remove from both
+      const pipeline = redis.pipeline();
+      pipeline.del(activeKey);
+      pipeline.sRem(activeSetKey, userId);  // Remove from SET
+      await pipeline.exec();
       return true;
 
     } catch (error) {
@@ -449,10 +486,14 @@ class QueueModel {
   static async getActiveUsersCount(sessionId) {
     try {
       const redis = redisService.getClient();
-      const pattern = `active:${sessionId}:*`;
-      const keys = await redis.keys(pattern);
+      // const pattern = `active:${sessionId}:*`;
+      // const keys = await redis.keys(pattern);
       
-      return keys.length;
+      // return keys.length;
+      const activeSetKey = `active_set:${sessionId}`;
+    
+      // O(1) operation instead of O(N) scan
+      return await redis.sCard(activeSetKey);
 
     } catch (error) {
       throw new Error(`Failed to get active users count: ${error.message}`);
