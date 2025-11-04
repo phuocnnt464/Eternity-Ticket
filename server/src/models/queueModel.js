@@ -128,6 +128,11 @@ class QueueModel {
       // await client.query('COMMIT');
 
       const redis = redisService.getClient();
+      // ✅ Check null
+      if (!redis) {
+        throw new Error('Redis unavailable - cannot get next queue number');
+      }
+
       const counterKey = `queue_counter:${sessionId}`;
       
       // ✅ Atomic increment
@@ -142,7 +147,9 @@ class QueueModel {
       return nextNumber;
     } catch (error) {
       // await client.query('ROLLBACK');
-      throw new Error(`Failed to get next queue number: ${error.message}`);
+      // throw new Error(`Failed to get next queue number: ${error.message}`);
+      console.error('Failed to get next queue number:', error);
+      return null;
     } 
     // finally {
     //   client.release();
