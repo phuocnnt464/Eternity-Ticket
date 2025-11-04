@@ -334,10 +334,15 @@ class QueueProcessor {
             } else {
               const session = sessionCheck.rows[0];
               const now = new Date();
-              const endTime = new Date(session.end_time);
+              if (!session.end_time) {
+                // Event chưa kết thúc
+                shouldDelete = false;
+              } else {
+                const endTime = new Date(session.end_time);
               
-              if (!session.is_enabled || (endTime < now && (now - endTime) > 3600000)) {
-                shouldDelete = true;
+                if (!session.is_enabled || (endTime < now && (now - endTime) > 3600000)) {
+                  shouldDelete = true;
+                }
               }
             }
             
