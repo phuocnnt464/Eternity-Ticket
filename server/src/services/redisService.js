@@ -57,10 +57,35 @@ class RedisService {
    */
   getClient() {
     if (!this.isConnected) {
-      throw new Error('Redis not connected. Call connect() first.');
+      // throw new Error('Redis not connected. Call connect() first.');
+      console.warn('⚠️ Redis not connected - operations will be degraded');
+      return null;
     }
     return this.client;
   }
+
+/**
+ * Check if Redis is ready (non-throwing)
+ */
+isReady() {
+  return this.isConnected && this.client !== null;
+}
+
+/**
+ * Safe execute Redis operation with fallback
+ */
+async safeExecute(operation, fallbackValue = null) {
+  try {
+    if (!this.isReady()) {
+      console.warn('⚠️ Redis unavailable - using fallback');
+      return fallbackValue;
+    }
+    return await operation(this.client);
+  } catch (error) {
+    console.error('Redis operation failed:', error);
+    return fallbackValue;
+  }
+}
 
   /**
    * Check connection status

@@ -331,6 +331,14 @@ class QueueModel {
   static async addToRedisQueue(sessionId, userData) {
     try {
       const redis = redisService.getClient();
+
+      // ✅ Graceful degradation
+      if (!redis) {
+        console.warn('⚠️ Redis unavailable - queue operations degraded');
+        // Có thể lưu vào database thay thế
+        return 0;
+      }
+    
       const queueKey = `queue:${sessionId}`;
       const queueData = JSON.stringify(userData);
 
@@ -345,7 +353,9 @@ class QueueModel {
       return length;
 
     } catch (error) {
-      throw new Error(`Failed to add to Redis queue: ${error.message}`);
+      // throw new Error(`Failed to add to Redis queue: ${error.message}`);
+      console.error('Failed to add to Redis queue:', error);
+      return 0; // Graceful fallback
     }
   }
 
@@ -490,13 +500,22 @@ class QueueModel {
       // const keys = await redis.keys(pattern);
       
       // return keys.length;
+
+      // ✅ Handle Redis unavailable
+      if (!redis) {
+        console.warn('⚠️ Redis unavailable - returning 0 for active count');
+        // Có thể query từ database như fallback
+        return 0;
+      }
       const activeSetKey = `active_set:${sessionId}`;
     
       // O(1) operation instead of O(N) scan
       return await redis.sCard(activeSetKey);
 
     } catch (error) {
-      throw new Error(`Failed to get active users count: ${error.message}`);
+      // throw new Error(`Failed to get active users count: ${error.message}`);
+      console.error('Failed to get active users count:', error);
+      return 0; // Graceful fallback
     }
   }
 }

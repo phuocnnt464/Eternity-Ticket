@@ -191,6 +191,32 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
+// Add pool health monitoring endpoint
+app.get('/api/health/db-pool', async (req, res) => {
+  try {
+    const pool = require('./config/database');
+    const stats = pool.getHealthStats();
+    
+    const isHealthy = stats.waitingCount === 0 && 
+                      stats.utilizationPercent < 80;
+    
+    res.status(isHealthy ? 200 : 503).json({
+      success: isHealthy,
+      data: {
+        status: isHealthy ? 'healthy' : 'degraded',
+        pool: stats,
+        warning: stats.utilizationPercent > 80 ? 
+          'Pool utilization high - consider increasing max pool size' : null
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // =============================================
 // API ROUTES
 // =============================================

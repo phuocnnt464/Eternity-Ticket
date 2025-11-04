@@ -4,15 +4,42 @@ const pool = require('../config/database');
 
 class EmailService {
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.EMAIL_PORT) || 587,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-      }
-    });
+    // ✅ Validate email configuration
+    this.isConfigured = false;
+    
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.error('WARNING: EMAIL SERVICE NOT CONFIGURED');
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.error('EMAIL_USER or EMAIL_PASSWORD not set in .env');
+      console.error('Email functionality will be DISABLED');
+      console.error('Please configure email settings to enable:');
+      console.error('   - Email verification');
+      console.error('   - Password reset');
+      console.error('   - Order confirmations');
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      this.transporter = null;
+      return;
+    }
+
+    try{
+      this.transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT) || 587,
+        secure: false, // true for 465, false for other ports
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD
+        }
+      });
+
+      this.isConfigured = true;
+      console.log('Email transporter configured successfully');
+
+    } catch (error) {
+      console.error('Failed to initialize email service:', error);
+      this.transporter = null;
+    }
   }
 
   /**
@@ -56,6 +83,15 @@ class EmailService {
    * @returns {Boolean} Success status
    */
   async sendEmail(options) {
+    if (!this.isConfigured || !this.transporter) {
+      console.warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.warn('⚠️  Email service not configured');
+      console.warn('📧 Skipping email to:', options.to);
+      console.warn('📝 Subject:', options.subject);
+      console.warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      return false;
+    }
+    
     try {
       const { to, subject, html, text, attachments } = options;
 

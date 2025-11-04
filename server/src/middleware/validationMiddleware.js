@@ -1,6 +1,8 @@
 // src/middleware/validationMiddleware.js
 const { createResponse, validateUUID } = require('../utils/helpers');
 const Joi = require('joi');
+const validator = require('validator');
+const sanitizeHtml = require('sanitize-html');
 
 /**
  * Validation middleware factory
@@ -462,30 +464,61 @@ const sanitizeInput = (fields = []) => {
   return (req, res, next) => {
     const sanitizeString = (str) => {
       if (typeof str !== 'string') return str;
+
+      // ✅ Step 1: Escape HTML entities
+      let cleaned = validator.escape(str);
       
-      return str
-        .trim()
-        .replace(/[<>]/g, '')              // Remove HTML tags
-        .replace(/javascript:/gi, '')      // Remove javascript: protocol
-        .replace(/on\w+=/gi, '')           // Remove event handlers
-        .replace(/script/gi, '')           // Remove script keyword
-        .replace(/eval\(/gi, '');          // Remove eval
+      // ✅ Step 2: Normalize whitespace
+      cleaned = validator.trim(cleaned);
+      cleaned = validator.stripLow(cleaned); // Remove control chars
+      
+      // return str
+      //   .trim()
+      //   .replace(/[<>]/g, '')              // Remove HTML tags
+      //   .replace(/javascript:/gi, '')      // Remove javascript: protocol
+      //   .replace(/on\w+=/gi, '')           // Remove event handlers
+      //   .replace(/script/gi, '')           // Remove script keyword
+      //   .replace(/eval\(/gi, '');          // Remove eval
+
+      // ✅ Step 3: Remove dangerous patterns (after escape)
+      cleaned = cleaned
+        .replace(/javascript:/gi, '')
+        .replace(/data:/gi, '')
+        .replace(/vbscript:/gi, '')
+        .replace(/file:/gi, '')
+        .replace(/on\w+\s*=/gi, ''); // Event handlers
+      
+      // ✅ Step 4: Limit length to prevent DOS
+      if (cleaned.length > 10000) {
+        cleaned = cleaned.substring(0, 10000);
+      }
+      
+      return cleaned;
     };
 
     const sanitizeObject = (obj) => {
       const sanitized = {};
       
       for (const [key, value] of Object.entries(obj)) {
+        // ✅ Sanitize keys too (prevent prototype pollution)
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+          continue; // Skip dangerous keys
+        }
+        
+        const cleanKey = validator.escape(key);
+
         if (typeof value === 'string') {
-          sanitized[key] = sanitizeString(value);
+          sanitized[cleanKey] = sanitizeString(value);
         } else if (Array.isArray(value)) {
-          sanitized[key] = value.map(item => 
-            typeof item === 'string' ? sanitizeString(item) : item
+          sanitized[cleanKey] = value.map(item => 
+            typeof item === 'string' ? sanitizeString(item) : 
+            typeof item === 'object' && item !== null ? sanitizeObject(item) :
+            item
           );
         } else if (value && typeof value === 'object') {
-          sanitized[key] = sanitizeObject(value);
+          sanitized[cleanKey] = sanitizeObject(value);
         } else {
-          sanitized[key] = value;
+          sanitized[cleanKey] = value;
         }
       }
       
@@ -496,7 +529,7 @@ const sanitizeInput = (fields = []) => {
     if (req.body) {
       if (fields.length > 0) {
         fields.forEach(field => {
-          if (req.body[field]) {
+          if (req.body[field] !== undefined) {
             if (typeof req.body[field] === 'string') {
               req.body[field] = sanitizeString(req.body[field]);
             } else if (Array.isArray(req.body[field])) {
@@ -511,20 +544,58 @@ const sanitizeInput = (fields = []) => {
       }
     }
 
+    // ✅ Sanitize query params too
+    if (req.query) {
+      req.query = sanitizeObject(req.query);
+    }
+    
+    // ✅ Sanitize path params
+    if (req.params) {
+      req.params = sanitizeObject(req.params);
+    }
+
     next();
   };
 };
 
-const sanitizeHTML = (input) => {
-  if (typeof input !== 'string') return input;
+// const sanitizeHTML = (input) => {
+//   if (typeof input !== 'string') return input;
   
-  const sanitizeHtml = require('sanitize-html');
+//   const sanitizeHtml = require('sanitize-html');
   
-  return sanitizeHtml(input, {
-    allowedTags: [], // No HTML allowed
-    allowedAttributes: {},
-    disallowedTagsMode: 'recursiveEscape'
-  });
+//   return sanitizeHtml(input, {
+//     allowedTags: [], // No HTML allowed
+//     allowedAttributes: {},
+//     disallowedTagsMode: 'recursiveEscape'
+//   });
+// };
+
+/**
+ * ✅ STRICT HTML SANITIZATION (for rich text fields)
+ */
+const sanitizeHTML = (allowedTags = []) => {
+  return (req, res, next) => {
+    const sanitizeField = (field) => {
+      if (typeof field !== 'string') return field;
+      
+      return sanitizeHtml(field, {
+        allowedTags: allowedTags.length > 0 ? allowedTags : [],
+        allowedAttributes: {},
+        disallowedTagsMode: 'recursiveEscape',
+        enforceHtmlBoundary: true
+      });
+    };
+
+    if (req.body) {
+      for (const [key, value] of Object.entries(req.body)) {
+        if (typeof value === 'string') {
+          req.body[key] = sanitizeField(value);
+        }
+      }
+    }
+
+    next();
+  };
 };
 
 /**
