@@ -25,7 +25,7 @@ class OrderModel {
     const userLockToken = await lockManager.acquireLock(userLockKey, 30000); // 30 seconds
 
     if (!userLockToken) {
-      throw new Error('You already have an order in progress. Please wait or complete your current order before trying again in a few seconds.');
+      throw new Error('You already have an order in progress. Please complete your current order or wait a few seconds.');
     }
 
     // ✅ 2. SESSION LOCK - Prevent ticket overselling
@@ -427,12 +427,12 @@ class OrderModel {
       throw error;
     } finally {
       client.release();
-      if (sessionLockKey) {
+      if (sessionLockToken) {
         await lockManager.releaseLock(sessionLockKey, sessionLockToken).catch((err) => {
           console.error('Failed to release lock:', err);
         });
       }
-      if (userLockKey) {
+      if (userLockToken) {
         await lockManager.releaseLock(userLockKey, userLockToken).catch((err) => {
           console.error('Failed to release lock:', err);
         });

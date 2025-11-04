@@ -237,15 +237,34 @@ class QueueProcessor {
               WHERE wrc.session_id = $1
             `, [sessionId]);
             
-            let shouldDelete = false;
+            // let shouldDelete = false;
             
-            if (sessionCheck.rows.length === 0) {
-              // Session không tồn tại → delete
-              shouldDelete = true;
-              console.log(`📝 Queue for non-existent session: ${sessionId}`);
+            // if (sessionCheck.rows.length === 0) {
+            //   // Session không tồn tại → delete
+            //   shouldDelete = true;
+            //   console.log(`📝 Queue for non-existent session: ${sessionId}`);
+            // } else {
+            //   const session = sessionCheck.rows[0];
+            //   const now = new Date();
+            //   const endTime = new Date(session.end_time);
+              
+            //   // Delete if:
+            //   // - Waiting room disabled
+            //   // - Session ended > 1 hour ago (grace period)
+            //   if (!session.is_enabled || (endTime < now && (now - endTime) > 3600000)) {
+            //     shouldDelete = true;
+            //     console.log(`📝 Expired session queue: ${sessionId}`);
+            //   }
+            // }
+
+            const session = sessionCheck.rows[0];
+            const now = new Date();
+
+            // ✅ CHECK NULL BEFORE USING
+            if (!session.end_time) {
+              // Event chưa kết thúc, không xóa
+              shouldDelete = false;
             } else {
-              const session = sessionCheck.rows[0];
-              const now = new Date();
               const endTime = new Date(session.end_time);
               
               // Delete if:
