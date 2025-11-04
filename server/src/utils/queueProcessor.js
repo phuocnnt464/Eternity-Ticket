@@ -24,8 +24,22 @@ class QueueProcessor {
       console.log('Initializing queue processor...');
 
       const redisService = require('../services/redisService');
-      await redisService.connect();
-      console.log('Redis connected for queue processing');
+      // await redisService.connect();
+      // console.log('Redis connected for queue processing');
+
+      if (!redisService.isReady()) {
+        console.warn('⚠️ Redis not ready - attempting to connect');
+        try {
+          await redisService.connect();
+          console.log('Redis connected for queue processing');
+        } catch (error) {
+          console.error('❌ Redis connection failed for queue processor');
+          console.warn('⚠️ Queue processor will not start - API will work with degraded features');
+          return; // ✅ Exit gracefully
+        }
+      } else {
+        console.log('✅ Using existing Redis connection for queue processing');
+      }      
 
       this.start();
       this.startCleanupScheduler();
@@ -35,7 +49,7 @@ class QueueProcessor {
 
     } catch (error) {
       console.error('Failed to initialize queue processor:', error);
-      throw error;
+      // throw error;
     }
   }
 

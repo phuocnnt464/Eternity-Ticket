@@ -14,11 +14,16 @@ const startServer = async () => {
     await pool.query('SELECT NOW()');
     console.log('✅ Database connected successfully');
 
-     // Initialize Redis BEFORE starting server
+    // Initialize Redis BEFORE starting server
     const redisService = require('./src/services/redisService');
-    await redisService.connect();
-    console.log('✅ Redis connected successfully');
-
+    try {
+      await redisService.connect();
+      console.log('✅ Redis connected successfully');
+    } catch (redisError) {
+      console.warn('⚠️ Redis connection failed - continuing with degraded mode');
+      console.warn('⚠️ Queue features will be limited');
+      // ✅ DON'T exit - let app run
+    }
     server = app.listen(PORT, () => {
       console.log(`🚀 Eternity Ticket Server is running on port ${PORT}`);
       console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);

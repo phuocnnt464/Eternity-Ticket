@@ -343,8 +343,35 @@ class OrderModel {
 
         // Create individual tickets
         for (let i = 0; i < ticketDetail.quantity; i++) {
-          const ticketCode = `ET${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
+          // ✅ GENERATE UNIQUE TICKET CODE WITH RETRY
+          let ticketCode;
+          let retries = 0;
+          const maxRetries = 5;
           
+          while (retries < maxRetries) {
+            // Include counter to ensure uniqueness within same order
+            ticketCode = `ET${Date.now()}${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
+            
+            // CHECK IF EXISTS
+            const existing = await client.query(
+              'SELECT id FROM tickets WHERE ticket_code = $1',
+              [ticketCode]
+            );
+            
+            if (existing.rows.length === 0) {
+              break; // Unique code found
+            }
+            
+            retries++;
+            if (retries >= maxRetries) {
+              throw new Error('Failed to generate unique ticket code after multiple attempts');
+            }
+            
+            // Wait a bit before retry
+            await new Promise(resolve => setTimeout(resolve, 10));
+          }
+
           // Generate QR code data
           const qrData = JSON.stringify({
             ticket_code: ticketCode,

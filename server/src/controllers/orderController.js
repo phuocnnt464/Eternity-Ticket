@@ -245,14 +245,32 @@ class OrderController {
         };
       }
 
+      let updatedOrder;
       // Update order status based on payment result
-      const updatedOrder = await OrderModel.updateOrderStatus(orderId, {
-        status: paymentResult.success ? 'paid' : 'failed',
-        payment_method,
-        payment_transaction_id: transactionId,
-        payment_data: paymentResult,
-        paid_at: paymentResult.success ? new Date() : null
-      });
+      try {
+        updatedOrder = await OrderModel.updateOrderStatus(orderId, {
+          status: paymentResult.success ? 'paid' : 'failed',
+          payment_method,
+          payment_transaction_id: transactionId,
+          payment_data: paymentResult,
+          paid_at: paymentResult.success ? new Date() : null
+        });
+      } catch (statusUpdateError) {
+        console.error('❌ CRITICAL: Failed to update order status after payment:', statusUpdateError);
+        
+        // ✅ Log to database for manual intervention
+        const pool = require('../config/database');
+        await pool.query(`
+          INSERT INTO payment_failures (order_id, payment_data, error, created_at)
+          VALUES ($1, $2, $3, NOW())
+        `, [orderId, JSON.stringify(paymentResult), statusUpdateError.message]);
+        
+        return res.status(500).json(createResponse(
+          false,
+          'Payment processing error. Our team has been notified. Please contact support.',
+          { transaction_id: transactionId }
+        ));
+      } 
 
       if (paymentResult.success) {
         const response = createResponse(
