@@ -365,12 +365,21 @@ class QueueModel {
   static async getRedisQueueLength(sessionId) {
     try {
       const redis = redisService.getClient();
+
+      // ✅ Check null
+      if (!redis) {
+        console.warn('⚠️ Redis unavailable - returning 0 for queue length');
+        return 0;
+      }
+    
       const queueKey = `queue:${sessionId}`;
       
       return await redis.lLen(queueKey);
 
     } catch (error) {
-      throw new Error(`Failed to get queue length: ${error.message}`);
+      // throw new Error(`Failed to get queue length: ${error.message}`);
+      console.error('Failed to get Redis queue length:', error);
+      return 0; // Graceful fallback
     }
   }
 
@@ -380,6 +389,12 @@ class QueueModel {
   static async getRedisQueuePosition(sessionId, userId) {
     try {
       const redis = redisService.getClient();
+
+      // ✅ Check null
+      if (!redis) {
+        console.warn('⚠️ Redis unavailable - cannot get queue position');
+        return null;
+      }
       const queueKey = `queue:${sessionId}`;
       const queueData = await redis.lRange(queueKey, 0, -1);
 
@@ -393,7 +408,9 @@ class QueueModel {
       return null;
 
     } catch (error) {
-      throw new Error(`Failed to get queue position: ${error.message}`);
+      // throw new Error(`Failed to get queue position: ${error.message}`);
+      console.error('Failed to get Redis queue position:', error);
+      return null;
     }
   }
 
@@ -403,6 +420,13 @@ class QueueModel {
   static async popFromRedisQueue(sessionId, count) {
     try {
       const redis = redisService.getClient();
+
+      // ✅ Check null
+      if (!redis) {
+        console.warn('⚠️ Redis unavailable - cannot pop from queue');
+        return [];
+      }
+
       const queueKey = `queue:${sessionId}`;
       const users = [];
 
@@ -415,7 +439,9 @@ class QueueModel {
       return users;
 
     } catch (error) {
-      throw new Error(`Failed to pop from queue: ${error.message}`);
+      // throw new Error(`Failed to pop from queue: ${error.message}`);
+      console.error('Failed to pop from Redis queue:', error);
+      return [];
     }
   }
 
@@ -425,6 +451,13 @@ class QueueModel {
   static async setActiveUser(sessionId, userId, timeoutMinutes) {
     try {
       const redis = redisService.getClient();
+
+      // ✅ Check null
+      if (!redis) {
+        console.warn('⚠️ Redis unavailable - cannot set active user');
+        return false;
+      }
+
       const activeSetKey = `active_set:${sessionId}`;
       const activeKey = `active:${sessionId}:${userId}`;
       const expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
@@ -437,7 +470,7 @@ class QueueModel {
       // await redis.setEx(activeKey, timeoutMinutes * 60, data);
 
       // Pipeline to atomic operations
-      const pipeline = redis.pipeline();
+      const pipeline = redis.multi();
       pipeline.setEx(activeKey, timeoutMinutes * 60, data);
       pipeline.sAdd(activeSetKey, userId);  // Add to SET
       pipeline.expire(activeSetKey, timeoutMinutes * 60 + 60); // Buffer 1 min
@@ -446,7 +479,9 @@ class QueueModel {
       return true;
 
     } catch (error) {
-      throw new Error(`Failed to set active user: ${error.message}`);
+      // throw new Error(`Failed to set active user: ${error.message}`);
+      console.error('Failed to set active user in Redis:', error);
+      return false;
     }
   }
 
@@ -456,6 +491,12 @@ class QueueModel {
   static async getActiveUser(sessionId, userId) {
     try {
       const redis = redisService.getClient();
+
+      // ✅ Check null
+      if (!redis) {
+        console.warn('⚠️ Redis unavailable - cannot get active user');
+        return null;
+      }
       const activeKey = `active:${sessionId}:${userId}`;
       const data = await redis.get(activeKey);
 
@@ -464,7 +505,9 @@ class QueueModel {
       return JSON.parse(data);
 
     } catch (error) {
-      throw new Error(`Failed to get active user: ${error.message}`);
+      // throw new Error(`Failed to get active user: ${error.message}`);
+      console.error('Failed to get active user in Redis:', error);
+      return null;
     }
   }
 
@@ -474,19 +517,28 @@ class QueueModel {
   static async removeActiveUser(sessionId, userId) {
     try {
       const redis = redisService.getClient();
+
+      // ✅ Check null
+      if (!redis) {
+        console.warn('⚠️ Redis unavailable - cannot remove active user');
+        return false;
+      }
+
       const activeKey = `active:${sessionId}:${userId}`;
       const activeSetKey = `active_set:${sessionId}`;
       
       // await redis.del(activeKey);
       // Atomic remove from both
-      const pipeline = redis.pipeline();
+      const pipeline = redis.multi();
       pipeline.del(activeKey);
       pipeline.sRem(activeSetKey, userId);  // Remove from SET
       await pipeline.exec();
       return true;
 
     } catch (error) {
-      throw new Error(`Failed to remove active user: ${error.message}`);
+      // throw new Error(`Failed to remove active user: ${error.message}`);
+      console.error('Failed to remove active user in Redis:', error);
+      return false;
     }
   }
 

@@ -60,7 +60,7 @@ class AuthController {
       });
 
       console.log(`✅ User created successfully with ID: ${result.user.id}`);
-
+ 
       await emailService.sendVerificationEmail(
         result.user.email, 
         result.verificationToken,
@@ -563,7 +563,14 @@ class AuthController {
       const resetToken = await UserModel.generatePasswordResetToken(user.id);
 
       // TODO: Send reset email
-      // await emailService.sendPasswordResetEmail(user.email, resetToken);
+      try{
+        await emailService.sendPasswordResetEmail(
+          user.email, resetToken,
+          `${user.first_name} ${user.last_name}`
+        );
+      } catch(err) {
+        console.error('Failed to send password reset email:', err);
+      }
 
       console.log(`📧 Password reset requested for: ${email}`);
 
@@ -677,10 +684,22 @@ class AuthController {
 
       // Generate new verification token
       const token = await UserModel.generateEmailVerificationToken(userId);
-
-      // TODO: Send verification email
-      // await emailService.sendVerificationEmail(req.user.email, token);
-
+      
+      try {
+        await emailService.sendVerificationEmail(
+          req.user.email, 
+          token,
+          `${req.user.first_name} ${req.user.last_name}`
+        );
+        console.log(`✅ Verification email resent to: ${req.user.email}`);
+      } catch (error) {
+        console.error('❌ Failed to send verification email:', error);
+        // Return error to user since this is the primary function
+        return res.status(500).json(
+          createResponse(false, 'Failed to send verification email. Please try again.')
+        );
+      }
+      
       console.log(`📧 Verification email resent to: ${req.user.email}`);
 
       res.json(

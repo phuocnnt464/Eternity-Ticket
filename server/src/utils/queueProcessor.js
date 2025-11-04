@@ -134,7 +134,19 @@ class QueueProcessor {
 
       // Get all session IDs có active users
       // const activeSessions = await redis.keys('active_set:*');
-      
+
+      // Check null
+      if (!redis) {
+        console.warn('⚠️ Redis unavailable - skipping Redis cleanup');
+        
+        // Still process queues from DB
+        for (const sessionId of sessionIds) {
+          await QueueController.processQueue(sessionId);
+        }
+        
+        return;
+      }
+
       let cursor = '0';
       let expiredActiveCount = 0;
       const processedSets = new Set();
