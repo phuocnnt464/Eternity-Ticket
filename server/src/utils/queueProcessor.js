@@ -142,7 +142,7 @@ class QueueProcessor {
       console.log('Running cleanup...');
       
       // CLEANUP POSTGRESQL
-      const sessionIds = await QueueModel.cleanupExpiredSessions();
+      const sessionIds = await QueueModel.cleanupExpiredSessions() || [];
 
       // Cleanup Redis active users
       const redis = require('../services/redisService').getClient();
@@ -166,7 +166,7 @@ class QueueProcessor {
       let cursor = '0';
       do {
         // SCAN với pattern 'active_set:*'
-        const [newCursor, keys] = await redis.scan(cursor, {
+        const {cursor: newCursor, keys} = await redis.scan(cursor, {
           MATCH: 'active_set:*',
           COUNT: 10 // Process 10 keys per iteration
         });
@@ -226,7 +226,7 @@ class QueueProcessor {
       const processedQueues = new Set();
       
       do {
-        const [newCursor, keys] = await redis.scan(cursor, {
+        const {cursor: newCursor, keys} = await redis.scan(cursor, {
           MATCH: 'queue:*',
           COUNT: 10
         });
@@ -299,7 +299,7 @@ class QueueProcessor {
       const processedCounters = new Set();
       
       do {
-        const [newCursor, keys] = await redis.scan(cursor, {
+        const {cursor: newCursor, keys} = await redis.scan(cursor, {
           MATCH: 'queue_counter:*',
           COUNT: 10
         });
