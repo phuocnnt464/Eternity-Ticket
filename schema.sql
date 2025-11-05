@@ -1,17 +1,18 @@
 -- =============================================
 -- ETERNITY TICKET DATABASE SCHEMA
 -- PostgreSQL Database for Event Ticketing System
--- Version: 1.0
+-- Version: 1.1 (Consolidated)
 -- =============================================
 
--- Enable required extensions
+-- =============================================
+-- EXTENSIONS
+-- =============================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =============================================
 -- ENUM TYPES
 -- =============================================
-
 CREATE TYPE user_role AS ENUM (
     'participant',
     'organizer',
@@ -138,7 +139,27 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Memberships table
+-- Memberships pricing table (from migration)
+CREATE TABLE membership_pricing (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tier membership_tier NOT NULL UNIQUE,
+    monthly_price DECIMAL(12,2) NOT NULL,
+    quarterly_price DECIMAL(12,2),
+    yearly_price DECIMAL(12,2),
+    features JSONB DEFAULT '[]',
+    description TEXT,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT check_prices_positive CHECK (
+        monthly_price >= 0 AND
+        (quarterly_price IS NULL OR quarterly_price >= 0) AND
+        (yearly_price IS NULL OR yearly_price >= 0)
+    )
+);
+
+-- Memberships table (consolidated)
 CREATE TABLE memberships (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -151,13 +172,57 @@ CREATE TABLE memberships (
     auto_renewal BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
+    
+    -- Added from migration
+    order_id UUID, -- FK constraint added later to avoid circular dependency
+    payment_method payment_method,
+    payment_transaction_id VARCHAR(255),
+    billing_period VARCHAR(20) DEFAULT 'monthly',
+    next_billing_date TIMESTAMP,
+    cancelled_at TIMESTAMP,
+    cancellation_reason TEXT,
+    
     CONSTRAINT check_membership_dates CHECK (end_date IS NULL OR end_date > start_date)
 );
 
--- Ensure one active membership per user
-CREATE UNIQUE INDEX idx_memberships_user_active_unique 
-  ON memberships(user_id) 
-  WHERE is_active = true;
+-- Membership orders table (from migration)
+CREATE TABLE membership_orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id),
+    membership_id UUID REFERENCES memberships(id),
+    
+    tier membership_tier NOT NULL,
+    billing_period VARCHAR(20) NOT NULL,
+    start_date TIMESTAMP NOT NULL,
+    end_date TIMESTAMP NOT NULL,
+    
+    amount DECIMAL(12,2) NOT NULL,
+    discount_amount DECIMAL(12,2) DEFAULT 0,
+    vat_amount DECIMAL(12,2) DEFAULT 0,
+    total_amount DECIMAL(12,2) NOT NULL,
+    
+    status order_status DEFAULT 'pending',
+    payment_method payment_method,
+    payment_transaction_id VARCHAR(255),
+    payment_data JSONB,
+    paid_at TIMESTAMP,
+    
+    is_renewal BOOLEAN DEFAULT FALSE,
+    previous_tier membership_tier,
+    coupon_code VARCHAR(50),
+    
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    
+    CONSTRAINT check_membership_order_amounts CHECK (
+        amount >= 0 AND
+        discount_amount >= 0 AND
+        vat_amount >= 0 AND
+        total_amount >= 0
+    ),
+    CONSTRAINT check_membership_dates CHECK (end_date > start_date)
+);
 
 -- Categories table
 CREATE TABLE categories (
@@ -357,6 +422,17 @@ CREATE TABLE order_items (
     total_price DECIMAL(12,2) NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
     CONSTRAINT check_order_item_quantity_positive CHECK (quantity > 0)
+);
+
+-- Payment failures (from extra script)
+CREATE TABLE payment_failures (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id UUID NOT NULL REFERENCES orders(id),
+    payment_data JSONB,
+    error TEXT,
+    resolved BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    resolved_at TIMESTAMP
 );
 
 -- Tickets table
@@ -614,7 +690,7 @@ CREATE TABLE admin_audit_logs (
 );
 
 -- =============================================
--- SYSTEM SETTINGS
+-- SYSTEM SETTINGS & UPLOADS
 -- =============================================
 
 -- System settings
@@ -643,7 +719,15 @@ CREATE TABLE file_uploads (
 );
 
 -- =============================================
--- INDEXES FOR PERFORMANCE
+-- LATE-BINDING FOREIGN KEYS (For Circular Dependencies)
+-- =============================================
+-- Add FK from memberships to membership_orders after both tables are created
+ALTER TABLE memberships 
+    ADD CONSTRAINT fk_memberships_order 
+    FOREIGN KEY (order_id) REFERENCES membership_orders(id);
+
+-- =============================================
+-- INDEXES FOR PERFORMANCE (Consolidated)
 -- =============================================
 
 -- Users indexes
@@ -651,6 +735,19 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_active ON users(is_active);
 CREATE INDEX idx_users_last_login ON users(last_login_at);
+
+-- Memberships indexes
+CREATE UNIQUE INDEX idx_memberships_user_active_unique 
+    ON memberships(user_id) 
+    WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_memberships_user_active ON memberships(user_id, is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_memberships_end_date ON memberships(end_date) WHERE is_active = true AND end_date IS NOT NULL;
+
+-- Membership orders indexes
+CREATE INDEX IF NOT EXISTS idx_membership_orders_user ON membership_orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_membership_orders_status ON membership_orders(status);
+CREATE INDEX IF NOT EXISTS idx_membership_orders_created ON membership_orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_membership_orders_number ON membership_orders(order_number);
 
 -- Events indexes
 CREATE INDEX idx_events_organizer ON events(organizer_id);
@@ -660,6 +757,7 @@ CREATE INDEX idx_events_privacy_status ON events(privacy_type, status);
 CREATE INDEX idx_events_created_at ON events(created_at DESC);
 CREATE INDEX idx_events_active_public ON events(status, created_at DESC) 
     WHERE status = 'active' AND privacy_type = 'public';
+CREATE INDEX idx_events_title_gin ON events USING gin(to_tsvector('english', title));
 
 -- Event sessions indexes
 CREATE INDEX idx_event_sessions_event ON event_sessions(event_id);
@@ -688,6 +786,10 @@ CREATE INDEX idx_orders_user_status_created ON orders(user_id, status, created_a
 CREATE INDEX idx_orders_pending_reserved ON orders(reserved_until) 
     WHERE status = 'pending' AND reserved_until IS NOT NULL;
 
+-- Payment failures indexes
+CREATE INDEX idx_payment_failures_order_id ON payment_failures(order_id);
+CREATE INDEX idx_payment_failures_unresolved ON payment_failures(resolved) WHERE resolved = FALSE;
+
 -- Tickets indexes
 CREATE INDEX idx_tickets_code ON tickets(ticket_code);
 CREATE INDEX idx_tickets_user ON tickets(user_id);
@@ -698,6 +800,11 @@ CREATE INDEX idx_tickets_status ON tickets(status);
 CREATE INDEX idx_tickets_order_status ON tickets(order_id, status);
 CREATE INDEX idx_tickets_event_status ON tickets(event_id, status);
 CREATE INDEX idx_tickets_event_status_checkin ON tickets(event_id, status, is_checked_in);
+CREATE INDEX idx_tickets_holder_email ON tickets(holder_email) 
+    WHERE holder_email IS NOT NULL;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_order_id ON tickets(order_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_qr_code ON tickets(qr_code_data) WHERE status = 'valid';
+
 
 -- Refund requests indexes
 CREATE INDEX idx_refund_requests_order ON refund_requests(order_id);
@@ -720,6 +827,7 @@ CREATE INDEX idx_notifications_user ON notifications(user_id);
 CREATE INDEX idx_notifications_type ON notifications(type);
 CREATE INDEX idx_notifications_unread ON notifications(user_id, is_read);
 CREATE INDEX idx_notifications_created_at ON notifications(created_at DESC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read) WHERE is_read = false;
 
 -- Activity logs indexes
 CREATE INDEX idx_activity_logs_user ON activity_logs(user_id);
@@ -738,19 +846,8 @@ CREATE INDEX idx_user_sessions_expires ON user_sessions(expires_at);
 CREATE INDEX idx_user_sessions_active ON user_sessions(user_id, is_active) 
     WHERE is_active = true;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_order_id ON tickets(order_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_qr_code ON tickets(qr_code_data) WHERE status = 'valid';
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read) WHERE is_read = false;
-
--- For event search by title
-CREATE INDEX idx_events_title_gin ON events USING gin(to_tsvector('english', title));
-
--- For ticket lookup by holder email
-CREATE INDEX idx_tickets_holder_email ON tickets(holder_email) 
-WHERE holder_email IS NOT NULL;
- 
 -- =============================================
--- TRIGGERS FOR AUTOMATIC UPDATES
+-- STORED FUNCTIONS & TRIGGERS
 -- =============================================
 
 -- Function to update timestamp
@@ -762,45 +859,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Apply triggers
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_memberships_updated_at BEFORE UPDATE ON memberships 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON events 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_event_sessions_updated_at BEFORE UPDATE ON event_sessions 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_ticket_types_updated_at BEFORE UPDATE ON ticket_types 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_tickets_updated_at BEFORE UPDATE ON tickets 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_coupons_updated_at BEFORE UPDATE ON coupons 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_refund_requests_updated_at BEFORE UPDATE ON refund_requests 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_waiting_room_configs_updated_at BEFORE UPDATE ON waiting_room_configs 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_email_templates_updated_at BEFORE UPDATE ON email_templates 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER trigger_refund_tickets AFTER UPDATE ON orders
-    FOR EACH ROW EXECUTE FUNCTION auto_update_tickets_on_refund();
--- =============================================
--- STORED FUNCTIONS
--- =============================================
+-- Function to auto update tickets when order is refunded (moved before trigger)
+CREATE OR REPLACE FUNCTION auto_update_tickets_on_refund()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.status = 'refunded' AND OLD.status != 'refunded' THEN
+        UPDATE tickets 
+        SET status = 'refunded', refunded_at = NOW()
+        WHERE order_id = NEW.id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Check-in ticket function
 CREATE OR REPLACE FUNCTION checkin_ticket(
@@ -943,7 +1013,7 @@ BEGIN
     END IF;
     
     v_order_number := 'ORD-' || to_char(NOW(), 'YYYYMMDD') || '-' || 
-                      upper(substr(md5(random()::text), 1, 8));
+                        upper(substr(md5(random()::text), 1, 8));
     
     UPDATE ticket_types 
     SET sold_quantity = sold_quantity + p_quantity,
@@ -971,18 +1041,45 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Auto update tickets when order is refunded
-CREATE OR REPLACE FUNCTION auto_update_tickets_on_refund()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.status = 'refunded' AND OLD.status != 'refunded' THEN
-        UPDATE tickets 
-        SET status = 'refunded', refunded_at = NOW()
-        WHERE order_id = NEW.id;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- =============================================
+-- TRIGGERS (Consolidated)
+-- =============================================
+
+-- Apply updated_at triggers
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_memberships_updated_at BEFORE UPDATE ON memberships 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON events 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_event_sessions_updated_at BEFORE UPDATE ON event_sessions 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_ticket_types_updated_at BEFORE UPDATE ON ticket_types 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_tickets_updated_at BEFORE UPDATE ON tickets 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_coupons_updated_at BEFORE UPDATE ON coupons 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_refund_requests_updated_at BEFORE UPDATE ON refund_requests 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_waiting_room_configs_updated_at BEFORE UPDATE ON waiting_room_configs 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_email_templates_updated_at BEFORE UPDATE ON email_templates 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    
+-- Triggers from migration
+CREATE TRIGGER update_membership_orders_updated_at 
+    BEFORE UPDATE ON membership_orders 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_membership_pricing_updated_at 
+    BEFORE UPDATE ON membership_pricing 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Apply refund trigger
+CREATE TRIGGER trigger_refund_tickets AFTER UPDATE ON orders
+    FOR EACH ROW EXECUTE FUNCTION auto_update_tickets_on_refund();
 
 -- =============================================
 -- VIEWS FOR COMMON QUERIES
@@ -1109,7 +1206,7 @@ WHERE e.status = 'active'
 GROUP BY e.id;
 
 -- =============================================
--- INITIAL DATA
+-- INITIAL DATA (Consolidated)
 -- =============================================
 
 -- Insert default categories
@@ -1144,10 +1241,22 @@ INSERT INTO system_settings (setting_key, setting_value, description, is_public)
 ('date_format', 'DD/MM/YYYY', 'Default date format', true),
 ('time_format', '24', 'Time format (12 or 24 hour)', true);
 
+-- Insert default membership pricing (from migration)
+INSERT INTO membership_pricing (tier, monthly_price, quarterly_price, yearly_price, features, description, sort_order) 
+VALUES
+('basic', 0, 0, 0, 
+ '["Access to public events", "Standard support", "Email notifications"]'::jsonb,
+ 'Free tier with basic features', 1),
+('advanced', 99000, 270000, 950000,
+ '["5% discount on all tickets", "Priority support", "Early event access (30 min)", "Advanced analytics"]'::jsonb,
+ 'Perfect for regular event-goers', 2),
+('premium', 299000, 810000, 2900000,
+ '["10% discount on all tickets", "24/7 VIP support", "Early event access (60 min)", "Exclusive events access", "Premium analytics", "Custom event recommendations"]'::jsonb,
+ 'Best value for event enthusiasts', 3)
+ON CONFLICT (tier) DO NOTHING;
+
 -- Insert default admin user (password: admin123 - MUST BE CHANGED!)
 -- ⚠️ WARNING: CHANGE DEFAULT ADMIN PASSWORD IMMEDIATELY AFTER FIRST LOGIN!
--- Default credentials: admin@eternityticket.com / admin123
--- Security risk if not changed in production environment
 INSERT INTO users (email, password_hash, role, first_name, last_name, is_email_verified, is_active) 
 VALUES ('admin@eternityticket.com', crypt('admin123', gen_salt('bf')), 'admin', 'System', 'Administrator', true, true);
 
@@ -1169,14 +1278,16 @@ INSERT INTO email_templates (name, subject, html_content) VALUES
 -- =============================================
 -- COMMENTS
 -- =============================================
-
 COMMENT ON TABLE users IS 'User accounts for the system';
 COMMENT ON TABLE memberships IS 'Paid membership tiers for users';
+COMMENT ON TABLE membership_pricing IS 'Pricing definitions for membership tiers';
+COMMENT ON TABLE membership_orders IS 'Transaction logs for membership purchases and renewals';
 COMMENT ON TABLE events IS 'Events created by organizers';
 COMMENT ON TABLE event_sessions IS 'Multiple sessions/dates for an event';
 COMMENT ON TABLE ticket_types IS 'Different ticket categories within a session';
 COMMENT ON TABLE orders IS 'Purchase orders for tickets';
 COMMENT ON TABLE tickets IS 'Individual electronic tickets';
+COMMENT ON TABLE payment_failures IS 'Logs failed payment attempts for investigation';
 COMMENT ON TABLE waiting_queue IS 'Virtual waiting room queue for high-demand events';
 COMMENT ON TABLE refund_requests IS 'Refund requests from users';
 COMMENT ON TABLE coupons IS 'Promotional discount codes';
