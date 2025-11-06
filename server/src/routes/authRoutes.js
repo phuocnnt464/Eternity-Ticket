@@ -128,7 +128,7 @@ router.post('/forgot-password',
  * @route   POST /api/auth/reset-password
  * @desc    Reset password with token
  * @access  Public
- * @body    { token, new_password }
+ * @body    { token, new_password, confirm_password }
  */
 router.post('/reset-password',
   strictAuthLimiter,
@@ -165,7 +165,7 @@ router.post('/logout',
  * @route   POST /api/auth/change-password
  * @desc    Change user password
  * @access  Private
- * @body    { current_password, new_password }
+ * @body    { current_password, new_password, confirm_password }
  * @headers Authorization: Bearer {token}
  */
 router.post('/change-password',

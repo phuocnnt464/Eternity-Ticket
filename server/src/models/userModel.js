@@ -340,7 +340,7 @@ class UserModel {
    */
   static async generatePasswordResetToken(userId) {
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    // const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
     
     const query = `
       UPDATE users 
@@ -351,7 +351,9 @@ class UserModel {
     `;
     
     try {
-      await pool.query(query, [tokenHash, userId]);
+      // await pool.query(query, [tokenHash, userId]);
+      await pool.query(query, [resetToken, userId]);
+
       return resetToken; // Return unhashed token to send via email
     } catch (error) {
       throw new Error(`Error generating password reset token: ${error.message}`);
@@ -371,20 +373,23 @@ class UserModel {
       await client.query('BEGIN');
       
       // Hash the token to compare with database
-      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      // const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
       
       // Find user with valid token
       const findQuery = `
-        SELECT id, email FROM users
+        SELECT id, email, reset_password_token
+        FROM users
         WHERE reset_password_token = $1
         AND reset_password_expires_at > NOW()
         AND is_active = true
       `;
       
-      const userResult = await client.query(findQuery, [tokenHash]);
-      
+      // const userResult = await client.query(findQuery, [tokenHash]);
+      const userResult = await client.query(findQuery, [token]);
+
       if (userResult.rows.length === 0) {
         await client.query('ROLLBACK');
+        console.log('❌ No matching token found in database');
         return null;
       }
       
