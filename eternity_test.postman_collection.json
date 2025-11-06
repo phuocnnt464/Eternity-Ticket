@@ -1,0 +1,1724 @@
+{
+    "info": {
+        "name": "Eternity Ticket API - Complete Collection",
+        "description": "Complete API testing for Eternity Ticket event management system",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_postman_id": "eternity-ticket-v1",
+        "version": "1.0.0"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:3000",
+            "type": "string"
+        },
+        {
+            "key": "api_prefix",
+            "value": "/api",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "0. Health & System",
+            "item": [
+                {
+                    "name": "API Health Check",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                                    "pm.test(\"API healthy\", () => {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json.success).to.eql(true);",
+                                    "    pm.expect(json.data.status).to.eql('healthy');",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}{{api_prefix}}/health",
+                            "host": [ "{{base_url}}" ],
+                            "path": [ "api", "health" ]
+                        }
+                    }
+                },
+                {
+                    "name": "DB Pool Health",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/health/db-pool"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"DB Pool healthy\", () => {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json.data.pool).to.exist;",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Root Endpoint",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "1. Authentication",
+            "item": [
+                {
+                    "name": "Register User (Participant)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                                    "const json = pm.response.json();",
+                                    "if (json.success && json.data) {",
+                                    "    pm.environment.set('user_id', json.data.user.id);",
+                                    "    pm.environment.set('verification_token', json.data.verification_token);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"participant@example.com\",\n  \"password\": \"Test@1234\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"Participant\",\n  \"phone\": \"0123456789\",\n  \"role\": \"participant\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/auth/register"
+                    }
+                },
+                {
+                    "name": "Register Organizer",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Organizer registered\", () => {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json.data.user.role).to.eql('organizer');",
+                                    "    pm.environment.set('organizer_id', json.data.user.id);",
+                                    "    pm.environment.set('organizer_verification_token', json.data.verification_token);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"organizer@example.com\",\n  \"password\": \"Org@1234\",\n  \"first_name\": \"Event\",\n  \"last_name\": \"Organizer\",\n  \"phone\": \"0987654321\",\n  \"role\": \"organizer\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/auth/register"
+                    }
+                },
+                {
+                    "name": "Check Email Exists",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/auth/check-email/participant@example.com"
+                    }
+                },
+                {
+                    "name": "Verify Email",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"{{verification_token}}\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/auth/verify-email"
+                    }
+                },
+                {
+                    "name": "Login Participant",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Login success\", () => {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json.success).to.eql(true);",
+                                    "    pm.environment.set('access_token', json.data.tokens.access_token);",
+                                    "    pm.environment.set('refresh_token', json.data.tokens.refresh_token);",
+                                    "    pm.environment.set('user_id', json.data.user.id);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"participant@example.com\",\n  \"password\": \"Test@1234\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/auth/login"
+                    }
+                },
+                {
+                    "name": "Login Organizer",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "pm.environment.set('organizer_token', json.data.tokens.access_token);",
+                                    "pm.environment.set('organizer_refresh_token', json.data.tokens.refresh_token);"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"organizer@example.com\",\n  \"password\": \"Org@1234\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/auth/login"
+                    }
+                },
+                {
+                    "name": "Get Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/auth/profile"
+                    }
+                },
+                {
+                    "name": "Refresh Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/auth/refresh-token"
+                    }
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"current_password\": \"Test@1234\",\n  \"new_password\": \"NewPass@1234\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/auth/change-password"
+                    }
+                },
+                {
+                    "name": "Forgot Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"participant@example.com\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/auth/forgot-password"
+                    }
+                },
+                {
+                    "name": "Reset Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"reset_token_here\",\n  \"new_password\": \"NewPassword@123\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/auth/reset-password"
+                    }
+                },
+                {
+                    "name": "Resend Verification",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/auth/resend-verification"
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/auth/logout"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. Users",
+            "item": [
+                {
+                    "name": "Get All Users (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{api_prefix}}/users?page=1&limit=20",
+                            "host": [ "{{base_url}}" ],
+                            "path": [ "api", "users" ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get User by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/users/{{user_id}}"
+                    }
+                },
+                {
+                    "name": "Update Profile",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"first_name\": \"Updated\",\n  \"last_name\": \"Name\",\n  \"phone\": \"0999888777\",\n  \"date_of_birth\": \"1990-01-01\",\n  \"gender\": \"male\",\n  \"address\": \"123 Test Street\",\n  \"city\": \"Ho Chi Minh City\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/users/{{user_id}}"
+                    }
+                },
+                {
+                    "name": "Upload Avatar",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "avatar",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/users/{{user_id}}/avatar"
+                    }
+                },
+                {
+                    "name": "Get Ticket History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{api_prefix}}/users/{{user_id}}/tickets?page=1&limit=10",
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Order History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/users/{{user_id}}/orders"
+                    }
+                },
+                {
+                    "name": "Get User Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/users/{{user_id}}/stats"
+                    }
+                },
+                {
+                    "name": "Get Preferences",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/users/{{user_id}}/preferences"
+                    }
+                },
+                {
+                    "name": "Deactivate Account",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/users/{{user_id}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3. Events (Public)",
+            "item": [
+                {
+                    "name": "Get All Events",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Events returned\", () => {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json.data.events).to.be.an('array');",
+                                    "    if (json.data.events.length > 0) {",
+                                    "        pm.environment.set('event_id', json.data.events[0].id);",
+                                    "    }",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}{{api_prefix}}/events?page=1&limit=10&status=approved",
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "approved"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Event by ID",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.data.sessions && json.data.sessions.length > 0) {",
+                                    "    pm.environment.set('session_id', json.data.sessions[0].id);",
+                                    "}",
+                                    "if (json.data.ticket_types && json.data.ticket_types.length > 0) {",
+                                    "    pm.environment.set('ticket_type_id', json.data.ticket_types[0].id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/events/{{event_id}}"
+                    }
+                },
+                {
+                    "name": "Get Categories",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/events/categories"
+                    }
+                },
+                {
+                    "name": "Get Featured Events",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}{{api_prefix}}/events/featured?limit=5",
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "5"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Search Events",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{base_url}}{{api_prefix}}/events/search?query=concert",
+                            "query": [
+                                {
+                                    "key": "query",
+                                    "value": "concert"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Event by Slug",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/events/slug/event-slug-here"
+                    }
+                },
+                {
+                    "name": "Event Health Check",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/events/health"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4. Events (Organizer)",
+            "item": [
+                {
+                    "name": "Create Event",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.success) {",
+                                    "    pm.environment.set('my_event_id', json.data.event.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "title",
+                                    "value": "Test Concert 2025",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "This is a test concert",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "short_description",
+                                    "value": "Amazing concert",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "category_id",
+                                    "value": "category_uuid_here",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "venue_name",
+                                    "value": "National Stadium",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "venue_address",
+                                    "value": "123 Main St",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "venue_city",
+                                    "value": "Ho Chi Minh",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "organizer_name",
+                                    "value": "Test Org",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "organizer_description",
+                                    "value": "Professional organizer",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "organizer_contact_email",
+                                    "value": "contact@test.com",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "organizer_contact_phone",
+                                    "value": "0123456789",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "privacy_type",
+                                    "value": "public",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/events"
+                    }
+                },
+                {
+                    "name": "Get My Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/events/my/events"
+                    }
+                },
+                {
+                    "name": "Debug My Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/events/debug/my-events"
+                    }
+                },
+                {
+                    "name": "Update Event",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Updated Event Title\",\n  \"description\": \"Updated description\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/events/{{my_event_id}}"
+                    }
+                },
+                {
+                    "name": "Submit for Approval",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/events/{{my_event_id}}/submit"
+                    }
+                },
+                {
+                    "name": "Get Event Statistics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/events/{{my_event_id}}/statistics"
+                    }
+                },
+                {
+                    "name": "Delete Event",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/events/{{my_event_id}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "5. Event Sessions & Tickets",
+            "item": [
+                {
+                    "name": "Create Session",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.success) {",
+                                    "    pm.environment.set('my_session_id', json.data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"event_id\": \"{{my_event_id}}\",\n  \"title\": \"Day 1 - Main Show\",\n  \"start_time\": \"2025-12-01T19:00:00Z\",\n  \"end_time\": \"2025-12-01T23:00:00Z\",\n  \"min_tickets_per_order\": 1,\n  \"max_tickets_per_order\": 5\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/event-sessions/{{my_event_id}}/sessions"
+                    }
+                },
+                {
+                    "name": "Get Event Sessions",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/event-sessions/{{my_event_id}}/sessions"
+                    }
+                },
+                {
+                    "name": "Update Session",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Updated Session Title\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/event-sessions/session/{{my_session_id}}"
+                    }
+                },
+                {
+                    "name": "Create Ticket Type",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.success) {",
+                                    "    pm.environment.set('my_ticket_type_id', json.data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"VIP\",\n  \"description\": \"VIP access with premium seating\",\n  \"price\": 500000,\n  \"total_quantity\": 100,\n  \"min_quantity_per_order\": 1,\n  \"max_quantity_per_order\": 4,\n  \"sale_start_time\": \"2025-11-01T00:00:00Z\",\n  \"sale_end_time\": \"2025-11-30T23:59:59Z\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/event-sessions/session/{{my_session_id}}/tickets"
+                    }
+                },
+                {
+                    "name": "Get Session Ticket Types",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/event-sessions/session/{{my_session_id}}/tickets"
+                    }
+                },
+                {
+                    "name": "Update Ticket Type",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"price\": 550000\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/event-sessions/ticket/{{my_ticket_type_id}}"
+                    }
+                },
+                {
+                    "name": "Get Event with All Tickets",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/event-sessions/{{event_id}}/tickets"
+                    }
+                },
+                {
+                    "name": "Delete Ticket Type",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/event-sessions/ticket/{{my_ticket_type_id}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "6. Queue & Waiting Room",
+            "item": [
+                {
+                    "name": "Join Queue",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"session_id\": \"{{session_id}}\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/queue/join"
+                    }
+                },
+                {
+                    "name": "Get Queue Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/queue/status/{{session_id}}"
+                    }
+                },
+                {
+                    "name": "Send Heartbeat",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"session_id\": \"{{session_id}}\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/queue/heartbeat"
+                    }
+                },
+                {
+                    "name": "Leave Queue",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/queue/leave/{{session_id}}"
+                    }
+                },
+                {
+                    "name": "Get Queue Statistics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/queue/statistics/{{session_id}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "7. Orders & Payment",
+            "item": [
+                {
+                    "name": "Create Order",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.success) {",
+                                    "    pm.environment.set('order_id', json.data.order.id);",
+                                    "    pm.environment.set('order_number', json.data.order.order_number);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"event_id\": \"{{event_id}}\",\n  \"session_id\": \"{{session_id}}\",\n  \"tickets\": [\n    {\n      \"ticket_type_id\": \"{{ticket_type_id}}\",\n      \"quantity\": 2\n    }\n  ],\n  \"customer_info\": {\n    \"full_name\": \"Test User\",\n    \"email\": \"participant@example.com\",\n    \"phone\": \"0123456789\"\n  },\n  \"coupon_code\": \"\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/orders"
+                    }
+                },
+                {
+                    "name": "Get My Orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{api_prefix}}/orders?page=1&limit=10",
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Order Detail",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.data.tickets && json.data.tickets.length > 0) {",
+                                    "    pm.environment.set('ticket_code', json.data.tickets[0].ticket_code);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/orders/{{order_id}}"
+                    }
+                },
+                {
+                    "name": "Process Payment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"payment_method\": \"vnpay\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/orders/{{order_id}}/payment"
+                    }
+                },
+                {
+                    "name": "Get Order Tickets",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/orders/{{order_id}}/tickets"
+                    }
+                },
+                {
+                    "name": "Download Tickets PDF",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/orders/{{order_id}}/download-pdf"
+                    }
+                },
+                {
+                    "name": "Cancel Order",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/orders/{{order_id}}/cancel"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "8. Check-in",
+            "item": [
+                {
+                    "name": "Verify Ticket",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{api_prefix}}/checkin/verify/{{ticket_code}}?eventId={{event_id}}",
+                            "query": [
+                                {
+                                    "key": "eventId",
+                                    "value": "{{event_id}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Check-in Ticket",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"event_id\": \"{{event_id}}\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/checkin/{{ticket_code}}"
+                    }
+                },
+                {
+                    "name": "Get Check-in Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/checkin/event/{{event_id}}/stats"
+                    }
+                },
+                {
+                    "name": "Get Recent Check-ins",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/checkin/event/{{event_id}}/recent"
+                    }
+                },
+                {
+                    "name": "Search Tickets",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{api_prefix}}/checkin/event/{{event_id}}/search?query=ticket_code",
+                            "query": [
+                                {
+                                    "key": "query",
+                                    "value": "ticket_code"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Undo Check-in",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{organizer_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/checkin/{{ticket_code}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "9. Membership",
+            "item": [
+                {
+                    "name": "Get Pricing",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/membership/pricing"
+                    }
+                },
+                {
+                    "name": "Get Current Membership",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/membership/current"
+                    }
+                },
+                {
+                    "name": "Create Membership Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"tier\": \"premium\",\n  \"billing_period\": \"monthly\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/membership/orders"
+                    }
+                },
+                {
+                    "name": "Get Order Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/membership/orders/{{order_number}}"
+                    }
+                },
+                {
+                    "name": "Get Membership History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/membership/history"
+                    }
+                },
+                {
+                    "name": "Cancel Membership",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/membership/cancel"
+                    }
+                },
+                {
+                    "name": "VNPay Return URL",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/membership/payment/vnpay-return"
+                    }
+                },
+                {
+                    "name": "VNPay IPN",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}{{api_prefix}}/membership/payment/vnpay-ipn"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "10. Notifications",
+            "item": [
+                {
+                    "name": "Get Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{api_prefix}}/notifications?page=1&limit=20&unread_only=false",
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "unread_only",
+                                    "value": "false"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Unread Count",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/notifications/unread-count"
+                    }
+                },
+                {
+                    "name": "Mark as Read",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/notifications/{{notification_id}}/read"
+                    }
+                },
+                {
+                    "name": "Mark All as Read",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/notifications/read-all"
+                    }
+                },
+                {
+                    "name": "Delete Notification",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/notifications/{{notification_id}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "11. Admin",
+            "item": [
+                {
+                    "name": "Get Dashboard Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/admin/dashboard/stats"
+                    }
+                },
+                {
+                    "name": "Search Users",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{api_prefix}}/admin/users/search?query=test",
+                            "query": [
+                                {
+                                    "key": "query",
+                                    "value": "test"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get All Users",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/admin/users"
+                    }
+                },
+                {
+                    "name": "Update User Role",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"role\": \"organizer\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/admin/users/{{user_id}}/role"
+                    }
+                },
+                {
+                    "name": "Reactivate Account",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/admin/users/{{user_id}}/reactivate"
+                    }
+                },
+                {
+                    "name": "Get Pending Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/admin/events/pending"
+                    }
+                },
+                {
+                    "name": "Approve Event",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/admin/events/{{event_id}}/approve"
+                    }
+                },
+                {
+                    "name": "Reject Event",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"reason\": \"Content violates policy\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/admin/events/{{event_id}}/reject"
+                    }
+                },
+                {
+                    "name": "Get All Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/admin/events"
+                    }
+                },
+                {
+                    "name": "Get All Orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/admin/orders"
+                    }
+                },
+                {
+                    "name": "Get Order Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/admin/orders/{{order_id}}"
+                    }
+                },
+                {
+                    "name": "Get Pending Refunds",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/admin/refunds/pending"
+                    }
+                },
+                {
+                    "name": "Approve Refund",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/admin/refunds/{{refund_id}}/approve"
+                    }
+                },
+                {
+                    "name": "Reject Refund",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"reason\": \"Does not meet refund criteria\"\n}"
+                        },
+                        "url": "{{base_url}}{{api_prefix}}/admin/refunds/{{refund_id}}/reject"
+                    }
+                },
+                {
+                    "name": "Get Activity Logs",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}{{api_prefix}}/admin/activity-logs"
+                    }
+                }
+            ]
+        }
+    ]
+}
