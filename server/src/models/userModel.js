@@ -58,7 +58,7 @@ class UserModel {
         const membershipQuery = `
           INSERT INTO memberships (user_id, tier, is_active)
           VALUES ($1, 'basic', true)
-          ON CONFLICT (user_id) DO NOTHING
+          ON CONFLICT (user_id) WHERE is_active = true DO NOTHING
         `;
         await client.query(membershipQuery, [userResult.rows[0].id]);
       }
