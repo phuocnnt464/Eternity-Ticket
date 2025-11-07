@@ -126,7 +126,7 @@ class EmailService {
     
     const variables = {
       user_name: userName,
-      verification_url: verificationUrl,
+      verification_link: verificationUrl,
       current_year: new Date().getFullYear()
     };
 
@@ -160,7 +160,7 @@ class EmailService {
     
     const variables = {
       user_name: userName,
-      reset_url: resetUrl,
+      reset_link: resetUrl,
       current_year: new Date().getFullYear()
     };
 

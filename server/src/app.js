@@ -129,9 +129,16 @@ const authLimiter = rateLimit({
   }
 });
 
-app.use('/api/', apiLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+
+app.use('/api/', (req, res, next) => {
+  if (req.path.startsWith('/auth/')) {
+    return next();
+  }
+  apiLimiter(req, res, next);
+});
 
 // =============================================
 // STATIC FILES
