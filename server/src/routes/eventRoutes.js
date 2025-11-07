@@ -231,7 +231,20 @@ router.put('/:id',
   EventController.updateEvent
 );
 
-
+/**
+ * @route   POST /api/events/:id/submit
+ * @desc    Submit event for admin approval
+ * @access  Private (Event Owner)
+ */
+router.post('/:id/submit',
+  authenticateToken,
+  authorizeRoles('organizer'),
+  validateUUIDParam('id'),
+  authorizeEventOrganizer('id'),
+  requireEventRole('owner'),
+  logActivity('SUBMIT_EVENT_FOR_APPROVAL', 'EVENT'),
+  EventController.submitEventForApproval
+);
 
 /**
  * @route   DELETE /api/events/:id
