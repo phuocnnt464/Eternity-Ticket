@@ -33,7 +33,7 @@ const sessionTicketLimiter = rateLimit({
 // ===============================
 
 /**
- * @route   POST /api/sessions/:eventId/sessions
+ * @route   POST /api/event-sessions/:eventId/sessions
  * @desc    Create new session for event
  * @access  Private (Event Owner/Manager)
  */
@@ -47,7 +47,7 @@ router.post('/:eventId/sessions',
 );
 
 /**
- * @route   GET /api/sessions/:eventId/sessions
+ * @route   GET /api/event-sessions/:eventId/sessions
  * @desc    Get all sessions for event
  * @access  Public
  */
@@ -57,7 +57,7 @@ router.get('/:eventId/sessions',
 );
 
 /**
- * @route   PUT /api/sessions/session/:sessionId
+ * @route   PUT /api/event-sessions/session/:sessionId
  * @desc    Update session
  * @access  Private (Event Owner/Manager)
  */
@@ -71,7 +71,7 @@ router.put('/session/:sessionId',
 );
 
 /**
- * @route   DELETE /api/sessions/session/:sessionId
+ * @route   DELETE /api/event-sessions/session/:sessionId
  * @desc    Delete session (soft delete)
  * @access  Private (Event Owner/Manager)
  */
@@ -87,7 +87,7 @@ router.delete('/session/:sessionId',
 // ===============================
 
 /**
- * @route   POST /api/sessions/session/:sessionId/tickets
+ * @route   POST /api/event-sessions/session/:sessionId/tickets
  * @desc    Create ticket type for session
  * @access  Private (Event Owner/Manager)
  */
@@ -101,7 +101,7 @@ router.post('/session/:sessionId/tickets',
 );
 
 /**
- * @route   GET /api/sessions/session/:sessionId/tickets
+ * @route   GET /api/event-sessions/session/:sessionId/tickets
  * @desc    Get ticket types for session
  * @access  Public
  */
@@ -111,7 +111,7 @@ router.get('/session/:sessionId/tickets',
 );
 
 /**
- * @route   PUT /api/sessions/ticket/:ticketTypeId
+ * @route   PUT /api/event-sessions/ticket/:ticketTypeId
  * @desc    Update ticket type
  * @access  Private (Event Owner/Manager)
  */
@@ -125,7 +125,7 @@ router.put('/ticket/:ticketTypeId',
 );
 
 /**
- * @route   DELETE /api/sessions/ticket/:ticketTypeId
+ * @route   DELETE /api/event-sessions/ticket/:ticketTypeId
  * @desc    Delete ticket type (soft delete)
  * @access  Private (Event Owner/Manager)
  */
@@ -141,7 +141,7 @@ router.delete('/ticket/:ticketTypeId',
 // ===============================
 
 /**
- * @route   GET /api/sessions/:eventId/tickets
+ * @route   GET /api/event-sessions/:eventId/tickets
  * @desc    Get event with all sessions and ticket types (for purchase page)
  * @access  Public (with optional auth for private events)
  */
