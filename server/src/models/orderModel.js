@@ -415,7 +415,7 @@ class OrderModel {
       // SET PURCHASE COOLDOWN
       await client.query(`
         UPDATE users 
-        SET purchase_cooldown_until = NOW() + INTERVAL ($1 * '1 seconds'),
+        SET purchase_cooldown_until = NOW() + ($1 * INTERVAL '1 seconds'),
             last_purchase_at = NOW(),
             updated_at = NOW()
         WHERE id = $2

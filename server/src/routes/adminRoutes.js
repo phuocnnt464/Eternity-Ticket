@@ -119,8 +119,8 @@ router.get('/events/pending',
  * @desc    Approve event
  * @access  Private (Admin only)
  */
-router.post('/events/:eventId/approve',
-  validateUUIDParam('eventId'),
+router.post('/events/:id/approve',
+  validateUUIDParam('id'),
   logAdminAudit('APPROVE_EVENT', 'EVENT'),
   EventController.approveEvent
 );
@@ -139,8 +139,8 @@ router.get('/events',
  * @desc    Reject event with reason
  * @access  Private (Admin only)
  */
-router.post('/events/:eventId/reject',
-  validateUUIDParam('eventId'),
+router.post('/events/:id/reject',
+  validateUUIDParam('id'),
   validate(rejectEventSchema),
   logAdminAudit('REJECT_EVENT', 'EVENT'),
   EventController.rejectEvent

@@ -60,6 +60,45 @@ const eventUpdateLimiter = rateLimit({
 // Public routes (no authentication required)
 
 /**
+ * @route   GET /api/events/health
+ * @desc    Event routes health check
+ * @access  Public
+ */
+router.get('/health', (req, res) => {
+  const { createResponse } = require('../utils/helpers');
+  res.json(createResponse(
+    true,
+    'Event routes are working',
+    {
+      timestamp: new Date().toISOString(),
+      endpoints: {
+        public: [
+          'GET /api/events',
+          'GET /api/events/categories',
+          'GET /api/events/featured',
+          'GET /api/events/search',
+          'GET /api/events/slug/:slug',
+          'GET /api/events/:id'
+        ],
+        organizer: [
+          'POST /api/events',
+          'GET /api/events/my/all-events',
+          'PUT /api/events/:id',
+          'POST /api/events/:id/submit',
+          'GET /api/events/:id/statistics',
+          'DELETE /api/events/:id'
+        ],
+        admin: [
+          'GET /api/events/admin/pending',
+          'POST /api/events/:id/approve',
+          'POST /api/events/:id/reject'
+        ]
+      }
+    }
+  ));
+});
+
+/**
  * @route   GET /api/events/categories
  * @desc    Get all event categories
  * @access  Public
@@ -320,44 +359,5 @@ router.patch('/:eventId/members/:memberId',
 router.get('/image-requirements',
   EventController.getImageRequirements
 );
-
-/**
- * @route   GET /api/events/health
- * @desc    Event routes health check
- * @access  Public
- */
-router.get('/health', (req, res) => {
-  const { createResponse } = require('../utils/helpers');
-  res.json(createResponse(
-    true,
-    'Event routes are working',
-    {
-      timestamp: new Date().toISOString(),
-      endpoints: {
-        public: [
-          'GET /api/events',
-          'GET /api/events/categories',
-          'GET /api/events/featured',
-          'GET /api/events/search',
-          'GET /api/events/slug/:slug',
-          'GET /api/events/:id'
-        ],
-        organizer: [
-          'POST /api/events',
-          'GET /api/events/my/all-events',
-          'PUT /api/events/:id',
-          'POST /api/events/:id/submit',
-          'GET /api/events/:id/statistics',
-          'DELETE /api/events/:id'
-        ],
-        admin: [
-          'GET /api/events/admin/pending',
-          'POST /api/events/:id/approve',
-          'POST /api/events/:id/reject'
-        ]
-      }
-    }
-  ));
-});
 
 module.exports = router;

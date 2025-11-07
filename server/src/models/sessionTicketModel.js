@@ -378,7 +378,7 @@ class SessionTicketModel {
         LEFT JOIN event_organizer_members eom ON e.id = eom.event_id
         WHERE tt.id = $1 
         AND (e.organizer_id = $2 OR (eom.user_id = $2 AND eom.role IN ('owner', 'manager')))
-        FOR UPDATE
+        FOR UPDATE OF tt
       `;
       
       const currentResult = await client.query(currentQuery, [ticketTypeId, userId]);

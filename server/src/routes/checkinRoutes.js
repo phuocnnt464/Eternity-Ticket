@@ -29,10 +29,10 @@ const checkinLimiter = rateLimit({
 const extractEventIdFromTicket = async (req, res, next) => {
   try {
     // Nếu đã có eventId trong params hoặc query, skip
-    if (req.params.eventId || req.query.eventId || req.body.eventId) {
+    if (req.params.eventId || (req.query && req.query.eventId) || (req.body && req.body.eventId)) {
       // Đưa eventId vào params để authorizeEventOrganizer dùng
       if (!req.params.eventId) {
-        req.params.eventId = req.query.eventId || req.body.eventId;
+        req.params.eventId = (req.query && req.query.eventId) || (req.body && req.body.eventId);
       }
       return next();
     }

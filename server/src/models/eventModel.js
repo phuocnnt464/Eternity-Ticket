@@ -256,7 +256,7 @@ class EventModel {
         LEFT JOIN users u ON e.organizer_id = u.id
         ${whereClause}
         ORDER BY e.created_at DESC
-        LIMIT ${paramCount} OFFSET ${paramCount + 1}
+        LIMIT $${paramCount} OFFSET $${paramCount + 1}
       `;
 
       // Count query

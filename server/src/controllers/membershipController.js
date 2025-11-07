@@ -105,6 +105,7 @@ class MembershipController {
         orderType: 'membership',
         ipAddr,
         returnUrl: return_url || `${process.env.FRONTEND_URL}/membership/payment/result`
+        // returnUrl: return_url || process.env.VNPAY_RETURN_URL
       });
 
       res.json({
@@ -327,7 +328,7 @@ class MembershipController {
   static async cancelMembership(req, res, next) {
     try {
       const userId = req.user.id;
-      const { reason } = req.body;
+      const { reason } = req.body || {};
 
       const success = await MembershipModel.cancelMembership(userId, reason);
 

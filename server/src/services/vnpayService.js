@@ -6,10 +6,10 @@ const querystring = require('querystring');
 
 class VNPayService {
   constructor() {
-    this.vnp_TmnCode = process.env.VNP_TMN_CODE;
-    this.vnp_HashSecret = process.env.VNP_HASH_SECRET;
-    this.vnp_Url = process.env.VNP_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
-    this.vnp_ReturnUrl = process.env.VNP_RETURN_URL;
+    this.vnp_TmnCode = process.env.VNPAY_TMN_CODE;
+    this.vnp_HashSecret = process.env.VNPAY_HASH_SECRET;
+    this.vnp_Url = process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
+    this.vnp_ReturnUrl = process.env.VNPAY_RETURN_URL;
   }
 
   /**

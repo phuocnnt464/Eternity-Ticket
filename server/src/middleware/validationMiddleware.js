@@ -52,9 +52,9 @@ const validate = (schema, source = 'body') => {
           // nếu không parse được thì giữ nguyên string
           // parsed[key] = dataToValidate[key];
 
-          if (error.message &&  (error.message.includes('JSON') || error.message.includes('payload'))) {
-            throw error; // Re-throw validation errors
-          }
+          // if (error.message &&  (error.message.includes('JSON') || error.message.includes('payload'))) {
+          //   throw error; // Re-throw validation errors
+          // }
           parsedData[key] = dataToValidate[key];
         }
       }

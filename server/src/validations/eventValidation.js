@@ -151,10 +151,10 @@ const updateEventSchema = Joi.object({
     }),
 
   description: Joi.string()
-    .min(20)
+    .min(10)
     .max(5000)
     .messages({
-      'string.min': 'Event description must be at least 20 characters',
+      'string.min': 'Event description must be at least 10 characters',
       'string.max': 'Event description cannot exceed 5000 characters'
     }),
 
