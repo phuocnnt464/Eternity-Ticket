@@ -226,7 +226,7 @@ app.use(`${API_PREFIX}/auth`, require('./routes/authRoutes'));
 app.use(`${API_PREFIX}/users`, require('./routes/userRoutes'));
 app.use(`${API_PREFIX}/admin`, require('./routes/adminRoutes'));
 app.use(`${API_PREFIX}/events`, require('./routes/eventRoutes'));
-app.use(`${API_PREFIX}/sessions`, require('./routes/sessionTicketRoutes'));
+app.use(`${API_PREFIX}/event-sessions`, require('./routes/sessionTicketRoutes'));
 app.use(`${API_PREFIX}/orders`, require('./routes/orderRoutes'));
 app.use(`${API_PREFIX}/checkin`, require('./routes/checkinRoutes'));
 app.use(`${API_PREFIX}/queue`, require('./routes/queueRoutes'));

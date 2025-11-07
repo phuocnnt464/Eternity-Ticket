@@ -100,11 +100,11 @@ router.get('/debug/my-events',
 );
 
 /**
- * @route   GET /api/events/my/events
+ * @route   GET /api/events/my/all-events
  * @desc    Get events created by current user
  * @access  Private (Organizer)
  */
-router.get('/my/events',
+router.get('/my/all-events',
   authenticateToken,
   authorizeRoles('organizer'),
   validate(eventQuerySchema, 'query'),
@@ -344,7 +344,7 @@ router.get('/health', (req, res) => {
         ],
         organizer: [
           'POST /api/events',
-          'GET /api/events/my/events',
+          'GET /api/events/my/all-events',
           'PUT /api/events/:id',
           'POST /api/events/:id/submit',
           'GET /api/events/:id/statistics',
