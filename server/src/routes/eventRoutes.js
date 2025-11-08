@@ -360,4 +360,14 @@ router.get('/image-requirements',
   EventController.getImageRequirements
 );
 
+/**
+ * @route   POST /api/events/invitations/:token/accept
+ * @desc    Accept event team invitation
+ * @access  Private
+ */
+router.post('/invitations/:token/accept',
+  authenticateToken,
+  EventController.acceptInvitation
+);
+
 module.exports = router;

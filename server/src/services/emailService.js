@@ -85,9 +85,9 @@ class EmailService {
   async sendEmail(options) {
     if (!this.isConfigured || !this.transporter) {
       console.warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.warn('⚠️  Email service not configured');
-      console.warn('📧 Skipping email to:', options.to);
-      console.warn('📝 Subject:', options.subject);
+      console.warn('Email service not configured');
+      console.warn('Skipping email to:', options.to);
+      console.warn('Subject:', options.subject);
       console.warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       return false;
     }
@@ -97,6 +97,8 @@ class EmailService {
 
       const mailOptions = {
         from: `"${process.env.EMAIL_FROM_NAME || 'Eternity Ticket'}" <${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER}>`,
+         // Reply-To để user reply đến email khác
+        replyTo: process.env.SUPPORT_EMAIL || process.env.EMAIL_USER,
         to,
         subject,
         html,
@@ -106,6 +108,8 @@ class EmailService {
 
       const info = await this.transporter.sendMail(mailOptions);
       console.log(`✅ Email sent: ${info.messageId} to ${to}`);
+      console.log(`   From: ${mailOptions.from}`);
+      console.log(`   Reply-To: ${mailOptions.replyTo}`);
       return true;
     } catch (error) {
       console.error('Send email error:', error);
@@ -133,10 +137,59 @@ class EmailService {
     const html = template 
       ? this.replaceVariables(template.html_content, variables)
       : `
-        <h1>Verify Your Email</h1>
-        <p>Hello ${userName},</p>
-        <p>Please click the link below to verify your email:</p>
-        <a href="${verificationUrl}">${verificationUrl}</a>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #4F46E5; color: white; padding: 20px; text-align: center; }
+            .content { background: #ffffff; padding: 30px; }
+            .button { 
+              display: inline-block; 
+              background: #4F46E5; 
+              color: white !important; 
+              padding: 14px 28px; 
+              text-decoration: none; 
+              border-radius: 6px; 
+              margin: 20px 0;
+              font-weight: bold;
+            }
+            .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Verify Your Email</h1>
+            </div>
+            <div class="content">
+              <p>Hello <strong>${userName}</strong>,</p>
+              <p>Thank you for registering with Eternity Ticket! Please verify your email address by clicking the button below:</p>
+              
+              <div style="text-align: center;">
+                <a href="${verificationUrl}" class="button">
+                  Verify Email Address
+                </a>
+              </div>
+              
+              <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                If the button doesn't work, copy and paste this link into your browser:<br>
+                <a href="${verificationUrl}" style="color: #4F46E5; word-break: break-all;">${verificationUrl}</a>
+              </p>
+              
+              <p style="color: #999; font-size: 12px; margin-top: 30px;">
+                This link will expire in 24 hours. If you didn't request this, please ignore this email.
+              </p>
+            </div>
+            <div class="footer">
+              <p>&copy; ${new Date().getFullYear()} Eternity Ticket. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
       `;
 
     return await this.sendEmail({
@@ -167,11 +220,59 @@ class EmailService {
     const html = template 
       ? this.replaceVariables(template.html_content, variables)
       : `
-        <h1>Reset Your Password</h1>
-        <p>Hello ${userName},</p>
-        <p>Click the link below to reset your password:</p>
-        <a href="${resetUrl}">${resetUrl}</a>
-        <p>This link will expire in 1 hour.</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #DC2626; color: white; padding: 20px; text-align: center; }
+            .content { background: #ffffff; padding: 30px; }
+            .button { 
+              display: inline-block; 
+              background: #DC2626; 
+              color: white !important; 
+              padding: 14px 28px; 
+              text-decoration: none; 
+              border-radius: 6px; 
+              margin: 20px 0;
+              font-weight: bold;
+            }
+            .warning { background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Reset Your Password</h1>
+            </div>
+            <div class="content">
+              <p>Hello <strong>${userName}</strong>,</p>
+              <p>We received a request to reset your password. Click the button below to set a new password:</p>
+              
+              <div style="text-align: center;">
+                <a href="${resetUrl}" class="button">
+                  Reset Password
+                </a>
+              </div>
+              
+              <div class="warning">
+                <strong>⚠️ Important:</strong> This link will expire in 1 hour.
+              </div>
+              
+              <p style="color: #666; font-size: 14px;">
+                If the button doesn't work, copy and paste this link:<br>
+                <a href="${resetUrl}" style="color: #DC2626; word-break: break-all;">${resetUrl}</a>
+              </p>
+              
+              <p style="color: #999; font-size: 12px; margin-top: 30px;">
+                If you didn't request this password reset, please ignore this email or contact support if you're concerned.
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
       `;
 
     return await this.sendEmail({
@@ -242,13 +343,59 @@ class EmailService {
    */
   async sendEventApproved(eventData) {
     const { organizer_email, organizer_name, event_title, event_id } = eventData;
+
+    const dashboardUrl = `${process.env.FRONTEND_URL}/events/${event_id}/dashboard`;
     
     const html = `
-      <h1>Your Event Has Been Approved!</h1>
-      <p>Hello ${organizer_name},</p>
-      <p>Congratulations! Your event "<strong>${event_title}</strong>" has been approved.</p>
-      <p>You can now manage your event and start selling tickets.</p>
-      <p><a href="${process.env.FRONTEND_URL}/events/${event_id}/dashboard">View Event Dashboard</a></p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #10B981; color: white; padding: 20px; text-align: center; }
+          .content { background: #ffffff; padding: 30px; }
+          .button { 
+            display: inline-block; 
+            background: #10B981; 
+            color: white !important; 
+            padding: 14px 28px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            margin: 20px 0;
+            font-weight: bold;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎉 Event Approved!</h1>
+          </div>
+          <div class="content">
+            <p>Hello <strong>${organizer_name}</strong>,</p>
+            <p>Great news! Your event "<strong>${event_title}</strong>" has been approved and is now live!</p>
+            
+            <p>You can now:</p>
+            <ul>
+              <li>Manage event sessions and tickets</li>
+              <li>View real-time statistics</li>
+              <li>Start selling tickets immediately</li>
+            </ul>
+            
+            <div style="text-align: center;">
+              <a href="${dashboardUrl}" class="button">
+                Go to Event Dashboard
+              </a>
+            </div>
+            
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">
+              Dashboard link: <a href="${dashboardUrl}" style="color: #10B981;">${dashboardUrl}</a>
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
     `;
 
     return await this.sendEmail({
@@ -408,6 +555,78 @@ class EmailService {
     await this.sendEmail({
       to: user.email,
       subject,
+      html
+    });
+  }
+  
+  /**
+   * Send event team invitation
+   */
+  async sendEventInvitation(data) {
+    const { email, event_title, inviter_name, role, invitation_token } = data;
+    
+    const invitationUrl = `${process.env.FRONTEND_URL}/invitations/${invitation_token}`;
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #8B5CF6; color: white; padding: 20px; text-align: center; }
+          .content { background: #ffffff; padding: 30px; }
+          .button { 
+            display: inline-block; 
+            background: #8B5CF6; 
+            color: white !important; 
+            padding: 14px 28px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            margin: 20px 0;
+            font-weight: bold;
+          }
+          .info-box { background: #F3F4F6; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎫 Event Team Invitation</h1>
+          </div>
+          <div class="content">
+            <p>Hello,</p>
+            <p><strong>${inviter_name}</strong> has invited you to join the team for the event:</p>
+            
+            <div class="info-box">
+              <strong>Event:</strong> ${event_title}<br>
+              <strong>Role:</strong> ${role.replace('_', ' ').toUpperCase()}
+            </div>
+            
+            <p>To accept this invitation, you'll need to register/login and click the link below:</p>
+            
+            <div style="text-align: center;">
+              <a href="${invitationUrl}" class="button">
+                Accept Invitation
+              </a>
+            </div>
+            
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">
+              Invitation link: <a href="${invitationUrl}" style="color: #8B5CF6;">${invitationUrl}</a>
+            </p>
+            
+            <p style="color: #999; font-size: 12px; margin-top: 30px;">
+              This invitation will expire in 7 days.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return await this.sendEmail({
+      to: email,
+      subject: `Invitation to join ${event_title} - Eternity Ticket`,
       html
     });
   }

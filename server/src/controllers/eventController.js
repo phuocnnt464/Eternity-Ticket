@@ -837,43 +837,176 @@ class EventController {
       const { email, role } = req.body;
       const invitedBy = req.user.id;
 
+      console.log(`👥 Adding/inviting member to event ${eventId}: ${email}`);
+
       // Find user by email
       const user = await UserModel.findByEmail(email);
-      if (!user) {
+      // if (!user) {
+      //   return res.status(404).json(
+      //     createResponse(false, 'User not found with this email')
+      //   );
+      // }
+
+      if (user) {
+        // USER EXISTS - Add directly
+        console.log(`👤 User found: ID ${user.id}, Email: ${user.email}`);
+        // Check if already member
+        const existingQuery = await pool.query(
+          'SELECT id FROM event_organizer_members WHERE event_id = $1 AND user_id = $2',
+          [eventId, user.id]
+        );
+
+        if (existingQuery.rows.length > 0) {
+          return res.status(409).json(
+            createResponse(false, 'User is already a team member')
+          );
+        }
+
+        // Add member
+        const result = await pool.query(`
+          INSERT INTO event_organizer_members 
+          (event_id, user_id, role, invited_by, accepted_at, is_active)
+          VALUES ($1, $2, $3, $4, NOW(), true)
+          RETURNING *
+        `, [eventId, user.id, role, invitedBy]);
+
+        res.json(createResponse(
+          true,
+          'Team member added successfully',
+          { 
+            member: result.rows[0],
+            type: 'direct_add'
+          }
+        ));
+      } else {
+        // USER NOT EXISTS - Send invitation
+        console.log(`📧 User not found, sending invitation email`);
+        
+        // Check if already invited
+        const existingInvite = await pool.query(
+          'SELECT id, status FROM event_invitations WHERE event_id = $1 AND email = $2',
+          [eventId, email]
+        );
+
+        if (existingInvite.rows.length > 0) {
+          const invite = existingInvite.rows[0];
+          if (invite.status === 'pending') {
+            return res.status(409).json(
+              createResponse(false, 'An invitation has already been sent to this email')
+            );
+          } else if (invite.status === 'accepted') {
+            return res.status(409).json(
+              createResponse(false, 'User has already accepted an invitation')
+            );
+          }
+        }
+
+        // Generate invitation token
+        const crypto = require('crypto');
+        const invitationToken = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        // Create invitation
+        const invitation = await pool.query(`
+          INSERT INTO event_invitations 
+          (event_id, email, role, invited_by, invitation_token, expires_at)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING *
+        `, [eventId, email, role, invitedBy, invitationToken, expiresAt]);
+
+        // Get event details for email
+        const eventResult = await pool.query(
+          'SELECT title, slug FROM events WHERE id = $1',
+          [eventId]
+        );
+        const event = eventResult.rows[0];
+
+        // Send invitation email
+        const emailService = require('../services/emailService');
+        await emailService.sendEventInvitation({
+          email,
+          event_title: event.title,
+          inviter_name: `${req.user.first_name} ${req.user.last_name}`,
+          role,
+          invitation_token: invitationToken
+        });
+
+        return res.json(createResponse(
+          true,
+          'Invitation sent successfully. User will be added when they accept.',
+          { 
+            invitation: invitation.rows[0],
+            type: 'invitation_sent'
+          }
+        ));
+      }
+    } catch (error) {
+      console.error('Add/invite member error:', error);
+      res.status(500).json(createResponse(false, 'Failed to add team member'));
+    }
+  }
+
+  /**
+   * Accept event invitation
+   * POST /api/events/invitations/:token/accept
+   */
+  static async acceptInvitation(req, res) {
+    try {
+      const { token } = req.params;
+      const userId = req.user.id;
+
+      // Find invitation
+      const inviteResult = await pool.query(`
+        SELECT i.*, e.title as event_title
+        FROM event_invitations i
+        JOIN events e ON i.event_id = e.id
+        WHERE i.invitation_token = $1 
+        AND i.status = 'pending'
+        AND i.expires_at > NOW()
+      `, [token]);
+
+      if (inviteResult.rows.length === 0) {
         return res.status(404).json(
-          createResponse(false, 'User not found with this email')
+          createResponse(false, 'Invitation not found or expired')
         );
       }
 
-      // Check if already member
-      const existingQuery = await pool.query(
-        'SELECT id FROM event_organizer_members WHERE event_id = $1 AND user_id = $2',
-        [eventId, user.id]
-      );
+      const invitation = inviteResult.rows[0];
 
-      if (existingQuery.rows.length > 0) {
-        return res.status(409).json(
-          createResponse(false, 'User is already a team member')
+      // Check email matches
+      if (invitation.email !== req.user.email) {
+        return res.status(403).json(
+          createResponse(false, 'This invitation is for a different email address')
         );
       }
 
-      // Add member
-      const result = await pool.query(`
+      // Add as member
+      const memberResult = await pool.query(`
         INSERT INTO event_organizer_members 
         (event_id, user_id, role, invited_by, accepted_at, is_active)
         VALUES ($1, $2, $3, $4, NOW(), true)
         RETURNING *
-      `, [eventId, user.id, role, invitedBy]);
+      `, [invitation.event_id, userId, invitation.role, invitation.invited_by]);
+
+      // Update invitation status
+      await pool.query(`
+        UPDATE event_invitations 
+        SET status = 'accepted', accepted_at = NOW()
+        WHERE id = $1
+      `, [invitation.id]);
 
       res.json(createResponse(
         true,
-        'Team member added successfully',
-        { member: result.rows[0] }
+        'Successfully joined event team',
+        { 
+          member: memberResult.rows[0],
+          event_title: invitation.event_title
+        }
       ));
 
     } catch (error) {
-      console.error('Add member error:', error);
-      res.status(500).json(createResponse(false, 'Failed to add team member'));
+      console.error('❌ Accept invitation error:', error);
+      res.status(500).json(createResponse(false, 'Failed to accept invitation'));
     }
   }
 

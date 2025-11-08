@@ -719,6 +719,25 @@ CREATE TABLE file_uploads (
 );
 
 -- =============================================
+-- EVENT INVITATIONS
+-- =============================================
+CREATE TABLE event_invitations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  email VARCHAR(255) NOT NULL,
+  role event_member_role NOT NULL DEFAULT 'checkin_staff',
+  invited_by UUID NOT NULL REFERENCES users(id),
+  invitation_token VARCHAR(255) UNIQUE NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, expired
+  expires_at TIMESTAMP NOT NULL,
+  accepted_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  
+  UNIQUE(event_id, email)
+);
+
+-- =============================================
 -- LATE-BINDING FOREIGN KEYS (For Circular Dependencies)
 -- =============================================
 -- Add FK from memberships to membership_orders after both tables are created
@@ -845,6 +864,9 @@ CREATE INDEX idx_user_sessions_token ON user_sessions(token_hash);
 CREATE INDEX idx_user_sessions_expires ON user_sessions(expires_at);
 CREATE INDEX idx_user_sessions_active ON user_sessions(user_id, is_active) 
     WHERE is_active = true;
+
+CREATE INDEX idx_invitations_token ON event_invitations(invitation_token);
+CREATE INDEX idx_invitations_email ON event_invitations(email);
 
 -- =============================================
 -- STORED FUNCTIONS & TRIGGERS
