@@ -945,6 +945,34 @@ class AdminController {
       res.status(500).json(createResponse(false, 'Failed to retrieve sub-admins'));
     }
   }
+
+  static async deactivateSubAdmin(req, res) {
+    try {
+      const { userId } = req.params;
+
+      // Verify is sub_admin
+      const user = await pool.query(
+        'SELECT role FROM users WHERE id = $1', 
+        [userId]
+      );
+      
+      if (user.rows.length === 0) {
+        return res.status(404).json(createResponse(false, 'User not found'));
+      }
+
+      if (user.rows[0].role !== 'sub_admin') {
+        return res.status(400).json(createResponse(false, 'User is not a sub-admin'));
+      }
+
+      await UserModel.deactivateAccount(userId);
+
+      res.json(createResponse(true, 'Sub-admin account deactivated'));
+
+    } catch (error) {
+      console.error('❌ Deactivate sub-admin error:', error);
+      res.status(500).json(createResponse(false, 'Failed to deactivate'));
+    }
+  }
 }
 
 module.exports = AdminController;

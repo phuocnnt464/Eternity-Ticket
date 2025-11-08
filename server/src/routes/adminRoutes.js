@@ -10,7 +10,7 @@ const {
   authorizeRoles 
 } = require('../middleware/authMiddleware');
 const {  validate, validateUUIDParam, validatePagination } = require('../middleware/validationMiddleware');
-const { logActivity, logAdminAudit } = require('../middleware/activityLogger');
+const { logAdminAudit } = require('../middleware/activityLogger');
 
 const {
   rejectEventSchema,
@@ -268,49 +268,10 @@ router.get('/sub-admins',
 router.delete('/sub-admins/:userId',
   sensitiveAdminLimiter,
   authenticateToken,
-  authorizeRoles('admin'),  // ✅ CHỈ admin mới xóa sub-admin
+  authorizeRoles('admin'),  // only admin can deactivate sub-admins
   validateUUIDParam('userId'),
   logAdminAudit('DEACTIVATE_SUB_ADMIN', 'USER'),
-  async (req, res) => {
-    try {
-      const { userId } = req.params;
-      
-      // Verify is sub_admin
-      const user = await pool.query(
-        'SELECT role, email FROM users WHERE id = $1',
-        [userId]
-      );
-      
-      if (user.rows.length === 0) {
-        return res.status(404).json(
-          createResponse(false, 'User not found')
-        );
-      }
-      
-      if (user.rows[0].role !== 'sub_admin') {
-        return res.status(400).json(
-          createResponse(false, 'User is not a sub-admin')
-        );
-      }
-      
-      // Deactivate
-      await pool.query(
-        'UPDATE users SET is_active = false, updated_at = NOW() WHERE id = $1',
-        [userId]
-      );
-      
-      console.log(`🗑️  Sub-admin deactivated: ${user.rows[0].email}`);
-      
-      res.json(createResponse(
-        true,
-        'Sub-admin account deactivated successfully'
-      ));
-      
-    } catch (error) {
-      console.error('❌ Deactivate sub-admin error:', error);
-      res.status(500).json(createResponse(false, 'Failed to deactivate'));
-    }
-  }
+  AdminController.deactivateSubAdmin
 );
 
 module.exports = router;
