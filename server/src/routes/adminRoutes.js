@@ -17,6 +17,7 @@ const {
 } = require('../validations/eventValidation');
 
 const {
+  createSubAdminSchema,
   updateUserRoleSchema,
   rejectRefundSchema,
   updateSettingSchema,
@@ -231,6 +232,85 @@ router.get('/activity-logs',
 router.get('/audit-logs',
   validatePagination(),
   AdminController.getAuditLogs
+);
+
+/**
+ * @route   POST /api/admin/sub-admins
+ * @desc    Create new sub-admin account
+ * @access  Private (Admin only - NOT sub_admin)
+ */
+router.post('/sub-admins',
+  sensitiveAdminLimiter,
+  authenticateToken,
+  authorizeRoles('admin'),  // ✅ CHỈ admin mới tạo được sub-admin
+  validate(createSubAdminSchema),
+  logAdminAudit('CREATE_SUB_ADMIN', 'USER'),
+  AdminController.createSubAdmin
+);
+
+/**
+ * @route   GET /api/admin/sub-admins
+ * @desc    Get all sub-admin accounts
+ * @access  Private (Admin only)
+ */
+router.get('/sub-admins',
+  authenticateToken,
+  authorizeRoles('admin'),  // ✅ CHỈ admin mới xem list sub-admin
+  validatePagination(),
+  AdminController.getSubAdmins
+);
+
+/**
+ * @route   DELETE /api/admin/sub-admins/:userId
+ * @desc    Deactivate sub-admin account
+ * @access  Private (Admin only)
+ */
+router.delete('/sub-admins/:userId',
+  sensitiveAdminLimiter,
+  authenticateToken,
+  authorizeRoles('admin'),  // ✅ CHỈ admin mới xóa sub-admin
+  validateUUIDParam('userId'),
+  logAdminAudit('DEACTIVATE_SUB_ADMIN', 'USER'),
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      // Verify is sub_admin
+      const user = await pool.query(
+        'SELECT role, email FROM users WHERE id = $1',
+        [userId]
+      );
+      
+      if (user.rows.length === 0) {
+        return res.status(404).json(
+          createResponse(false, 'User not found')
+        );
+      }
+      
+      if (user.rows[0].role !== 'sub_admin') {
+        return res.status(400).json(
+          createResponse(false, 'User is not a sub-admin')
+        );
+      }
+      
+      // Deactivate
+      await pool.query(
+        'UPDATE users SET is_active = false, updated_at = NOW() WHERE id = $1',
+        [userId]
+      );
+      
+      console.log(`🗑️  Sub-admin deactivated: ${user.rows[0].email}`);
+      
+      res.json(createResponse(
+        true,
+        'Sub-admin account deactivated successfully'
+      ));
+      
+    } catch (error) {
+      console.error('❌ Deactivate sub-admin error:', error);
+      res.status(500).json(createResponse(false, 'Failed to deactivate'));
+    }
+  }
 );
 
 module.exports = router;

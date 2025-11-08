@@ -347,9 +347,9 @@ router.delete('/:eventId/members/:memberId',
  * @desc    Update member role
  * @access  Private (Event Owner)
  */
-router.patch('/:eventId/members/:memberId',
+router.patch('/:eventId/members/:userId',
   authenticateToken,
-  validateUUIDParams('eventId', 'memberId'),
+  validateUUIDParams('eventId', 'userId'),
   authorizeEventOrganizer('eventId'),
   requireEventRole('owner'),
   validate(updateMemberRoleSchema),

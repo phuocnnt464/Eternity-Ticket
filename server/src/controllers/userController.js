@@ -533,13 +533,41 @@ class UserController {
       const { userId } = req.params;
       const { password } = req.body;
       const requestingUserId = req.user.id;
-      const isAdmin = req.isAdmin || false;
+      // const isAdmin = req.isAdmin || false;
+      const requestingUserRole = req.user.role;
+      const isAdmin = ['admin', 'sub_admin'].includes(requestingUserRole);
 
       // Check permissions
       if (userId !== requestingUserId && !isAdmin) {
         return res.status(403).json(
           createResponse(false, 'Access denied')
         );
+      }
+
+       // Get target user
+      const targetUser = await pool.query(
+        'SELECT id, role, email FROM users WHERE id = $1',
+        [userId]
+      );
+      
+      if (targetUser.rows.length === 0) {
+        return res.status(404).json(
+          createResponse(false, 'User not found')
+        );
+      }
+      
+      const target = targetUser.rows[0];
+      
+      // PROTECTION: Sub-admin cannot deactivate admin/sub_admin
+      if (requestingUserRole === 'sub_admin') {
+        if (target.role === 'admin' || target.role === 'sub_admin') {
+          return res.status(403).json(
+            createResponse(
+              false, 
+              'Sub-admins cannot deactivate admin or sub-admin accounts'
+            )
+          );
+        }
       }
 
       // Admin doesn't need password to deactivate others

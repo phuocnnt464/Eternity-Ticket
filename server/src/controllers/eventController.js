@@ -1058,15 +1058,15 @@ class EventController {
 
   /**
    * Update event member role
-   * PATCH /api/events/:eventId/members/:memberId
+   * PATCH /api/events/:eventId/members/:userId
    * @access Private (Event Owner)
    */
   static async updateMemberRole(req, res) {
     try {
-      const { eventId, memberId } = req.params;
+      const { eventId, userId } = req.params;
       const { role } = req.body;
 
-      console.log(`🔄 Updating member role: Event ${eventId}, Member ${memberId}, New Role: ${role}`);
+      console.log(`🔄 Updating member role: Event ${eventId}, Member ${userId}, New Role: ${role}`);
 
       // Validate role
       const validRoles = ['owner', 'manager', 'checkin_staff'];
@@ -1081,7 +1081,7 @@ class EventController {
         SELECT id, role, user_id 
         FROM event_organizer_members 
         WHERE event_id = $1 AND user_id = $2 AND is_active = true
-      `, [eventId, memberId]);
+      `, [eventId, userId]);
 
       if (checkQuery.rows.length === 0) {
         return res.status(404).json(
@@ -1113,7 +1113,7 @@ class EventController {
         RETURNING 
           id, event_id, user_id, role, 
           created_at, updated_at, is_active
-      `, [eventId, memberId, role]);
+      `, [eventId, userId, role]);
 
       // Get member details
       const memberDetails = await pool.query(`

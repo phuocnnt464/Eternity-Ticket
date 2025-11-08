@@ -126,6 +126,7 @@ class AdminController {
     try {
       const { userId } = req.params;
       const { role } = req.body;
+      const requestingUser = req.user;
       
       if (!role) {
         return res.status(400).json({
@@ -133,6 +134,42 @@ class AdminController {
           error: { message: 'Role is required' }
         });
       }
+
+      // Get target user
+      const targetUser = await pool.query(
+        'SELECT id, role, email FROM users WHERE id = $1',
+        [userId]
+      );
+      
+      if (targetUser.rows.length === 0) {
+        return res.status(404).json(
+          createResponse(false, 'User not found')
+        );
+      }
+      
+      const target = targetUser.rows[0];
+      
+      // PROTECTION: Sub-admin cannot change admin/sub_admin roles
+      if (requestingUser.role === 'sub_admin') {
+        if (target.role === 'admin' || target.role === 'sub_admin') {
+          return res.status(403).json(
+            createResponse(
+              false, 
+              'Sub-admins cannot modify admin or sub-admin accounts'
+            )
+          );
+        }
+        
+        if (role === 'admin' || role === 'sub_admin') {
+          return res.status(403).json(
+            createResponse(
+              false, 
+              'Sub-admins cannot promote users to admin or sub-admin'
+            )
+          );
+        }
+      }
+      
       
       const updatedUser = await UserModel.updateUserRole(userId, role);
       
@@ -746,6 +783,166 @@ class AdminController {
     } catch (error) {
       console.error('❌ Get audit logs error:', error);
       res.status(500).json(createResponse(false, 'Failed to retrieve logs'));
+    }
+  }
+
+  /**
+   * Create sub-admin account
+   * POST /api/admin/sub-admins
+   * @access Private (Admin only - NOT sub_admin)
+   */
+  static async createSubAdmin(req, res) {
+    try {
+      const { email, password, first_name, last_name, phone } = req.body;
+      const createdBy = req.user.id;
+
+      console.log(`👤 Admin ${createdBy} creating sub-admin: ${email}`);
+
+      // Check if email exists
+      const existingUser = await UserModel.findByEmail(email);
+      if (existingUser) {
+        return res.status(409).json(
+          createResponse(false, 'Email already exists')
+        );
+      }
+
+      // Create sub-admin user
+      const result = await UserModel.create({
+        email,
+        password,
+        role: 'sub_admin',
+        first_name,
+        last_name,
+        phone,
+        is_email_verified: true  // Auto-verify for admin-created accounts
+      });
+
+      // Log activity
+      await pool.query(`
+        INSERT INTO admin_audit_logs 
+        (admin_id, action, entity_type, entity_id, metadata)
+        VALUES ($1, 'CREATE_SUB_ADMIN', 'USER', $2, $3)
+      `, [
+        createdBy, 
+        result.user.id,
+        JSON.stringify({ 
+          email, 
+          first_name, 
+          last_name,
+          created_at: new Date()
+        })
+      ]);
+
+      // Send welcome email
+      const emailService = require('../services/emailService');
+      await emailService.sendAdminAccountCreated({
+        email,
+        first_name,
+        last_name,
+        role: 'sub_admin',
+        temporary_password: password
+      });
+
+      res.status(201).json(createResponse(
+        true,
+        'Sub-admin account created successfully',
+        { 
+          user: {
+            id: result.user.id,
+            email: result.user.email,
+            first_name: result.user.first_name,
+            last_name: result.user.last_name,
+            role: result.user.role,
+            is_email_verified: result.user.is_email_verified,
+            created_at: result.user.created_at
+          }
+        }
+      ));
+
+    } catch (error) {
+      console.error('❌ Create sub-admin error:', error);
+      
+      let statusCode = 500;
+      let message = 'Failed to create sub-admin account';
+      
+      if (error.code === '23505') {
+        statusCode = 409;
+        message = 'Email already exists';
+      }
+      
+      res.status(statusCode).json(createResponse(false, message));
+    }
+  }
+
+  /**
+   * Get all sub-admins
+   * GET /api/admin/sub-admins
+   * @access Private (Admin only)
+   */
+  static async getSubAdmins(req, res) {
+    try {
+      const { page = 1, limit = 20, is_active } = req.query;
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+      
+      let whereConditions = ["role = 'sub_admin'"];
+      let params = [];
+      let paramIndex = 1;
+      
+      if (is_active !== undefined) {
+        whereConditions.push(`is_active = $${paramIndex}`);
+        params.push(is_active === 'true');
+        paramIndex++;
+      }
+      
+      const whereClause = whereConditions.join(' AND ');
+      
+      const query = `
+        SELECT 
+          id,
+          email,
+          first_name,
+          last_name,
+          phone,
+          is_active,
+          is_email_verified,
+          created_at,
+          last_login
+        FROM users
+        WHERE ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      
+      const countQuery = `
+        SELECT COUNT(*) as total FROM users WHERE ${whereClause}
+      `;
+      
+      params.push(parseInt(limit), offset);
+      const countParams = params.slice(0, -2);
+      
+      const [usersResult, countResult] = await Promise.all([
+        pool.query(query, params),
+        pool.query(countQuery, countParams)
+      ]);
+      
+      const totalCount = parseInt(countResult.rows[0].total);
+      
+      res.json(createResponse(
+        true,
+        'Sub-admins retrieved successfully',
+        {
+          sub_admins: usersResult.rows,
+          pagination: {
+            current_page: parseInt(page),
+            total_pages: Math.ceil(totalCount / limit),
+            total_count: totalCount,
+            per_page: parseInt(limit)
+          }
+        }
+      ));
+    } catch (error) {
+      console.error('❌ Get sub-admins error:', error);
+      res.status(500).json(createResponse(false, 'Failed to retrieve sub-admins'));
     }
   }
 }

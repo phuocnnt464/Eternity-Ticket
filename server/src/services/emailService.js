@@ -630,6 +630,99 @@ class EmailService {
       html
     });
   }
+  /**
+   * Send admin/sub-admin account created email
+   */
+  async sendAdminAccountCreated(data) {
+    const { email, first_name, last_name, role, temporary_password } = data;
+    
+    const loginUrl = `${process.env.FRONTEND_URL}/login`;
+    const roleLabel = role === 'sub_admin' ? 'Sub-Administrator' : 'Administrator';
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #7C3AED; color: white; padding: 20px; text-align: center; }
+          .content { background: #ffffff; padding: 30px; }
+          .button { 
+            display: inline-block; 
+            background: #7C3AED; 
+            color: white !important; 
+            padding: 14px 28px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            margin: 20px 0;
+            font-weight: bold;
+          }
+          .credentials { 
+            background: #F3F4F6; 
+            padding: 15px; 
+            border-radius: 6px; 
+            margin: 20px 0;
+            border-left: 4px solid #7C3AED;
+          }
+          .warning {
+            background: #FEF3C7;
+            border-left: 4px solid #F59E0B;
+            padding: 15px;
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔐 ${roleLabel} Account Created</h1>
+          </div>
+          <div class="content">
+            <p>Hello <strong>${first_name} ${last_name}</strong>,</p>
+            <p>An ${roleLabel.toLowerCase()} account has been created for you on Eternity Ticket.</p>
+            
+            <div class="credentials">
+              <h3 style="margin-top: 0;">Your Login Credentials:</h3>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Role:</strong> ${roleLabel}</p>
+              <p><strong>Temporary Password:</strong> <code style="background: #fff; padding: 5px 10px; border-radius: 4px;">${temporary_password}</code></p>
+            </div>
+            
+            <div class="warning">
+              <strong>⚠️ Important Security Notice:</strong>
+              <ul style="margin: 10px 0;">
+                <li>Please change your password immediately after your first login</li>
+                <li>Do not share this email or your credentials with anyone</li>
+                <li>Enable two-factor authentication if available</li>
+              </ul>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="${loginUrl}" class="button">
+                Login to Admin Panel
+              </a>
+            </div>
+            
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">
+              Login URL: <a href="${loginUrl}" style="color: #7C3AED;">${loginUrl}</a>
+            </p>
+            
+            <p style="color: #999; font-size: 12px; margin-top: 30px;">
+              If you did not expect this email, please contact the system administrator immediately.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return await this.sendEmail({
+      to: email,
+      subject: `${roleLabel} Account Created - Eternity Ticket`,
+      html
+    });
+  }
 }
 
 // Export singleton instance
