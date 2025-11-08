@@ -353,6 +353,7 @@ CREATE TABLE event_organizer_members (
     is_active BOOLEAN DEFAULT TRUE,
     permissions JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
     UNIQUE(event_id, user_id)
 );
 
@@ -725,7 +726,7 @@ CREATE TABLE event_invitations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   email VARCHAR(255) NOT NULL,
-  role event_member_role NOT NULL DEFAULT 'checkin_staff',
+  role organizer_member_role NOT NULL DEFAULT 'checkin_staff',
   invited_by UUID NOT NULL REFERENCES users(id),
   invitation_token VARCHAR(255) UNIQUE NOT NULL,
   status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, expired
