@@ -1297,7 +1297,28 @@ INSERT INTO email_templates (name, subject, html_content) VALUES
 ('refund_approved', 'Refund Request Approved', '<h1>Refund Approved</h1><p>Order: {{order_number}}</p><p>Amount: {{refund_amount}}</p><p>Processing time: 5-7 business days.</p>'),
 ('refund_rejected', 'Refund Request Rejected', '<h1>Refund Request Rejected</h1><p>Order: {{order_number}}</p><p>Reason: {{reason}}</p>'),
 ('event_cancelled_notification', 'Event Cancelled', '<h1>Event Cancelled: {{event_title}}</h1><p>Reason: {{cancellation_reason}}</p><p>Refund will be processed automatically.</p>');
-
+INSERT INTO email_templates (name, subject, html_content,variables) VALUES
+('admin_account_created', 
+ 'Administrator Account Created - Eternity Ticket',
+ '<h1>{{role_label}} Account Created</h1>
+  <p>Hello <strong>{{first_name}} {{last_name}}</strong>,</p>
+  <p>Your administrator account has been created.</p>
+  <p><strong>Email:</strong> {{email}}<br>
+  <strong>Role:</strong> {{role_label}}<br>
+  <strong>Temporary Password:</strong> {{temporary_password}}</p>
+  <p>Please login at: <a href="{{login_url}}">{{login_url}}</a></p>
+  <p><strong>Important:</strong> Change your password immediately after first login.</p>',
+ '{"first_name": "", "last_name": "", "email": "", "role_label": "", "temporary_password": "", "login_url": ""}'::jsonb),
+('event_invitation',
+ 'Invitation to join {{event_title}} - Eternity Ticket',
+ '<h1>Event Team Invitation</h1>
+  <p>Hello,</p>
+  <p><strong>{{inviter_name}}</strong> has invited you to join the team for:</p>
+  <p><strong>Event:</strong> {{event_title}}<br>
+  <strong>Role:</strong> {{role}}</p>
+  <p>Accept invitation at: <a href="{{invitation_url}}">{{invitation_url}}</a></p>
+  <p><small>This invitation expires in 7 days.</small></p>',
+ '{"event_title": "", "inviter_name": "", "role": "", "invitation_url": ""}'::jsonb);
 -- =============================================
 -- COMMENTS
 -- =============================================
