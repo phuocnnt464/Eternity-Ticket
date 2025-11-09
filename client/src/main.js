@@ -1,10 +1,15 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
-import './style.css'
-import App from './App.vue'
+import Vue3Toastify, { toast } from 'vue3-toastify'
 
+import '../src/style.css'
+import 'vue3-toastify/dist/index.css'
+
+import App from './App.vue'
 import router from './router'
+
+
 
 // Create Pinia instance
 const pinia = createPinia()
@@ -15,5 +20,30 @@ const app = createApp(App)
 
 app.use(pinia)
 app.use(router)
+app.use(Vue3Toastify, {
+  autoClose: 3000,
+  position: toast.POSITION.TOP_RIGHT,
+  theme: 'colored',
+  transition: 'slide',
+  hideProgressBar: false,
+  closeOnClick: true,
+  pauseOnHover: true,
+  draggable: true
+})
+
+// Global error handler
+app.config.errorHandler = (err, instance, info) => {
+  console.error('Global error:', err)
+  console.error('Error info:', info)
+  
+  // Show error toast
+  toast.error('An error occurred. Please try again.')
+}
+
+// Global warning handler
+app.config.warnHandler = (msg, instance, trace) => {
+  console.warn('Warning:', msg)
+  console.warn('Trace:', trace)
+}
 
 app.mount('#app')
