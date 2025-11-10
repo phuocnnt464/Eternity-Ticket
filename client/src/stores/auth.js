@@ -285,6 +285,7 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     logout,
     fetchProfile,
+    getProfile: fetchProfile,
     updateProfile,
     changePassword,
     forgotPassword,

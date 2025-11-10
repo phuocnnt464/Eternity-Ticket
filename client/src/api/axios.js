@@ -30,7 +30,8 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    return response.data
+    // return response.data
+    return response
   },
   async (error) => {
     const originalRequest = error.config
