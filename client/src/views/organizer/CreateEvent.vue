@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { eventsAPI, sessionsAPI } from '@/api'
+import { eventsAPI } from '@/api/events.js'
+import { sessionsAPI } from '@/api/sessions.js'
 import Input from '@/components/common/Input.vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'

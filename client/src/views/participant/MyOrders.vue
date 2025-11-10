@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { ordersAPI } from '@/api'
+import { ordersAPI } from '@/api/orders.js'
 import Badge from '@/components/common/Badge.vue'
 import Button from '@/components/common/Button.vue'
 import Pagination from '@/components/common/Pagination.vue'

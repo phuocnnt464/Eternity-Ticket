@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { eventsAPI, ordersAPI } from '@/api'
+import { eventsAPI } from '@/api/events.js'
+import { ordersAPI } from '@/api/orders.js'
 import Card from '@/components/common/Card.vue'
 import Badge from '@/components/common/Badge.vue'
 import Button from '@/components/common/Button.vue'

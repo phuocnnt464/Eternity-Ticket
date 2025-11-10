@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { eventsAPI } from '@/api'
+import { eventsAPI } from '@/api/events.js'
 import EventCard from '@/components/features/EventCard.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import Spinner from '@/components/common/Spinner.vue'

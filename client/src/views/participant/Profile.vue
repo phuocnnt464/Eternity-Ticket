@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { usersAPI } from '@/api'
+import { usersAPI } from '@/api/users.js'
 import Input from '@/components/common/Input.vue'
 import Button from '@/components/common/Button.vue'
 import Badge from '@/components/common/Badge.vue'

@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { eventsAPI, sessionsAPI } from '@/api'
+import { eventsAPI } from '@/api/events.js'
+import { sessionsAPI } from '@/api/sessions.js'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import Badge from '@/components/common/Badge.vue'

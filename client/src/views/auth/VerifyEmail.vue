@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { authAPI } from '@/api'
+import { authAPI } from '@/api/auth.js'
 import Spinner from '@/components/common/Spinner.vue'
 import Button from '@/components/common/Button.vue'
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline'

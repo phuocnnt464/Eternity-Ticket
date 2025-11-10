@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { eventsAPI } from '@/api'
+import { eventsAPI } from '@/api/events.js'
 import EventCard from '@/components/features/EventCard.vue'
 import EventFilter from '@/components/features/EventFilter.vue'
 import Pagination from '@/components/common/Pagination.vue'

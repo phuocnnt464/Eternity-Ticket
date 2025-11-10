@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { authAPI } from '@/api'
+import { authAPI } from '@/api/auth.js'
 import Input from '@/components/common/Input.vue'
 import Button from '@/components/common/Button.vue'
 import { EnvelopeIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline'

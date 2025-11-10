@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { eventsAPI } from '@/api'
+import { eventsAPI } from '@/api/events.js'
 import Card from '@/components/common/Card.vue'
 import Button from '@/components/common/Button.vue'
 import Spinner from '@/components/common/Spinner.vue'

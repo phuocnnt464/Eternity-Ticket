@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { membershipAPI } from '@/api'
+import { membershipAPI } from '@/api/membership.js'
 import Badge from '@/components/common/Badge.vue'
 import Button from '@/components/common/Button.vue'
 import Spinner from '@/components/common/Spinner.vue'

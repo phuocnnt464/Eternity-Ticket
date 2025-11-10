@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { adminAPI } from '@/api'
+import { adminAPI } from '@/api/admin.js'
 import Card from '@/components/common/Card.vue'
 import Button from '@/components/common/Button.vue'
 import Badge from '@/components/common/Badge.vue'

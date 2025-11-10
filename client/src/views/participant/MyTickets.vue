@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { usersAPI } from '@/api'
+import { usersAPI } from '@/api/users.js'
 import TicketCard from '@/components/features/TicketCard.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import Spinner from '@/components/common/Spinner.vue'

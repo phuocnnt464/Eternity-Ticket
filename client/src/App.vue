@@ -2,7 +2,7 @@
 import { RouterView } from 'vue-router'
 import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { Toast } from 'vue3-toastify'
+import Vue3Toastify from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
 
 const authStore = useAuthStore()
@@ -22,6 +22,7 @@ onMounted(async () => {
 <template>
    <div id="app" class="min-h-screen bg-gray-50">
     <RouterView />
+    <Vue3Toastify :auto-close="3000" theme="colored" />
   </div>
 </template>
 
