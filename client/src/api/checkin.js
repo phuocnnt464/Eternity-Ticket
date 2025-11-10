@@ -1,0 +1,28 @@
+import api from './axios'
+
+export const checkinAPI = {
+  // GET /api/checkin/verify/:ticketCode
+  verifyTicket: (ticketCode) => {
+    return api.get(`/checkin/verify/${ticketCode}`)
+  },
+
+  // POST /api/checkin/:ticketCode
+  checkIn: (ticketCode) => {
+    return api.post(`/checkin/${ticketCode}`)
+  },
+
+  // POST /api/checkin/:ticketCode/undo
+  undoCheckIn: (ticketCode) => {
+    return api.post(`/checkin/${ticketCode}/undo`)
+  },
+
+  // GET /api/checkin/event/:eventId/stats
+  getCheckInStats: (eventId) => {
+    return api.get(`/checkin/event/${eventId}/stats`)
+  },
+
+  // GET /api/checkin/event/:eventId/history
+  getCheckInHistory: (eventId, params) => {
+    return api.get(`/checkin/event/${eventId}/history`, { params })
+  }
+}

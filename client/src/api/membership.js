@@ -1,92 +1,49 @@
 import api from './axios'
 
 export const membershipAPI = {
-  // ==========================================
-  // MEMBERSHIP TIERS
-  // ==========================================
-  
-  /**
-   * Get membership tiers
-   */
-  getTiers: () => {
-    return api.get('/membership/tiers')
+  // GET /api/membership/pricing
+  getPricing: () => {
+    return api.get('/membership/pricing')
   },
 
-  /**
-   * Get my membership
-   */
-  getMyMembership: () => {
-    return api.get('/membership/my-membership')
+  // GET /api/membership/current
+  getCurrentMembership: () => {
+    return api.get('/membership/current')
   },
 
-  /**
-   * Purchase membership
-   */
-  purchaseMembership: (data) => {
-    return api.post('/membership/purchase', data)
+  // POST /api/membership/orders
+  createOrder: (data) => {
+    return api.post('/membership/orders', data)
   },
 
-  /**
-   * Upgrade membership
-   */
-  upgradeMembership: (data) => {
-    return api.post('/membership/upgrade', data)
+  // GET /api/membership/orders/:orderNumber
+  getOrderDetails: (orderNumber) => {
+    return api.get(`/membership/orders/${orderNumber}`)
   },
 
-  /**
-   * Cancel membership
-   */
-  cancelMembership: (reason) => {
-    return api.post('/membership/cancel', { reason })
-  },
-
-  /**
-   * Renew membership
-   */
-  renewMembership: () => {
-    return api.post('/membership/renew')
-  },
-
-  // ==========================================
-  // MEMBERSHIP BENEFITS
-  // ==========================================
-  
-  /**
-   * Get membership benefits
-   */
-  getBenefits: (tier) => {
-    return api.get(`/membership/benefits/${tier}`)
-  },
-
-  /**
-   * Get exclusive coupons
-   */
-  getExclusiveCoupons: () => {
-    return api.get('/membership/exclusive-coupons')
-  },
-
-  /**
-   * Get early access events
-   */
-  getEarlyAccessEvents: () => {
-    return api.get('/membership/early-access-events')
-  },
-
-  // ==========================================
-  // MEMBERSHIP HISTORY
-  // ==========================================
-  
-  /**
-   * Get membership history
-   */
-  getMembershipHistory: () => {
+  // GET /api/membership/history
+  getHistory: () => {
     return api.get('/membership/history')
   },
 
-  /**
-   * Get membership transactions
-   */
-  getMembershipTransactions: () => {
-    return api.get('/membership/transactions')
+  // POST /api/membership/cancel
+  cancelMembership: () => {
+    return api.post('/membership/cancel')
+  },
+
+  // GET /api/membership/payment/vnpay-return
+  vnpayReturn: (params) => {
+    return api.get('/membership/payment/vnpay-return', { params })
+  },
+
+  // ADMIN ROUTES
+  // GET /api/membership/admin/all
+  adminGetAllMemberships: (params) => {
+    return api.get('/membership/admin/all', { params })
+  },
+
+  // PUT /api/membership/admin/pricing/:tier
+  adminUpdatePricing: (tier, data) => {
+    return api.put(`/membership/admin/pricing/${tier}`, data)
   }
 }

@@ -1,39 +1,28 @@
 import api from './axios'
 
 export const queueAPI = {
-  // ==========================================
-  // QUEUE MANAGEMENT
-  // ==========================================
-  // Join queue
-  joinQueue: (data) => api.post('/queue/join', data),
-
-  // Get queue status
-  getQueueStatus: (eventId, sessionId) => 
-    api.get(`/queue/status/${eventId}/${sessionId}`),
-
-  // Get my position
-  getMyPosition: (queueId) => api.get(`/queue/position/${queueId}`),
-
-  // Heartbeat (keep alive)
-  sendHeartbeat: (queueId) => api.post(`/queue/heartbeat/${queueId}`),
-
-  // Exit queue
-  exitQueue: (queueId) => api.post(`/queue/exit/${queueId}`),
-
-  // Check can purchase
-  canPurchase: (queueId) => api.get(`/queue/can-purchase/${queueId}`),
-
-  /**
-   * Get waiting room info
-   */
-  getWaitingRoomInfo: (eventId, sessionId) => {
-    return api.get(`/queue/waiting-room/${eventId}/${sessionId}`)
+  // POST /api/queue/join
+  joinQueue: (data) => {
+    return api.post('/queue/join', data)
   },
 
-  /**
-   * Check early access eligibility
-   */
-  checkEarlyAccess: (eventId, sessionId) => {
-    return api.get(`/queue/early-access/${eventId}/${sessionId}`)
+  // GET /api/queue/status/:sessionId
+  getStatus: (sessionId) => {
+    return api.get(`/queue/status/${sessionId}`)
+  },
+
+  // POST /api/queue/heartbeat
+  heartbeat: (data) => {
+    return api.post('/queue/heartbeat', data)
+  },
+
+  // DELETE /api/queue/leave/:sessionId
+  leaveQueue: (sessionId) => {
+    return api.delete(`/queue/leave/${sessionId}`)
+  },
+
+  // GET /api/queue/statistics/:sessionId
+  getStatistics: (sessionId) => {
+    return api.get(`/queue/statistics/${sessionId}`)
   }
 }

@@ -2,164 +2,170 @@ import api from './axios'
 
 export const eventsAPI = {
   // ==========================================
-  // PUBLIC EVENTS
+  // PUBLIC ROUTES
   // ==========================================
+  
+  // GET /api/events/categories
+  getCategories: () => {
+    return api.get('/events/categories')
+  },
 
-  // Get all events
-  getEvents: (params) => api.get('/events', { params }),
+  // GET /api/events/featured
+  getFeaturedEvents: (params) => {
+    return api.get('/events/featured', { params })
+  },
 
-  // Get event by ID
-  getEventById: (id) => api.get(`/events/${id}`),
+  // GET /api/events/search
+  searchEvents: (params) => {
+    return api.get('/events/search', { params })
+  },
 
-  // Get event by Slug
-  getEventBySlug: (slug) => api.get(`/events/slug/${slug}`),
+  // GET /api/events/slug/:slug
+  getEventBySlug: (slug) => {
+    return api.get(`/events/slug/${slug}`)
+  },
 
-  // Search events
-  searchEvents: (params) => api.get('/events/search', { params }),
+  // GET /api/events/:id
+  getEventById: (id) => {
+    return api.get(`/events/${id}`)
+  },
 
-  // Get featured events
-  getFeaturedEvents: (params) => api.get('/events/featured', { params }),
-
-  // Get event categories
-  getCategories: () => api.get('/events/categories'),
+  // GET /api/events (public events)
+  getPublicEvents: (params) => {
+    return api.get('/events', { params })
+  },
 
   // ==========================================
-  // ORGANIZER - EVENT MANAGEMENT
+  // ORGANIZER ROUTES (authenticated)
   // ==========================================
-
-  // Event CRUD
-  createEvent: (data) => api.post('/events', data, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  getMyEvents: (params) => api.get('/events/my/all-events', { params }),
-  updateEvent: (id, data) => api.put(`/events/${id}`, data, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  deleteEvent: (id) => api.delete(`/events/${id}`),
-
-  submitForApproval: (id) => api.post(`/events/${id}/submit`),
-
-  // Upload event images
-  uploadImages: (id, images) => {
+  
+  // POST /api/events
+  createEvent: (data) => {
     const formData = new FormData()
     
-    if (images.cover) formData.append('cover_image', images.cover)
-    if (images.thumbnail) formData.append('thumbnail_image', images.thumbnail)
-    if (images.logo) formData.append('logo', images.logo)
-    if (images.venue) formData.append('venue_map', images.venue)
+    // Text fields
+    Object.keys(data).forEach(key => {
+      if (data[key] !== null && data[key] !== undefined && 
+          typeof data[key] !== 'object') {
+        formData.append(key, data[key])
+      }
+    })
     
-    return api.post(`/events/${id}/images`, formData, {
+    // File uploads
+    if (data.cover_image) formData.append('cover_image', data.cover_image)
+    if (data.thumbnail_image) formData.append('thumbnail_image', data.thumbnail_image)
+    if (data.logo) formData.append('logo', data.logo)
+    if (data.venue_map) formData.append('venue_map', data.venue_map)
+    
+    return api.post('/events', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
   },
 
-  // ==========================================
-  // SESSION & TICKET MANAGEMENT
-  // ==========================================
-  
-  // Session (CRUD)
-  createSession: (eventId, data) => {
-    return api.post(`/event-sessions/${eventId}/sessions`, data)
-  },
-  getSessions: (eventId) => api.get(`/event-sessions/${eventId}/sessions`),
-  updateSession: (sessionId, data) => {
-    return api.put(`/event-sessions/session/${sessionId}`, data)
-  },
-  deleteSession: (sessionId) => {
-    return api.delete(`/event-sessions/session/${sessionId}`)
+  // GET /api/events/my/all-events
+  getMyEvents: (params) => {
+    return api.get('/events/my/all-events', { params })
   },
 
-  // Ticket Type (CRUD)
-  createTicketType: (sessionId, data) => {
-    return api.post(`/event-sessions/session/${sessionId}/tickets`, data)
-  },
-  getTicketTypes: (sessionId) => api.get(`/event-sessions/session/${sessionId}/tickets`),
-  updateTicketType: (ticketTypeId, data) => {
-    return api.put(`/event-sessions/ticket/${ticketTypeId}`, data)
-  },
-  deleteTicketType: (ticketTypeId) => {
-    return api.delete(`/event-sessions/ticket/${ticketTypeId}`)
-  },
-
-  // ==========================================
-  // EVENT STATISTICS
-  // ==========================================
-
-  getEventStatistics: (id) => api.get(`/events/${id}/statistics`),
-  /**
-   * Get sales report
-   */
-  getSalesReport: (id, params) => {
-    return api.get(`/events/${id}/sales-report`, { params })
+  // PUT /api/events/:id
+  updateEvent: (id, data) => {
+    const formData = new FormData()
+    
+    Object.keys(data).forEach(key => {
+      if (data[key] !== null && data[key] !== undefined) {
+        if (typeof data[key] === 'object' && data[key] instanceof File) {
+          formData.append(key, data[key])
+        } else if (typeof data[key] !== 'object') {
+          formData.append(key, data[key])
+        }
+      }
+    })
+    
+    return api.put(`/events/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
   },
 
-  /**
-   * Get attendees list
-   */
+  // POST /api/events/:id/submit
+  submitForApproval: (id) => {
+    return api.post(`/events/${id}/submit`)
+  },
+
+  // GET /api/events/:id/statistics
+  getEventStatistics: (id) => {
+    return api.get(`/events/${id}/statistics`)
+  },
+
+  // DELETE /api/events/:id
+  deleteEvent: (id) => {
+    return api.delete(`/events/${id}`)
+  },
+
+  // GET /api/events/:id/orders
+  getEventOrders: (id, params) => {
+    return api.get(`/events/${id}/orders`, { params })
+  },
+
+  // GET /api/events/:id/attendees
   getAttendees: (id, params) => {
     return api.get(`/events/${id}/attendees`, { params })
-  },
-
-  /**
-   * Get check-in statistics
-   */
-  getCheckinStats: (id) => {
-    return api.get(`/events/${id}/checkin-stats`)
   },
 
   // ==========================================
   // TEAM MANAGEMENT
   // ==========================================
-  getTeamMembers: (eventId) => api.get(`/events/${eventId}/members`),
-  addTeamMember: (eventId, data) => api.post(`/events/${eventId}/members`, data),
-  removeTeamMember: (eventId, memberId) => 
-    api.delete(`/events/${eventId}/members/${memberId}`),
-  updateMemberRole: (eventId, memberId, data) => 
-    api.patch(`/events/${eventId}/members/${memberId}`, data),
+  
+  // GET /api/events/:eventId/members
+  getTeamMembers: (eventId) => {
+    return api.get(`/events/${eventId}/members`)
+  },
 
-  // Invitation
-  acceptInvitation: (token) => api.post(`/events/invitations/${token}/accept`),
+  // POST /api/events/:eventId/members
+  addTeamMember: (eventId, data) => {
+    return api.post(`/events/${eventId}/members`, data)
+  },
+
+  // PATCH /api/events/:eventId/members/:memberId
+  updateMemberRole: (eventId, memberId, data) => {
+    return api.patch(`/events/${eventId}/members/${memberId}`, data)
+  },
+
+  // DELETE /api/events/:eventId/members/:memberId
+  removeTeamMember: (eventId, memberId) => {
+    return api.delete(`/events/${eventId}/members/${memberId}`)
+  },
+
+  // POST /api/events/invitations/:token/accept
+  acceptInvitation: (token) => {
+    return api.post(`/events/invitations/${token}/accept`)
+  },
 
   // ==========================================
   // COUPONS
   // ==========================================
   
-  /**
-   * Get event coupons
-   */
+  // GET /api/events/:eventId/coupons
   getCoupons: (eventId) => {
     return api.get(`/events/${eventId}/coupons`)
   },
 
-  /**
-   * Create coupon
-   */
+  // POST /api/events/:eventId/coupons
   createCoupon: (eventId, data) => {
     return api.post(`/events/${eventId}/coupons`, data)
   },
 
-  /**
-   * Update coupon
-   */
+  // PUT /api/events/coupons/:couponId
   updateCoupon: (couponId, data) => {
-    return api.put(`/coupons/${couponId}`, data)
+    return api.put(`/events/coupons/${couponId}`, data)
   },
 
-  /**
-   * Delete coupon
-   */
+  // DELETE /api/events/coupons/:couponId
   deleteCoupon: (couponId) => {
-    return api.delete(`/coupons/${couponId}`)
+    return api.delete(`/events/coupons/${couponId}`)
   },
 
-  /**
-   * Validate coupon
-   */
-  validateCoupon: (code, eventId, sessionId) => {
-    return api.post('/coupons/validate', {
-      code,
-      event_id: eventId,
-      session_id: sessionId
-    })
+  // POST /api/events/coupons/validate
+  validateCoupon: (data) => {
+    return api.post('/events/coupons/validate', data)
   }
 }

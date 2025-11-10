@@ -1,241 +1,103 @@
 import api from './axios'
 
 export const adminAPI = {
-  // ==========================================
-  // USER MANAGEMENT
-  // ==========================================
-  
-  /**
-   * Get all users
-   */
-  getUsers: (params) => {
+  // GET /api/admin/dashboard/stats
+  getDashboardStats: () => {
+    return api.get('/admin/dashboard/stats')
+  },
+
+  // GET /api/admin/users/search
+  searchUsers: (params) => {
+    return api.get('/admin/users/search', { params })
+  },
+
+  // GET /api/admin/users
+  getAllUsers: (params) => {
     return api.get('/admin/users', { params })
   },
 
-  /**
-   * Get user by ID
-   */
-  getUserById: (id) => {
-    return api.get(`/admin/users/${id}`)
+  // PATCH /api/admin/users/:userId/role
+  updateUserRole: (userId, data) => {
+    return api.patch(`/admin/users/${userId}/role`, data)
   },
 
-  /**
-   * Update user
-   */
-  updateUser: (id, data) => {
-    return api.put(`/admin/users/${id}`, data)
+  // POST /api/admin/users/:userId/reactivate
+  reactivateAccount: (userId) => {
+    return api.post(`/admin/users/${userId}/reactivate`)
   },
 
-  /**
-   * Delete user
-   */
-  deleteUser: (id) => {
-    return api.delete(`/admin/users/${id}`)
-  },
-
-  /**
-   * Deactivate user
-   */
-  deactivateUser: (id, reason) => {
-    return api.post(`/admin/users/${id}/deactivate`, { reason })
-  },
-
-  /**
-   * Activate user
-   */
-  activateUser: (id) => {
-    return api.post(`/admin/users/${id}/activate`)
-  },
-
-  /**
-   * Change user role
-   */
-  changeUserRole: (id, role) => {
-    return api.patch(`/admin/users/${id}/role`, { role })
-  },
-
-  // ==========================================
-  // SUB-ADMIN MANAGEMENT
-  // ==========================================
-  
-  /**
-   * Get sub-admins
-   */
-  getSubAdmins: () => {
-    return api.get('/admin/sub-admins')
-  },
-
-  /**
-   * Create sub-admin
-   */
-  createSubAdmin: (data) => {
-    return api.post('/admin/sub-admins', data)
-  },
-
-  /**
-   * Update sub-admin
-   */
-  updateSubAdmin: (id, data) => {
-    return api.put(`/admin/sub-admins/${id}`, data)
-  },
-
-  /**
-   * Delete sub-admin
-   */
-  deleteSubAdmin: (id) => {
-    return api.delete(`/admin/sub-admins/${id}`)
-  },
-
-  // ==========================================
-  // EVENT APPROVAL
-  // ==========================================
-  
-  /**
-   * Get pending events
-   */
+  // GET /api/admin/events/pending
   getPendingEvents: (params) => {
     return api.get('/admin/events/pending', { params })
   },
 
-  /**
-   * Approve event
-   */
-  approveEvent: (id, notes) => {
-    return api.post(`/admin/events/${id}/approve`, { notes })
+  // POST /api/admin/events/:id/approve
+  approveEvent: (id) => {
+    return api.post(`/admin/events/${id}/approve`)
   },
 
-  /**
-   * Reject event
-   */
-  rejectEvent: (id, reason) => {
-    return api.post(`/admin/events/${id}/reject`, { reason })
+  // POST /api/admin/events/:id/reject
+  rejectEvent: (id, data) => {
+    return api.post(`/admin/events/${id}/reject`, data)
   },
 
-  /**
-   * Get event details (admin)
-   */
-  getEventDetails: (id) => {
-    return api.get(`/admin/events/${id}`)
+  // GET /api/admin/events
+  getAllEvents: (params) => {
+    return api.get('/admin/events', { params })
   },
 
-  // ==========================================
-  // REFUND MANAGEMENT
-  // ==========================================
-  
-  /**
-   * Get refund requests
-   */
-  getRefundRequests: (params) => {
+  // GET /api/admin/sub-admins
+  getSubAdmins: () => {
+    return api.get('/admin/sub-admins')
+  },
+
+  // POST /api/admin/sub-admins
+  createSubAdmin: (data) => {
+    return api.post('/admin/sub-admins', data)
+  },
+
+  // PUT /api/admin/sub-admins/:id
+  updateSubAdmin: (id, data) => {
+    return api.put(`/admin/sub-admins/${id}`, data)
+  },
+
+  // DELETE /api/admin/sub-admins/:id
+  deleteSubAdmin: (id) => {
+    return api.delete(`/admin/sub-admins/${id}`)
+  },
+
+  // GET /api/admin/refunds
+  getRefunds: (params) => {
     return api.get('/admin/refunds', { params })
   },
 
-  /**
-   * Approve refund
-   */
+  // POST /api/admin/refunds/:id/approve
   approveRefund: (id, data) => {
     return api.post(`/admin/refunds/${id}/approve`, data)
   },
 
-  /**
-   * Reject refund
-   */
-  rejectRefund: (id, reason) => {
-    return api.post(`/admin/refunds/${id}/reject`, { reason })
+  // POST /api/admin/refunds/:id/reject
+  rejectRefund: (id, data) => {
+    return api.post(`/admin/refunds/${id}/reject`, data)
   },
 
-  /**
-   * Process refund
-   */
+  // POST /api/admin/refunds/:id/process
   processRefund: (id) => {
     return api.post(`/admin/refunds/${id}/process`)
   },
 
-  // ==========================================
-  // AUDIT LOGS
-  // ==========================================
-  
-  /**
-   * Get audit logs
-   */
+  // GET /api/admin/audit-logs
   getAuditLogs: (params) => {
     return api.get('/admin/audit-logs', { params })
   },
 
-  /**
-   * Get user activity logs
-   */
-  getUserActivityLogs: (userId, params) => {
-    return api.get(`/admin/users/${userId}/activity-logs`, { params })
-  },
-
-  /**
-   * Get event logs
-   */
-  getEventLogs: (eventId, params) => {
-    return api.get(`/admin/events/${eventId}/logs`, { params })
-  },
-
-  // ==========================================
-  // STATISTICS
-  // ==========================================
-  
-  /**
-   * Get dashboard statistics
-   */
-  getDashboardStats: () => {
-    return api.get('/admin/statistics/dashboard')
-  },
-
-  /**
-   * Get revenue statistics
-   */
-  getRevenueStats: (params) => {
-    return api.get('/admin/statistics/revenue', { params })
-  },
-
-  /**
-   * Get user statistics
-   */
-  getUserStats: () => {
-    return api.get('/admin/statistics/users')
-  },
-
-  /**
-   * Get event statistics
-   */
-  getEventStats: (params) => {
-    return api.get('/admin/statistics/events', { params })
-  },
-
-  // ==========================================
-  // SYSTEM SETTINGS
-  // ==========================================
-  
-  /**
-   * Get system settings
-   */
+  // GET /api/admin/settings
   getSettings: () => {
     return api.get('/admin/settings')
   },
 
-  /**
-   * Update system settings
-   */
+  // PUT /api/admin/settings
   updateSettings: (data) => {
     return api.put('/admin/settings', data)
-  },
-
-  /**
-   * Get system health
-   */
-  getSystemHealth: () => {
-    return api.get('/admin/system/health')
-  },
-
-  /**
-   * Clear cache
-   */
-  clearCache: (cacheType) => {
-    return api.post('/admin/system/clear-cache', { cache_type: cacheType })
   }
 }

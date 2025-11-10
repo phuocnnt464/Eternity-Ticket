@@ -1,78 +1,50 @@
 import api from './axios'
 
 export const authAPI = {
-  // ==========================================
-  // AUTHENTICATION
-  // ==========================================
+  // POST /api/auth/register
+  register: (data) => {
+    return api.post('/auth/register', data)
+  },
 
-  // Register
-  register: (data) => api.post('/auth/register', data),
+  // POST /api/auth/login
+  login: (credentials) => {
+    return api.post('/auth/login', credentials)
+  },
 
-  // Login
-  login: (credentials) => api.post('/auth/login', credentials),
+  // POST /api/auth/verify-email
+  verifyEmail: (token) => {
+    return api.post('/auth/verify-email', { token })
+  },
 
-  // Logout
-  logout: () => api.post('/auth/logout'),
-
-  // Refresh access token
+  // POST /api/auth/refresh-token
   refreshToken: (refreshToken) => {
     return api.post('/auth/refresh-token', { 
       refresh_token: refreshToken 
     })
   },
 
-  // ==========================================
-  // PROFILE
-  // ==========================================
-
-  // Get profile
-  getProfile: () => api.get('/auth/profile'),
-
-   // Update profile
-  updateProfile: (data) => {
-    return api.put('/auth/profile', data)
+  // POST /api/auth/forgot-password
+  forgotPassword: (email) => {
+    return api.post('/auth/forgot-password', { email })
   },
 
-  // Change password
+  // POST /api/auth/reset-password
+  resetPassword: (data) => {
+    return api.post('/auth/reset-password', data)
+  },
+
+  // POST /api/auth/change-password (authenticated)
   changePassword: (data) => {
     return api.post('/auth/change-password', data)
   },
 
-  // ==========================================
-  // PASSWORD RESET
-  // ==========================================
-  
-  // Forgot password
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  // POST /api/auth/logout (authenticated)
+  logout: () => {
+    return api.post('/auth/logout')
+  },
 
-  // Reset password
-  resetPassword: (data) => api.post('/auth/reset-password', data),
-
-  // Verify email
-  verifyEmail: (token) => api.post('/auth/verify-email', { token }),
-
-  // Resend verification email
+  // POST /api/auth/resend-verification (authenticated)
   resendVerification: () => {
     return api.post('/auth/resend-verification')
-  },
-  
-  // ==========================================
-  // ACCOUNT MANAGEMENT
-  // ==========================================
-  
-  /**
-   * Deactivate account
-   */
-  deactivateAccount: () => {
-    return api.post('/auth/deactivate')
-  },
-
-  /**
-   * Delete account permanently
-   */
-  deleteAccount: (password) => {
-    return api.delete('/auth/account', { 
-      data: { password } 
-    })
   }
 }
