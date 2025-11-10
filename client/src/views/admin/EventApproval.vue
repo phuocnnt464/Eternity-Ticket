@@ -1,0 +1,369 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { adminAPI } from '@/api'
+import Card from '@/components/common/Card.vue'
+import Button from '@/components/common/Button.vue'
+import Badge from '@/components/common/Badge.vue'
+import Pagination from '@/components/common/Pagination.vue'
+import Spinner from '@/components/common/Spinner.vue'
+import Modal from '@/components/common/Modal.vue'
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  EyeIcon,
+  ClockIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon
+} from '@heroicons/vue/24/outline'
+
+const loading = ref(true)
+const events = ref([])
+const searchQuery = ref('')
+const selectedStatus = ref('pending_approval')
+const showDetailModal = ref(false)
+const selectedEvent = ref(null)
+const processingAction = ref(false)
+const rejectionReason = ref('')
+
+const pagination = ref({
+  currentPage: 1,
+  totalPages: 1,
+  totalItems: 0,
+  perPage: 20
+})
+
+const statusOptions = [
+  { value: 'all', label: 'All Events' },
+  { value: 'pending_approval', label: 'Pending Approval' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' }
+]
+
+const filteredEvents = computed(() => {
+  let result = events.value
+
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(event =>
+      event.title?.toLowerCase().includes(query) ||
+      event.organizer_name?.toLowerCase().includes(query)
+    )
+  }
+
+  if (selectedStatus.value !== 'all') {
+    result = result.filter(event => event.status === selectedStatus.value)
+  }
+
+  return result
+})
+
+const getStatusBadge = (status) => {
+  const badges = {
+    approved: { variant: 'success', text: 'Approved', icon: CheckCircleIcon },
+    pending_approval: { variant: 'warning', text: 'Pending', icon: ClockIcon },
+    rejected: { variant: 'danger', text: 'Rejected', icon: XCircleIcon }
+  }
+  return badges[status] || badges.pending_approval
+}
+
+const fetchEvents = async () => {
+  loading.value = true
+  try {
+    const response = await adminAPI.getEvents({
+      page: pagination.value.currentPage,
+      limit: pagination.value.perPage
+    })
+    
+    events.value = response.data.data || []
+    pagination.value.totalItems = response.data.pagination?.total || 0
+    pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
+  } catch (error) {
+    console.error('Failed to fetch events:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleViewDetails = (event) => {
+  selectedEvent.value = event
+  showDetailModal.value = true
+}
+
+const handleApprove = async (eventId) => {
+  if (!confirm('Approve this event?')) return
+
+  processingAction.value = true
+  try {
+    await adminAPI.approveEvent(eventId)
+    alert('Event approved successfully!')
+    showDetailModal.value = false
+    await fetchEvents()
+  } catch (error) {
+    alert(error.response?.data?.error?.message || 'Failed to approve event')
+  } finally {
+    processingAction.value = false
+  }
+}
+
+const handleReject = async (eventId) => {
+  if (!rejectionReason.value.trim()) {
+    alert('Please provide a rejection reason')
+    return
+  }
+
+  if (!confirm('Reject this event?')) return
+
+  processingAction.value = true
+  try {
+    await adminAPI.rejectEvent(eventId, {
+      reason: rejectionReason.value
+    })
+    alert('Event rejected')
+    rejectionReason.value = ''
+    showDetailModal.value = false
+    await fetchEvents()
+  } catch (error) {
+    alert(error.response?.data?.error?.message || 'Failed to reject event')
+  } finally {
+    processingAction.value = false
+  }
+}
+
+const handlePageChange = (page) => {
+  pagination.value.currentPage = page
+  fetchEvents()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+onMounted(() => {
+  fetchEvents()
+})
+</script>
+
+<template>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Event Approval</h1>
+      <p class="text-gray-600 mt-1">Review and approve event submissions</p>
+    </div>
+
+    <!-- Search & Filter -->
+    <Card>
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
+        <!-- Search -->
+        <div class="flex-1 max-w-md">
+          <div class="relative">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search events..."
+              class="input pl-10"
+            />
+            <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          </div>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="flex items-center space-x-2">
+          <FunnelIcon class="w-5 h-5 text-gray-400" />
+          <select v-model="selectedStatus" class="select">
+            <option
+              v-for="option in statusOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </Card>
+
+    <!-- Loading -->
+    <div v-if="loading" class="flex justify-center py-12">
+      <Spinner size="xl" />
+    </div>
+
+    <!-- Events Table -->
+    <Card v-else-if="filteredEvents.length > 0" no-padding>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Organizer</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Venue</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr
+              v-for="event in filteredEvents"
+              :key="event.event_id"
+              class="hover:bg-gray-50"
+            >
+              <td class="px-6 py-4">
+                <div class="flex items-center space-x-3">
+                  <img
+                    v-if="event.thumbnail_image"
+                    :src="event.thumbnail_image"
+                    :alt="event.title"
+                    class="w-12 h-12 object-cover rounded"
+                  />
+                  <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center" v-else>
+                    <span class="text-gray-400 text-xs">No img</span>
+                  </div>
+                  <div>
+                    <p class="font-medium text-gray-900">{{ event.title }}</p>
+                    <p class="text-sm text-gray-500">{{ event.category_name }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="text-sm text-gray-900">{{ event.organizer_name }}</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="text-sm text-gray-900">
+                  {{ new Date(event.start_date).toLocaleDateString() }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <span class="text-sm text-gray-900">{{ event.venue_name }}</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <Badge :variant="getStatusBadge(event.status).variant">
+                  <component :is="getStatusBadge(event.status).icon" class="w-4 h-4" />
+                  {{ getStatusBadge(event.status).text }}
+                </Badge>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ new Date(event.created_at).toLocaleDateString() }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  @click="handleViewDetails(event)"
+                >
+                  <EyeIcon class="w-4 h-4" />
+                  Review
+                </Button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="pagination.totalPages > 1" class="p-6 border-t">
+        <Pagination
+          v-model:current-page="pagination.currentPage"
+          :total-pages="pagination.totalPages"
+          @update:current-page="handlePageChange"
+        />
+      </div>
+    </Card>
+
+    <!-- Empty State -->
+    <Card v-else class="text-center py-12">
+      <p class="text-gray-500">No events found</p>
+    </Card>
+
+    <!-- Detail Modal -->
+    <Modal
+      v-model="showDetailModal"
+      title="Event Review"
+      size="xl"
+    >
+      <div v-if="selectedEvent" class="space-y-4">
+        <!-- Event Image -->
+        <img
+          v-if="selectedEvent.cover_image"
+          :src="selectedEvent.cover_image"
+          :alt="selectedEvent.title"
+          class="w-full h-64 object-cover rounded-lg"
+        />
+
+        <!-- Event Info -->
+        <div>
+          <h3 class="text-xl font-bold mb-2">{{ selectedEvent.title }}</h3>
+          <p class="text-gray-600 whitespace-pre-line">{{ selectedEvent.description }}</p>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="grid grid-cols-2 gap-4 py-4 border-t border-b">
+          <div>
+            <p class="text-sm text-gray-600">Organizer</p>
+            <p class="font-medium">{{ selectedEvent.organizer_name }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Category</p>
+            <p class="font-medium">{{ selectedEvent.category_name }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Start Date</p>
+            <p class="font-medium">{{ new Date(selectedEvent.start_date).toLocaleString() }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">End Date</p>
+            <p class="font-medium">{{ new Date(selectedEvent.end_date).toLocaleString() }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Venue</p>
+            <p class="font-medium">{{ selectedEvent.venue_name }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Capacity</p>
+            <p class="font-medium">{{ selectedEvent.venue_capacity || 'N/A' }}</p>
+          </div>
+        </div>
+
+        <!-- Rejection Reason (if pending) -->
+        <div v-if="selectedEvent.status === 'pending_approval'">
+          <label class="label">Rejection Reason (if rejecting)</label>
+          <textarea
+            v-model="rejectionReason"
+            rows="3"
+            placeholder="Provide reason for rejection..."
+            class="textarea"
+          ></textarea>
+        </div>
+      </div>
+
+      <template #footer>
+        <div v-if="selectedEvent?.status === 'pending_approval'" class="flex space-x-3">
+          <Button
+            variant="danger"
+            :loading="processingAction"
+            @click="handleReject(selectedEvent.event_id)"
+            full-width
+          >
+            <XCircleIcon class="w-5 h-5" />
+            Reject
+          </Button>
+          <Button
+            variant="success"
+            :loading="processingAction"
+            @click="handleApprove(selectedEvent.event_id)"
+            full-width
+          >
+            <CheckCircleIcon class="w-5 h-5" />
+            Approve
+          </Button>
+        </div>
+        <Button
+          v-else
+          variant="secondary"
+          @click="showDetailModal = false"
+          full-width
+        >
+          Close
+        </Button>
+      </template>
+    </Modal>
+  </div>
+</template>
