@@ -1,6 +1,9 @@
 import api from './axios'
 
 export const queueAPI = {
+  // ==========================================
+  // QUEUE MANAGEMENT
+  // ==========================================
   // Join queue
   joinQueue: (data) => api.post('/queue/join', data),
 
@@ -19,4 +22,18 @@ export const queueAPI = {
 
   // Check can purchase
   canPurchase: (queueId) => api.get(`/queue/can-purchase/${queueId}`),
+
+  /**
+   * Get waiting room info
+   */
+  getWaitingRoomInfo: (eventId, sessionId) => {
+    return api.get(`/queue/waiting-room/${eventId}/${sessionId}`)
+  },
+
+  /**
+   * Check early access eligibility
+   */
+  checkEarlyAccess: (eventId, sessionId) => {
+    return api.get(`/queue/early-access/${eventId}/${sessionId}`)
+  }
 }
