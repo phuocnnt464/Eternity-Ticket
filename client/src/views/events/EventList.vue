@@ -24,7 +24,9 @@ const pagination = ref({
 })
 
 const filters = ref({
+  search: route.query.search || '',
   category: route.query.category || '',
+  city: route.query.city || '',
   dateFrom: route.query.dateFrom || '',
   dateTo: route.query.dateTo || '',
   minPrice: route.query.minPrice || '',
@@ -35,22 +37,89 @@ const filters = ref({
 
 const fetchEvents = async () => {
   loading.value = true
+  error.value = null
+
   try {
     const params = {
       page: pagination.value.currentPage,
       limit: pagination.value.perPage,
-      search: searchQuery.value,
-      ...filters.value
+      status: 'approved'
+    }
+
+    // Chỉ thêm params nếu có giá trị và không rỗng
+    if (filters.value.search && filters.value.search.trim()) {
+      params.search = filters.value.search.trim()
+    }
+    
+    if (filters.value.category && filters.value.category.trim()) {
+      params.category = filters.value.category.trim()
+    }
+
+    if (filters.value.city && filters.value.city.trim()) {
+      params.city = filters.value.city.trim()
     }
 
     const response = await eventsAPI.getPublicEvents(params)
+    let eventsList = response.data.data || []
     
-    events.value = response.data.data || []
-    pagination.value.totalItems = response.data.pagination?.total || 0
+    // CLIENT-SIDE FILTERING cho các filter chưa được backend hỗ trợ
+    
+    // Filter theo date range
+    if (filters.value.dateFrom) {
+      eventsList = eventsList.filter(e => {
+        const eventDate = new Date(e.start_date)
+        const filterDate = new Date(filters.value.dateFrom)
+        return eventDate >= filterDate
+      })
+    }
+    
+    if (filters.value.dateTo) {
+      eventsList = eventsList.filter(e => {
+        const eventDate = new Date(e.start_date)
+        const filterDate = new Date(filters.value.dateTo)
+        return eventDate <= filterDate
+      })
+    }
+    
+    // Filter theo price range
+    if (filters.value.minPrice) {
+      eventsList = eventsList.filter(e => {
+        const minPrice = e.min_price || 0
+        return minPrice >= parseFloat(filters.value.minPrice)
+      })
+    }
+    
+    if (filters.value.maxPrice) {
+      eventsList = eventsList.filter(e => {
+        const minPrice = e.min_price || 0
+        return minPrice <= parseFloat(filters.value.maxPrice)
+      })
+    }
+    
+    // Sort
+    if (filters.value.sort) {
+      switch (filters.value.sort) {
+        case 'date_asc':
+          eventsList.sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+          break
+        case 'date_desc':
+          eventsList.sort((a, b) => new Date(b.start_date) - new Date(a.start_date))
+          break
+        case 'price_asc':
+          eventsList.sort((a, b) => (a.min_price || 0) - (b.min_price || 0))
+          break
+        case 'price_desc':
+          eventsList.sort((a, b) => (b.min_price || 0) - (a.min_price || 0))
+          break
+      }
+    }
+    
+    events.value = eventsList
+    pagination.value.totalItems = response.data.pagination?.total || eventsList.length
     pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
   } catch (error) {
     console.error('Failed to fetch events:', error)
-    events.value = []
+    error.value = err.response?.data?.error?.message || 'Failed to load events'
   } finally {
     loading.value = false
   }
