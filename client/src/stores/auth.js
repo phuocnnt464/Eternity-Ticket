@@ -127,8 +127,20 @@ export const useAuthStore = defineStore('auth', () => {
       accessToken.value = null
       refreshToken.value = null
       
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
+      // ✅ Clear localStorage
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      
+      // ✅ Clear any persisted pinia state
+      if (typeof window !== 'undefined') {
+        const keys = Object.keys(localStorage)
+        keys.forEach(key => {
+          if (key.startsWith('pinia-')) {
+            localStorage.removeItem(key)
+          }
+        })
+      }
     }
   }
   

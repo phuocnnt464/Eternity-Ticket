@@ -14,6 +14,7 @@ const router = useRouter()
 const events = ref([])
 const categories = ref([])
 const loading = ref(true)
+const error = ref(null) 
 const searchQuery = ref(route.query.search || '')
 
 const pagination = ref({
@@ -110,6 +111,9 @@ const fetchEvents = async () => {
           break
         case 'price_desc':
           eventsList.sort((a, b) => (b.min_price || 0) - (a.min_price || 0))
+          break
+        case 'popular':
+          eventsList.sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
           break
       }
     }
