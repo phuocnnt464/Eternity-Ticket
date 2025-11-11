@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authAPI } from '@/api/auth'
+import { useRouter } from 'vue-router' 
+import { useCartStore } from './cart' 
+import { useQueueStore } from './queue' 
+import { useNotificationStore } from './notification' 
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -126,11 +130,6 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       accessToken.value = null
       refreshToken.value = null
-      
-      // ✅ Clear localStorage
-      // localStorage.removeItem('accessToken')
-      // localStorage.removeItem('refreshToken')
-      // localStorage.removeItem('user')
 
       // ✅ 3. Clear localStorage
       const keysToRemove = [
@@ -168,10 +167,6 @@ export const useAuthStore = defineStore('auth', () => {
         document.cookie = c.trim().split("=")[0] + 
           "=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;"
       })
-      
-      // ✅ 7. Redirect to login
-      const router = useRouter()
-      router.push('/auth/login')
       
       loading.value = false
     }

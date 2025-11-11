@@ -86,17 +86,6 @@ class EventController {
         );
       }
 
-      // Check privacy settings
-      // if (event.privacy_type === 'private' && !event.user_role_in_event) {
-      //   const isAdmin = ['admin', 'sub_admin'].includes(req.user?.role);
-
-      //   if (!isAdmin) {
-      //       return res.status(403).json(
-      //       createResponse(false, 'This is a private event. Access denied.')
-      //     );
-      //   }
-      // }
-
       // ✅ CHECK PRIVATE EVENT ACCESS
       if (event.privacy_type === 'private') {
         const hasAccess = 
@@ -105,6 +94,11 @@ class EventController {
           (access_code && access_code === event.private_access_code); // Has correct access code
 
         if (!hasAccess) {
+          // ✅ Log failed attempt
+          await pool.query(`
+            INSERT INTO activity_logs (action, description, ip_address, metadata)
+            VALUES ('failed_private_access', 'Failed private event access', $1, $2)
+          `, [req.ip, JSON.stringify({ event_id: event.id })]);
           return res.status(403).json(
             createResponse(
               false, 

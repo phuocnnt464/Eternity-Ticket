@@ -142,6 +142,23 @@ class OrderModel {
 
       const membershipTier = membershipQuery.rows.length > 0 ? membershipQuery.rows[0].tier : 'basic';
 
+      for (const ticketDetail of ticketDetails) {
+        const { ticket_type, quantity } = ticketDetail;
+        
+        // Validate min/max per ticket type
+        if (quantity < ticket_type.min_quantity_per_order) {
+          throw new Error(
+            `Minimum ${ticket_type.min_quantity_per_order} tickets required for ${ticket_type.name}. You selected ${quantity}.`
+          );
+        }
+        
+        if (quantity > ticket_type.max_quantity_per_order) {
+          throw new Error(
+            `Maximum ${ticket_type.max_quantity_per_order} tickets allowed for ${ticket_type.name}. You selected ${quantity}.`
+          );
+        }
+      }
+
       // Check session max tickets limit
       let maxAllowed = session.max_tickets_per_order;
 

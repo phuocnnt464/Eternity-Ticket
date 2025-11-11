@@ -57,6 +57,17 @@ const eventUpdateLimiter = rateLimit({
   }
 });
 
+// ✅ Thêm limiter cho private event access
+const privateEventLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per 15 minutes
+  message: {
+    success: false,
+    message: 'Too many failed access attempts. Try again later.'
+  },
+  skipSuccessfulRequests: true // Chỉ count failed attempts
+});
+
 // Public routes (no authentication required)
 
 /**
@@ -167,6 +178,7 @@ router.get('/admin/pending',
  * @access  Public
  */
 router.get('/slug/:slug',
+  privateEventLimiter,
   validate(slugParamSchema, 'params'),
   optionalAuth,
   EventController.getEventBySlug
