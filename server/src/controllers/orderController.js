@@ -45,6 +45,14 @@ class OrderController {
         result = await OrderModel.createOrder(userId, orderData);
 
         await QueueController.completeOrder(userId, orderData.session_id);
+
+        await pool.query(`
+          UPDATE users 
+          SET purchase_cooldown_until = NOW() + INTERVAL '3 minutes',
+              last_purchase_at = NOW()
+          WHERE id = $1
+        `, [userId]);
+        
       } catch (error) {
         // ✅ FAIL: Still cleanup Redis to free slot
         console.error(`Order creation failed for user ${userId}:`, error.message);

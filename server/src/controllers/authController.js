@@ -316,14 +316,21 @@ class AuthController {
         );
       }
       
+      // ✅ CHECK BLACKLIST
+      const redisService = require('../services/redisService');
+      if (redisService.isReady()) {
+        const blacklistKey = `blacklist:refresh:${refresh_token}`;
+        const isBlacklisted = await redisService.getClient().get(blacklistKey);
+        
+        if (isBlacklisted) {
+          return res.status(401).json(
+            createResponse(false, 'Refresh token has been revoked. Please login again.')
+          );
+        }
+      }
+
       // Verify refresh token
       const decoded = verifyToken(refresh_token, process.env.JWT_REFRESH_SECRET);
-
-      // TODO: Verify session exists and is valid
-      // const session = await sessionService.findSession(refresh_token);
-      // if (!session || !session.is_active) {
-      //   return res.status(401).json(createResponse(false, 'Invalid session'));
-      // }
 
       // Get updated user info
       const user = await UserModel.findById(decoded.id);
@@ -508,15 +515,50 @@ class AuthController {
   static async logout(req, res) {
     try {
       const userId = req.user.id;
+      const token = req.headers['authorization']?.split(' ')[1]; // Get access token
+
+       // ✅ 1. Calculate token remaining TTL
+      const decoded = verifyToken(token);
+      const expiresAt = decoded.exp;
+      const now = Math.floor(Date.now() / 1000);
+      const ttl = expiresAt - now;
+
+      if (ttl > 0) {
+        // ✅ 2. Blacklist access token in Redis
+        const redisService = require('../services/redisService');
+        if (redisService.isReady()) {
+          const blacklistKey = `blacklist:token:${token}`;
+          await redisService.getClient().setex(blacklistKey, ttl, 'revoked');
+          console.log(`🔒 Token blacklisted: ${userId} for ${ttl}s`);
+        }
+      }
       
       // TODO: Invalidate refresh token in database
-      // const refreshToken = req.body.refresh_token;
-      // if (refreshToken) {
-      //   await sessionService.invalidateSession(refreshToken);
-      // }
+      const refreshToken = req.body.refresh_token;
+      if (refreshToken) {
+        // Option A: Delete from sessions table (nếu có)
+        // await pool.query('DELETE FROM sessions WHERE refresh_token = $1', [refreshToken]);
+        
+        // Option B: Blacklist refresh token
+        if (redisService.isReady()) {
+          try {
+            const decodedRefresh = verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
+            const refreshTTL = decodedRefresh.exp - now;
+            if (refreshTTL > 0) {
+              const refreshBlacklistKey = `blacklist:refresh:${refreshToken}`;
+              await redisService.getClient().setex(refreshBlacklistKey, refreshTTL, 'revoked');
+            }
+          } catch (err) {
+            console.log('Failed to blacklist refresh token:', err.message);
+          }
+        }
+      }
 
-      // For now, just return success
-      // In production, you might want to blacklist the token in Redis
+      // ✅ 4. Log activity
+      await pool.query(`
+        INSERT INTO activity_logs (user_id, action, description, ip_address)
+        VALUES ($1, 'LOGOUT', 'User logged out', $2)
+      `, [userId, req.ip]);
       
       console.log(`🚪 User logged out: ${req.user.email}`);
 
@@ -530,12 +572,17 @@ class AuthController {
     } catch (error) {
       console.error('❌ Logout error:', error.message);
       
+      // const response = createResponse(
+      //   false,
+      //   'Logout failed'
+      // );
       const response = createResponse(
-        false,
-        'Logout failed'
+        true,
+        'Logout successful'
       );
-      
-      res.status(500).json(response);
+
+      // res.status(500).json(response);
+      res.json(response);
     }
   }
 
@@ -716,8 +763,6 @@ class AuthController {
       );
     }
   }
-
-  // Thêm method này vào AuthController
 
   static async checkEmailExists(req, res) {
     try {

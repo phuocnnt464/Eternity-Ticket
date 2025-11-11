@@ -70,6 +70,19 @@ const authenticateToken = async (req, res, next) => {
       );
     }
 
+    // ✅ CHECK BLACKLIST BEFORE VERIFY
+    const redisService = require('../services/redisService');
+    if (redisService.isReady()) {
+      const blacklistKey = `blacklist:token:${token}`;
+      const isBlacklisted = await redisService.getClient().get(blacklistKey);
+      
+      if (isBlacklisted) {
+        return res.status(401).json(
+          createResponse(false, 'Token has been revoked. Please login again.')
+        );
+      }
+    }
+
      // ✅ Check rate limit trước khi verify
     const rateLimitKey = `auth_fail:${req.ip}`;
     const failedAttempts = await checkRateLimit(rateLimitKey);
