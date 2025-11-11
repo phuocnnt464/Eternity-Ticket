@@ -39,8 +39,8 @@ export const authAPI = {
   },
 
   // POST /api/auth/logout (authenticated)
-  logout: () => {
-    return api.post('/auth/logout')
+  logout: (data) => {
+    return api.post('/auth/logout', data) 
   },
 
   // POST /api/auth/resend-verification (authenticated)

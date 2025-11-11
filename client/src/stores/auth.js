@@ -118,7 +118,7 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const logout = async () => {
     try {
-      await authAPI.logout()
+      await authAPI.logout({ refresh_token: refreshToken.value })
     } catch (err) {
       console.error('Logout error:', err)
     } finally {
@@ -128,19 +128,52 @@ export const useAuthStore = defineStore('auth', () => {
       refreshToken.value = null
       
       // ✅ Clear localStorage
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
-      localStorage.removeItem('user')
+      // localStorage.removeItem('accessToken')
+      // localStorage.removeItem('refreshToken')
+      // localStorage.removeItem('user')
+
+      // ✅ 3. Clear localStorage
+      const keysToRemove = [
+        'accessToken',
+        'refreshToken', 
+        'user',
+        'auth' // Nếu dùng pinia-plugin-persistedstate
+      ]
+      
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key)
+        sessionStorage.removeItem(key) // Also clear sessionStorage
+      })
       
       // ✅ Clear any persisted pinia state
       if (typeof window !== 'undefined') {
         const keys = Object.keys(localStorage)
         keys.forEach(key => {
-          if (key.startsWith('pinia-')) {
+          if (key.startsWith('pinia-')|| key.includes('store')) {
             localStorage.removeItem(key)
           }
         })
       }
+   
+      const cartStore = useCartStore()
+      const queueStore = useQueueStore()
+      const notificationStore = useNotificationStore()
+      
+      cartStore.$reset()
+      queueStore.$reset()
+      notificationStore.$reset()
+      
+      // ✅ 6. Clear cookies (if any)
+      document.cookie.split(";").forEach(c => {
+        document.cookie = c.trim().split("=")[0] + 
+          "=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;"
+      })
+      
+      // ✅ 7. Redirect to login
+      const router = useRouter()
+      router.push('/auth/login')
+      
+      loading.value = false
     }
   }
   
