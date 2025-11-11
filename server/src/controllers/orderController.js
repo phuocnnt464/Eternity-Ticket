@@ -500,6 +500,151 @@ class OrderController {
       );
     }
   }
+
+  /**
+  * Get VNPay payment URL
+  * POST /api/orders/:orderId/payment/vnpay
+  */
+  static async getVNPayURL(req, res) {
+    try {
+      const { orderId } = req.params;
+      const userId = req.user.id;
+
+      const order = await OrderModel.findById(orderId, userId);
+
+      if (!order) {
+        return res.status(404).json(
+          createResponse(false, 'Order not found')
+        );
+      }
+
+      if (order.status !== 'pending') {
+        return res.status(400).json(
+          createResponse(false, 'Order is not pending payment')
+        );
+      }
+
+      // Check expiry
+      if (new Date() > new Date(order.reserved_until)) {
+        await OrderModel.updateOrderStatus(orderId, {
+          status: 'cancelled',
+          paid_at: null
+        });
+
+        return res.status(410).json(
+          createResponse(false, 'Order has expired')
+        );
+      }
+
+      // Generate VNPay URL
+      const VNPayService = require('../services/vnpayService');
+      const ipAddr = req.headers['x-forwarded-for'] || 
+                    req.connection.remoteAddress || 
+                    req.ip;
+
+      const paymentUrl = VNPayService.createPaymentUrl({
+        orderId: order.order_number,
+        amount: order.total_amount,
+        orderInfo: `Payment for order ${order.order_number}`,
+        orderType: 'billpayment',
+        ipAddr,
+        returnUrl: `${process.env.FRONTEND_URL}/payment/result`
+      });
+
+      res.json(createResponse(
+        true,
+        'VNPay payment URL generated',
+        {
+          payment_url: paymentUrl,
+          order_number: order.order_number,
+          expires_at: order.reserved_until
+        }
+      ));
+
+    } catch (error) {
+      console.error('Get VNPay URL error:', error);
+      res.status(500).json(
+        createResponse(false, 'Failed to generate payment URL')
+      );
+    }
+  }
+
+  /**
+   * VNPay return callback
+   * GET /api/orders/payment/vnpay-return
+   */
+  static async vnpayReturn(req, res) {
+    try {
+      const vnpayParams = req.query;
+      const VNPayService = require('../services/vnpayService');
+
+      // Verify signature
+      const isValid = VNPayService.verifyReturnUrl(vnpayParams);
+
+      if (!isValid) {
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/payment/result?status=failed&message=Invalid_signature`
+        );
+      }
+
+      const orderNumber = vnpayParams.vnp_TxnRef;
+      const responseCode = vnpayParams.vnp_ResponseCode;
+      const transactionId = vnpayParams.vnp_TransactionNo;
+
+      // Find order
+      const orderResult = await pool.query(
+        'SELECT * FROM orders WHERE order_number = $1',
+        [orderNumber]
+      );
+
+      if (orderResult.rows.length === 0) {
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/payment/result?status=failed&message=Order_not_found`
+        );
+      }
+
+      const order = orderResult.rows[0];
+
+      // Check if already processed
+      if (order.status === 'paid') {
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/payment/result?status=success&order=${orderNumber}`
+        );
+      }
+
+      // Process payment
+      if (responseCode === '00') {
+        await OrderModel.updateOrderStatus(order.id, {
+          status: 'paid',
+          payment_method: 'vnpay',
+          payment_transaction_id: transactionId,
+          payment_data: vnpayParams,
+          paid_at: new Date()
+        });
+
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/payment/result?status=success&order=${orderNumber}`
+        );
+      } else {
+        await OrderModel.updateOrderStatus(order.id, {
+          status: 'failed',
+          payment_method: 'vnpay',
+          payment_data: vnpayParams,
+          paid_at: null
+        });
+
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/payment/result?status=failed&code=${responseCode}`
+        );
+      }
+
+    } catch (error) {
+      console.error('VNPay return error:', error);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/payment/result?status=error`
+      );
+    }
+  }
 }
 
 module.exports = OrderController;

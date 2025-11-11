@@ -41,5 +41,11 @@ export const ordersAPI = {
   // POST /api/orders/cleanup/expired (admin)
   cleanupExpiredOrders: () => {
     return api.post('/orders/cleanup/expired')
+  },
+
+  // POST /api/orders/:orderId/payment/vnpay
+  getVNPayURL: async (orderId) => {
+    const response = await api.post(`/orders/${orderId}/payment/vnpay`)
+    return response.data
   }
 }

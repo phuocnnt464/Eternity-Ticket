@@ -1,5 +1,6 @@
 // src/models/checkinModel.js
 const pool = require('../config/database');
+const { verifySecureQRData } = require('../utils/qrCodeGenerator');
 
 class CheckinModel {
   /**
@@ -397,6 +398,29 @@ class CheckinModel {
       console.log(`Check-in undone for ticket: ${ticketCode} by user: ${undoneBy}`);
       return true;
 
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async verifyTicketFromQR(qrToken, eventId = null) {
+    try {
+      // Decode JWT QR
+      const qrData = verifySecureQRData(qrToken);
+      
+      // Verify bằng ticket_code
+      const ticket = await this.verifyTicket(qrData.ticket_code, eventId);
+      
+      if (!ticket) {
+        throw new Error('Ticket not found');
+      }
+      
+      // Additional verification
+      if (ticket.event_id !== qrData.event_id) {
+        throw new Error('QR code does not match event');
+      }
+      
+      return ticket;
     } catch (error) {
       throw error;
     }

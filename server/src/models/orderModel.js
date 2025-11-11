@@ -3,6 +3,7 @@ const pool = require('../config/database');
 const { generateOrderNumber } = require('../utils/helpers');
 const QRCode = require('qrcode');
 const lockManager = require('../utils/lockManager');
+const { generateSecureQRData } = require('../utils/qrCodeGenerator');
 
 class OrderModel {
   /**
@@ -390,12 +391,19 @@ class OrderModel {
           }
 
           // Generate QR code data
-          const qrData = JSON.stringify({
+          // const qrData = JSON.stringify({
+          //   ticket_code: ticketCode,
+          //   event_id,
+          //   session_id,
+          //   order_id: order.id,
+          //   timestamp: new Date().toISOString()
+          // });
+          const qrData = generateSecureQRData({
             ticket_code: ticketCode,
             event_id,
             session_id,
             order_id: order.id,
-            timestamp: new Date().toISOString()
+            user_id: userId
           });
 
           const ticketQuery = `
@@ -780,9 +788,48 @@ class OrderModel {
         WHERE order_id = ANY($1)
       `, [expiredOrderIds]);
 
+      // ✅ NEW: Release queue slots and mark as expired
+      await client.query(`
+        UPDATE waiting_queue
+        SET status = 'expired', completed_at = NOW()
+        WHERE user_id = ANY($1) 
+          AND session_id = ANY($2)
+          AND status = 'active'
+      `, [
+        expiredOrders.map(o => o.user_id),
+        expiredOrders.map(o => o.session_id)
+      ]);
+
       await client.query('COMMIT');
 
       console.log(`Cancelled ${expiredOrderIds.length} expired orders`);
+
+      // Process queue for each session to activate next users
+      const QueueModel = require('./queueModel');
+      const QueueController = require('../controllers/queueController');
+      
+      const uniqueSessions = [...new Set(expiredOrders.map(o => o.session_id))];
+      
+      for (const sessionId of uniqueSessions) {
+        try {
+          // Remove from Redis active set
+          const expiredUsers = expiredOrders
+            .filter(o => o.session_id === sessionId)
+            .map(o => o.user_id);
+          
+          for (const userId of expiredUsers) {
+            await QueueModel.removeActiveUser(sessionId, userId);
+          }
+          
+          // Process queue to activate next users
+          await QueueController.processQueue(sessionId);
+          
+          console.log(`✅ Processed queue for session ${sessionId} after order expiry`);
+        } catch (queueError) {
+          console.error(`❌ Failed to process queue for session ${sessionId}:`, queueError);
+        }
+      }
+      
       return expiredOrderIds.length;
 
     } catch (error) {
@@ -792,6 +839,7 @@ class OrderModel {
       client.release();
     }
   }
+  
 }
 
 module.exports = OrderModel;

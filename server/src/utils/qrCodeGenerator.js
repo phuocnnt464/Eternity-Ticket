@@ -1,0 +1,65 @@
+// server/src/utils/qrCodeGenerator.js
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+
+const QR_SECRET = process.env.QR_CODE_SECRET || 'EternityTicket@464';
+
+/**
+ * Generate secure QR code data with JWT
+ */
+function generateSecureQRData(ticketData) {
+  const {
+    ticket_code,
+    event_id,
+    session_id,
+    order_id,
+    user_id
+  } = ticketData;
+
+  // Create payload
+  const payload = {
+    tc: ticket_code,     // ticket_code (shortened)
+    eid: event_id,       // event_id
+    sid: session_id,     // session_id
+    oid: order_id,       // order_id
+    uid: user_id,        // user_id
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60) // 1 năm
+  };
+
+  // Sign with JWT
+  const token = jwt.sign(payload, QR_SECRET, { algorithm: 'HS256' });
+  
+  return token;
+}
+
+/**
+ * Verify and decode QR code data
+ */
+function verifySecureQRData(qrToken) {
+  try {
+    const decoded = jwt.verify(qrToken, QR_SECRET);
+    
+    return {
+      ticket_code: decoded.tc,
+      event_id: decoded.eid,
+      session_id: decoded.sid,
+      order_id: decoded.oid,
+      user_id: decoded.uid,
+      issued_at: new Date(decoded.iat * 1000),
+      expires_at: new Date(decoded.exp * 1000)
+    };
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      throw new Error('QR code has expired');
+    } else if (error.name === 'JsonWebTokenError') {
+      throw new Error('Invalid QR code');
+    }
+    throw error;
+  }
+}
+
+module.exports = {
+  generateSecureQRData,
+  verifySecureQRData
+};

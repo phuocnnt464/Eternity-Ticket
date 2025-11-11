@@ -57,28 +57,40 @@ const handleWaitingRoomReady = () => {
   showWaitingRoom.value = false
 }
 
-const handleCheckout = async (formData) => {
-  customerInfo.value = formData
+const handleCheckout = async () => {
   loading.value = true
-
   try {
-    // Check if queue is required for this session
-    const requiresQueue = session.value.queue_enabled
-
-    if (requiresQueue) {
-      // Show waiting room
-      showWaitingRoom.value = true
-      sessionId.value = session.value.session_id
-      loading.value = false
-    } else {
-      // Direct checkout
-      await processOrder()
+    // 1. Create order
+    const orderData = {
+      event_id: event.id,
+      session_id: sessionId,
+      tickets: tickets.value.map(t => ({
+        ticket_type_id: t.ticket_type_id,
+        quantity: t.quantity
+      })),
+      customer_info: customerInfo.value,
+      coupon_code: couponCode.value || undefined
     }
+
+    const response = await ordersAPI.createOrder(orderData)
+    const order = response.data.data
+
+    // 2. Get VNPay payment URL
+    const paymentResponse = await ordersAPI.getVNPayURL(order.order.id)
+    const paymentUrl = paymentResponse.data.data.payment_url
+
+    // 3. Redirect to VNPay
+    window.location.href = paymentUrl
+
+    // Clear cart
+    cartStore.clearCart()
   } catch (error) {
-    console.error('Checkout failed:', error)
+    alert(error.response?.data?.error?.message || 'Order creation failed')
+  } finally {
     loading.value = false
   }
 }
+
 
 const processOrder = async () => {
   loading.value = true

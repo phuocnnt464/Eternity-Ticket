@@ -112,6 +112,35 @@ router.get('/:orderId/download-pdf',
   OrderController.downloadTicketsPDF
 );
 
+/**
+ * @route   POST /api/orders/:orderId/payment/vnpay
+ * @desc    Get VNPay payment URL
+ * @access  Private
+ */
+router.post('/:orderId/payment/vnpay',
+  authenticateToken,
+  validateUUIDParam('orderId'),
+  OrderController.getVNPayURL
+);
+
+/**
+ * @route   GET /api/orders/payment/vnpay-return
+ * @desc    VNPay return callback (from VNPay server)
+ * @access  Public
+ */
+router.get('/payment/vnpay-return', 
+  OrderController.vnpayReturn
+);
+
+/**
+ * @route   GET /api/orders/payment/vnpay-ipn
+ * @desc    VNPay IPN callback (server-to-server)
+ * @access  Public
+ */
+router.get('/payment/vnpay-ipn', 
+  OrderController.vnpayReturn // Dùng chung logic
+);
+
 // Admin routes
 
 /**
