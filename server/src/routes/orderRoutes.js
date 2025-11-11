@@ -8,7 +8,7 @@ const {
   checkPurchaseCooldown,
   checkEarlyAccess
 } = require('../middleware/authMiddleware');
-const { validate } = require('../middleware/validationMiddleware');
+const { validate, validateUUIDParam } = require('../middleware/validationMiddleware');
 const {
   createOrderSchema,
   processPaymentSchema,
