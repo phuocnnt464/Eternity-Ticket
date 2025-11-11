@@ -70,11 +70,17 @@ const fetchDashboardData = async () => {
   try {
     const [statsRes, eventsRes] = await Promise.all([
       eventsAPI.getOrganizerStats(),
-      eventsAPI.getOrganizerEvents({ limit: 5, sort: 'created_at_desc' })
+      // eventsAPI.getOrganizerEvents({ limit: 5, sort: 'created_at_desc' })
+      eventsAPI.getMyEvents({ limit: 5, sort: 'created_at_desc' }) 
     ])
     
-    stats.value = statsRes.data.data
-    recentEvents.value = eventsRes.data.data || []
+    if (statsRes.success) {
+      stats.value = statsRes.data.stats || statsRes.data
+    }
+
+    if (eventsRes.success) {
+      recentEvents.value = eventsRes.data.events || eventsRes.data.data || []
+    }
   } catch (error) {
     console.error('Failed to fetch dashboard data:', error)
   } finally {

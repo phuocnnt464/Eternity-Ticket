@@ -67,6 +67,16 @@ export const eventsAPI = {
     return api.get('/events/my/all-events', { params })
   },
 
+  // GET /api/events/my/stats
+  getOrganizerStats: () => {
+    return api.get('/events/my/stats')
+  },
+  
+  // GET /api/events/my/all-events (alias)
+  getOrganizerEvents: (params) => {
+    return api.get('/events/my/all-events', { params })
+  },
+
   // PUT /api/events/:id
   updateEvent: (id, data) => {
     const formData = new FormData()

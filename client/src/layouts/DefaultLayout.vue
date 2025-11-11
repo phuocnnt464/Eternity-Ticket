@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
+import { notificationsAPI } from '@/api/notifications'
 import { 
   Bars3Icon, 
   XMarkIcon,
@@ -24,9 +25,18 @@ const navigation = [
   { name: 'Contact', href: '/contact' },
 ]
 
-onMounted(() => {
+onMounted(async () => {
   if (authStore.isAuthenticated) {
-    notificationStore.getUnreadCount()
+     try {
+      const response = await notificationsAPI.getUnreadCount()
+      if (response.success) {
+        notificationStore.setUnreadCount(response.data?.unread_count || 0)
+      }
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error)
+      // Set to 0 on error to prevent UI issues
+      notificationStore.setUnreadCount(0)
+    }
   }
 })
 </script>

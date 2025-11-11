@@ -88,15 +88,19 @@ const alertCards = computed(() => [
 const fetchDashboardData = async () => {
   loading.value = true
   try {
-    const [statsRes, eventsRes, usersRes] = await Promise.all([
-      adminAPI.getSystemStats(),
-      adminAPI.getRecentEvents({ limit: 5 }),
-      adminAPI.getRecentUsers({ limit: 5 })
-    ])
+    // const [statsRes, eventsRes, usersRes] = await Promise.all([
+    //   adminAPI.getSystemStats(),
+    //   adminAPI.getRecentEvents({ limit: 5 }),
+    //   adminAPI.getRecentUsers({ limit: 5 })
+    // ])
     
-    stats.value = statsRes.data.data
-    recentEvents.value = eventsRes.data.data || []
-    recentUsers.value = usersRes.data.data || []
+    const response = await adminAPI.getDashboardStats() 
+
+    if (response.success) {
+      stats.value = response.data.stats || {}
+      recentEvents.value = response.data.recent_events || []
+      recentUsers.value = response.data.recent_users || []
+    }
   } catch (error) {
     console.error('Failed to fetch dashboard data:', error)
   } finally {
