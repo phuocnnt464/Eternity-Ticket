@@ -4,6 +4,7 @@ const UserModel = require('../models/userModel');
 const EventModel = require('../models/eventModel');
 const { createResponse } = require('../utils/helpers');
 const emailService = require('../services/emailService');
+const AuditLogModel = require('../models/auditLogModel');
 
 // ===============================
 // DASHBOARD & USER MANAGEMENT
@@ -971,6 +972,66 @@ class AdminController {
     } catch (error) {
       console.error('❌ Deactivate sub-admin error:', error);
       res.status(500).json(createResponse(false, 'Failed to deactivate'));
+    }
+  }
+
+
+  // async getAuditLogs(req, res) {
+  //   try {
+  //     const { 
+  //       admin_id, 
+  //       action, 
+  //       target_type, 
+  //       start_date, 
+  //       end_date,
+  //       page = 1, 
+  //       limit = 50 
+  //     } = req.query;
+
+  //     const offset = (page - 1) * limit;
+  //     const filters = {};
+
+  //     if (admin_id) filters.admin_id = admin_id;
+  //     if (action) filters.action = action;
+  //     if (target_type) filters.target_type = target_type;
+  //     if (start_date) filters.start_date = start_date;
+  //     if (end_date) filters.end_date = end_date;
+
+  //     const result = await AuditLogModel.findAll(filters, parseInt(limit), offset);
+
+  //     res.json({
+  //       success: true,
+  //       data: result.logs,
+  //       pagination: {
+  //         page: result.page,
+  //         totalPages: result.totalPages,
+  //         total: result.total
+  //       }
+  //     });
+  //   } catch (error) {
+  //     console.error('Get audit logs error:', error);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to fetch audit logs',
+  //       error: error.message
+  //     });
+  //   }
+  // }
+
+  async logAdminAction(adminId, action, targetType, targetId, oldValues, newValues, description, ipAddress) {
+    try {
+      await AuditLogModel.create({
+        admin_id: adminId,
+        action,
+        target_type: targetType,
+        target_id: targetId,
+        old_values: oldValues,
+        new_values: newValues,
+        description,
+        ip_address: ipAddress
+      });
+    } catch (error) {
+      console.error('Log admin action error:', error);
     }
   }
 }

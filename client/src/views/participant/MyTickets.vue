@@ -98,8 +98,17 @@ const handleViewQR = (ticket) => {
 
 const handleDownload = async (ticket) => {
   try {
-    // TODO: Call API to download PDF
-    alert('Download PDF feature - TODO')
+    const response = await ordersAPI.downloadTicketsPDF(ticket.order_id)
+    
+    const blob = new Blob([response.data], { type: 'application/pdf' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `ticket-${ticket.ticket_code}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
   } catch (error) {
     alert('Failed to download ticket')
   }

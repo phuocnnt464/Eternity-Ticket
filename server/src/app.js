@@ -239,6 +239,8 @@ app.use(`${API_PREFIX}/checkin`, require('./routes/checkinRoutes'));
 app.use(`${API_PREFIX}/queue`, require('./routes/queueRoutes'));
 app.use(`${API_PREFIX}/membership`, require('./routes/membershipRoutes'));
 app.use(`${API_PREFIX}/notifications`, require('./routes/notificationRoutes'));
+app.use(`${API_PREFIX}/coupons`, require('./routes/couponRoutes'));
+app.use(`${API_PREFIX}/refunds`, require('./routes/refundRoutes'));
 
 // =============================================
 // ROOT ENDPOINT

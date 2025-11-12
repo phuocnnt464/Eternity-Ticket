@@ -234,6 +234,9 @@ router.get('/audit-logs',
   AdminController.getAuditLogs
 );
 
+// router.get('/audit-logs', AdminController.getAuditLogs);
+router.get('/audit-logs/:targetType/:targetId', AdminController.getAuditLogsByTarget);
+
 /**
  * @route   POST /api/admin/sub-admins
  * @desc    Create new sub-admin account
