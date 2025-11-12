@@ -99,5 +99,20 @@ export const adminAPI = {
   // PUT /api/admin/settings
   updateSettings: (data) => {
     return api.put('/admin/settings', data)
+  },
+
+  // GET /api/admin/orders
+  getAllOrders: (params) => {
+    return api.get('/admin/orders', { params })
+  },
+  
+  // GET /api/admin/orders/:orderId
+  getOrderDetails: (orderId) => {
+    return api.get(`/admin/orders/${orderId}`)
+  },
+  
+  // GET /api/admin/refunds/pending
+  getPendingRefunds: (params) => {
+    return api.get('/admin/refunds/pending', { params })
   }
 }

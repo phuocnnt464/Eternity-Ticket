@@ -42,7 +42,7 @@ const extractEventIdFromTicket = async (req, res, next) => {
     
     if (ticketCode) {
       const result = await pool.query(
-        'SELECT event_id FROM tickets WHERE ticket_code = $1',
+        'SELECT event_id FROM tickets WHERE ticket_code = $1 FOR UPDATE',
         [ticketCode]
       );
       

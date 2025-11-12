@@ -46,5 +46,15 @@ export const authAPI = {
   // POST /api/auth/resend-verification (authenticated)
   resendVerification: () => {
     return api.post('/auth/resend-verification')
+  },
+
+   // GET /api/auth/profile
+  getProfile: () => {
+    return api.get('/auth/profile')
+  },
+  
+  // GET /api/auth/check-email/:email
+  checkEmailExists: (email) => {
+    return api.get(`/auth/check-email/${email}`)
   }
 }

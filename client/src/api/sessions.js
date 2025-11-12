@@ -52,5 +52,10 @@ export const sessionsAPI = {
   // GET /api/event-sessions/ticket/:ticketTypeId/availability
   checkTicketAvailability: (ticketTypeId) => {
     return api.get(`/event-sessions/ticket/${ticketTypeId}/availability`)
+  },
+
+   // GET /api/event-sessions/:eventId/tickets
+  getEventWithTickets: (eventId) => {
+    return api.get(`/event-sessions/${eventId}/tickets`)
   }
 }

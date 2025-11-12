@@ -22,7 +22,17 @@ export const checkinAPI = {
   },
 
   // GET /api/checkin/event/:eventId/history
-  getCheckInHistory: (eventId, params) => {
-    return api.get(`/checkin/event/${eventId}/history`, { params })
+  // getCheckInHistory: (eventId, params) => {
+  //   return api.get(`/checkin/event/${eventId}/history`, { params })
+  // },
+
+   // GET /api/checkin/event/:eventId/search
+  searchTickets: (eventId, params) => {
+    return api.get(`/checkin/event/${eventId}/search`, { params })
+  },
+  
+  // GET /api/checkin/event/:eventId/recent (rename from getCheckInHistory)
+  getRecentCheckins: (eventId, params) => {
+    return api.get(`/checkin/event/${eventId}/recent`, { params })
   }
 }

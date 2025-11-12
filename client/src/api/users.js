@@ -43,5 +43,15 @@ export const usersAPI = {
   // GET /api/users/:userId/activity
   getActivityLog: (userId, params) => {
     return api.get(`/users/${userId}/activity`, { params })
+  },
+
+   // GET /api/users/:userId/stats
+  getUserStats: (userId) => {
+    return api.get(`/users/${userId}/stats`)
+  },
+  
+  // GET /api/events/image-requirements
+  getImageRequirements: () => {
+    return api.get('/events/image-requirements')
   }
 }
