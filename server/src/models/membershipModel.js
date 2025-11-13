@@ -133,7 +133,35 @@ class MembershipModel {
       let discountAmount = 0;
       if (coupon_code) {
         // TODO: Implement coupon logic
-        console.log(`Applying coupon: ${coupon_code}`);
+        // console.log(`Applying coupon: ${coupon_code}`);
+
+        // ✅ Validate and apply coupon
+        const CouponModel = require('./couponModel');
+        
+        try {
+          const couponValidation = await CouponModel.validateCoupon(
+            coupon_code,
+            userId,
+            null, // event_id = null for membership
+            amount,
+            'basic' // Default tier for validation
+          );
+          
+          if (couponValidation.valid) {
+            discountAmount = couponValidation.discountAmount;
+            console.log(`✅ Coupon ${coupon_code} applied: -${discountAmount}₫`);
+            
+            // Record coupon usage after payment success
+            // (Move to completeMembershipPayment function)
+          } else {
+            console.warn(`⚠️ Invalid coupon: ${couponValidation.message}`);
+            // Optionally throw error or just ignore
+            // throw new Error(couponValidation.message);
+          }
+        } catch (couponError) {
+          console.error('Coupon validation error:', couponError);
+          // Continue without coupon
+        }
       }
 
       // Calculate VAT (10%)
@@ -259,6 +287,24 @@ class MembershipModel {
         order.end_date, // Next billing date = end date
         orderId
       ]);
+
+      // ✅ Record coupon usage if coupon was applied
+      if (order.coupon_code && order.discount_amount > 0) {
+        const CouponModel = require('./couponModel');
+        
+        // Get coupon details
+        const coupon = await CouponModel.findByCode(order.coupon_code);
+        
+        if (coupon) {
+          await CouponModel.recordUsage(
+            coupon.id,
+            order.user_id,
+            orderId,
+            order.discount_amount
+          );
+          console.log(`✅ Coupon usage recorded: ${order.coupon_code}`);
+        }
+      }
 
       await client.query('COMMIT');
 

@@ -184,15 +184,21 @@ const RefundController = {
         reviewNotes
       );
 
-      // Send approval email
-      await EmailService.sendEmail(
-        refund.user_email,
-        'refund_approved',
-        {
+      // ✅ Send approval email with correct method
+      try {
+        const emailService = require('../services/emailService');
+        await emailService.sendRefundApprovalEmail({
+          email: refund.user_email,
+          user_name: refund.user_name,
           order_number: refund.order_number,
-          refund_amount: refund.refund_amount
-        }
-      );
+          event_title: refund.event_title,
+          refund_amount: parseFloat(refund.refund_amount),
+          review_notes: reviewNotes
+        });
+      } catch (emailError) {
+        console.error('Failed to send approval email:', emailError);
+        // Don't fail the request on email error
+      }
 
       res.json({
         success: true,
@@ -230,15 +236,20 @@ const RefundController = {
         rejectionReason
       );
 
-      // Send rejection email
-      await EmailService.sendEmail(
-        refund.user_email,
-        'refund_rejected',
-        {
+      // ✅ Send rejection email with correct method
+      try {
+        const emailService = require('../services/emailService');
+        await emailService.sendRefundRejectionEmail({
+          email: refund.user_email,
+          user_name: refund.user_name,
           order_number: refund.order_number,
-          reason: rejectionReason
-        }
-      );
+          event_title: refund.event_title,
+          refund_amount: parseFloat(refund.refund_amount),
+          rejection_reason: rejectionReason
+        });
+      } catch (emailError) {
+        console.error('Failed to send rejection email:', emailError);
+      }
 
       res.json({
         success: true,
@@ -256,28 +267,115 @@ const RefundController = {
   },
 
   async processRefund(req, res) {
+    const pool = require('../config/database');
+    const client = await pool.connect();
+  
     try {
       const { id } = req.params;
       const { transactionId } = req.body;
       const adminId = req.user.id;
 
+      // Start transaction
+      await client.query('BEGIN');
+
+      // 1. Get refund details
       const refund = await RefundModel.findById(id);
-      if (!refund || refund.status !== 'approved') {
+      
+      if (!refund) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({
+          success: false,
+          message: 'Refund request not found'
+        });
+      }
+      
+      if (refund.status !== 'approved') {
+        await client.query('ROLLBACK');
         return res.status(400).json({
           success: false,
-          message: 'Invalid refund request'
+          message: 'Only approved refunds can be processed'
         });
       }
 
-      const processedRefund = await RefundModel.processRefund(id, adminId, transactionId);
+      // 2. Update refund to completed
+      await client.query(`
+        UPDATE refund_requests 
+        SET status = 'completed',
+            processed_by = $1,
+            processed_at = NOW(),
+            refunded_at = NOW(),
+            refund_transaction_id = $2,
+            updated_at = NOW()
+        WHERE id = $3
+      `, [adminId, transactionId, id]);
 
-      // Update order status and tickets
-      await OrderModel.update(refund.order_id, { status: 'refunded' });
+      // 3. Update order status to refunded
+      await client.query(`
+        UPDATE orders 
+        SET status = 'refunded',
+            updated_at = NOW()
+        WHERE id = $1
+      `, [refund.order_id]);
+
+      // 4. Update tickets to refunded
+      await client.query(`
+        UPDATE tickets 
+        SET status = 'refunded',
+            refunded_at = NOW(),
+            updated_at = NOW()
+        WHERE order_id = $1
+      `, [refund.order_id]);
+
+      // 5. Restore ticket quantities
+      await client.query(`
+        UPDATE ticket_types tt
+        SET sold_quantity = sold_quantity - oi.quantity,
+            updated_at = NOW()
+        FROM order_items oi
+        WHERE tt.id = oi.ticket_type_id 
+          AND oi.order_id = $1
+      `, [refund.order_id]);
+
+      // 6. Create notification
+      await client.query(`
+        INSERT INTO notifications (user_id, type, title, content, data)
+        VALUES ($1, 'refund_completed', 'Refund Completed', $2, $3)
+      `, [
+        refund.user_id,
+        `Your refund for order ${refund.order_number} has been completed.`,
+        JSON.stringify({
+          order_id: refund.order_id,
+          refund_amount: refund.refund_amount,
+          transaction_id: transactionId
+        })
+      ]);
+
+      await client.query('COMMIT');
+
+      // 7. Send email (outside transaction)
+      try {
+        const emailService = require('../services/emailService');
+        await emailService.sendRefundCompletedEmail({
+          email: refund.user_email,
+          user_name: refund.user_name,
+          order_number: refund.order_number,
+          refund_amount: refund.refund_amount,
+          transaction_id: transactionId
+        });
+      } catch (emailError) {
+        console.error('Failed to send refund completed email:', emailError);
+        // Don't rollback transaction on email error
+      }
 
       res.json({
         success: true,
         message: 'Refund processed successfully',
-        data: processedRefund
+        data: {
+          refund_id: id,
+          order_id: refund.order_id,
+          transaction_id: transactionId,
+          refund_amount: refund.refund_amount
+        }
       });
     } catch (error) {
       console.error('Process refund error:', error);

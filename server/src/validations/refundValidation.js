@@ -1,54 +1,103 @@
-const { body, param } = require('express-validator');
-// Validation rules for refund requests should be change to Joi
+const Joi = require('joi');
 
-const validateRefundRequest = [
-  body('orderId')
-    .notEmpty().withMessage('Order ID is required')
-    .isUUID().withMessage('Invalid order ID'),
+/**
+ * Validation schema for creating refund request
+ */
+const createRefundRequestSchema = Joi.object({
+  orderId: Joi.string()
+    .uuid()
+    .required()
+    .messages({
+      'string.uuid': 'Invalid order ID format',
+      'any.required': 'Order ID is required'
+    }),
   
-  body('reason')
-    .notEmpty().withMessage('Reason is required')
-    .isIn(['event_cancelled', 'payment_failed', 'duplicate_payment', 'other'])
-    .withMessage('Invalid refund reason'),
+  reason: Joi.string()
+    .valid('event_cancelled', 'event_changed', 'cannot_attend', 'duplicate_payment', 'other')
+    .required()
+    .messages({
+      'any.only': 'Invalid refund reason. Must be one of: event_cancelled, event_changed, cannot_attend, duplicate_payment, other',
+      'any.required': 'Refund reason is required'
+    }),
   
-  body('description')
+  description: Joi.string()
+    .max(1000)
+    .allow('')
     .optional()
-    .trim()
-    .isLength({ max: 1000 }).withMessage('Description too long')
-];
+    .messages({
+      'string.max': 'Description cannot exceed 1000 characters'
+    })
+});
 
-const validateRefundApproval = [
-  param('id')
-    .isUUID().withMessage('Invalid refund ID'),
-  
-  body('reviewNotes')
+/**
+ * Validation schema for approving refund
+ */
+const approveRefundSchema = Joi.object({
+  reviewNotes: Joi.string()
+    .max(1000)
+    .allow('')
     .optional()
-    .trim()
-    .isLength({ max: 1000 }).withMessage('Review notes too long')
-];
+    .messages({
+      'string.max': 'Review notes cannot exceed 1000 characters'
+    })
+});
 
-const validateRefundRejection = [
-  param('id')
-    .isUUID().withMessage('Invalid refund ID'),
-  
-  body('rejectionReason')
-    .notEmpty().withMessage('Rejection reason is required')
-    .trim()
-    .isLength({ max: 1000 }).withMessage('Rejection reason too long')
-];
+/**
+ * Validation schema for rejecting refund
+ */
+const rejectRefundSchema = Joi.object({
+  rejectionReason: Joi.string()
+    .min(10)
+    .max(1000)
+    .required()
+    .messages({
+      'string.min': 'Rejection reason must be at least 10 characters',
+      'string.max': 'Rejection reason cannot exceed 1000 characters',
+      'any.required': 'Rejection reason is required'
+    })
+});
 
-const validateRefundProcess = [
-  param('id')
-    .isUUID().withMessage('Invalid refund ID'),
+/**
+ * Validation schema for processing refund
+ */
+const processRefundSchema = Joi.object({
+  transactionId: Joi.string()
+    .min(5)
+    .max(100)
+    .required()
+    .messages({
+      'string.min': 'Transaction ID must be at least 5 characters',
+      'string.max': 'Transaction ID cannot exceed 100 characters',
+      'any.required': 'Transaction ID is required'
+    })
+});
+
+/**
+ * Query validation for getting refunds
+ */
+const getRefundsQuerySchema = Joi.object({
+  status: Joi.string()
+    .valid('pending', 'approved', 'rejected', 'completed')
+    .optional(),
   
-  body('transactionId')
-    .notEmpty().withMessage('Transaction ID is required')
-    .trim()
-];
+  page: Joi.number()
+    .integer()
+    .min(1)
+    .default(1)
+    .optional(),
+  
+  limit: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .default(20)
+    .optional()
+});
 
 module.exports = {
-  validateRefundRequest,
-  validateRefundApproval,
-  validateRefundRejection,
-  validateRefundProcess
+  createRefundRequestSchema,
+  approveRefundSchema,
+  rejectRefundSchema,
+  processRefundSchema,
+  getRefundsQuerySchema
 };

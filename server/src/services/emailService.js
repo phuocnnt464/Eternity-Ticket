@@ -476,6 +476,31 @@ class EmailService {
     });
   }
 
+  // server/src/services/emailService.js
+  async sendRefundCompletedEmail(data) {
+    const subject = '✅ Refund Completed';
+    
+    const html = `
+      <h2>Refund Completed Successfully</h2>
+      <p>Dear ${data.user_name},</p>
+      
+      <p>Your refund has been processed successfully!</p>
+      
+      <div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+        <h3>Refund Details</h3>
+        <p><strong>Order Number:</strong> ${data.order_number}</p>
+        <p><strong>Refund Amount:</strong> ${parseFloat(data.refund_amount).toLocaleString('vi-VN')}₫</p>
+        <p><strong>Transaction ID:</strong> ${data.transaction_id}</p>
+      </div>
+      
+      <p>The refund will be processed to your original payment method within 5-7 business days.</p>
+      
+      <p>Best regards,<br>Eternity Ticket Team</p>
+    `;
+    
+    return this.sendEmail(data.email, subject, html);
+  }
+
   /**
    * Send membership activation email
    */

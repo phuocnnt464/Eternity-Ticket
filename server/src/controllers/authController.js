@@ -536,10 +536,10 @@ class AuthController {
       // TODO: Invalidate refresh token in database
       const refreshToken = req.body.refresh_token;
       if (refreshToken) {
-        // Option A: Delete from sessions table (nếu có)
+        // Delete from sessions table 
         // await pool.query('DELETE FROM sessions WHERE refresh_token = $1', [refreshToken]);
         
-        // Option B: Blacklist refresh token
+        // Blacklist refresh token
         if (redisService.isReady()) {
           try {
             const decodedRefresh = verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
