@@ -147,6 +147,12 @@ router.post('/events/:id/reject',
   EventController.rejectEvent
 );
 
+router.post('/events/:eventId/cancel',
+  authenticateToken,
+  authorizeRoles('admin', 'sub_admin'),
+  AdminController.cancelEvent
+);
+
 /**
  * GET /api/admin/orders
  * Get all orders with filters

@@ -1034,6 +1034,37 @@ class AdminController {
       console.error('Log admin action error:', error);
     }
   }
+
+  static async cancelEvent(req, res) {
+    try {
+      const { eventId } = req.params;
+      const { cancellation_reason } = req.body;
+      const adminId = req.user.id;
+      
+      if (!cancellation_reason) {
+        return res.status(400).json(
+          createResponse(false, 'Cancellation reason is required')
+        );
+      }
+      
+      const EventModel = require('../models/eventModel');
+      const result = await EventModel.cancelEvent(
+        eventId, 
+        adminId, 
+        cancellation_reason
+      );
+      
+      res.json(createResponse(
+        true,
+        `Event cancelled successfully. ${result.refunds_created} refund requests created.`,
+        result
+      ));
+      
+    } catch (error) {
+      console.error('❌ Cancel event error:', error);
+      res.status(500).json(createResponse(false, error.message));
+    }
+  }
 }
 
 module.exports = AdminController;

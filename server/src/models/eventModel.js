@@ -931,6 +931,131 @@ static async update(eventId, updateData, userId) {
       }
     };
   }
+
+  /**
+   * Cancel event and auto-create refund requests
+   * Admin only
+   */
+  static async cancelEvent(eventId, adminId, cancellationReason) {
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // 1. Update event status
+      const eventResult = await client.query(`
+        UPDATE events 
+        SET status = 'cancelled',
+            cancelled_at = NOW(),
+            cancellation_reason = $1
+        WHERE id = $2
+        RETURNING *
+      `, [cancellationReason, eventId]);
+      
+      if (eventResult.rows.length === 0) {
+        throw new Error('Event not found');
+      }
+      
+      const event = eventResult.rows[0];
+      
+      // 2. Get all paid orders for this event
+      const ordersResult = await client.query(`
+        SELECT id, user_id, total_amount, order_number
+        FROM orders
+        WHERE event_id = $1 AND status = 'paid'
+      `, [eventId]);
+      
+      console.log(`📋 Found ${ordersResult.rows.length} paid orders to refund`);
+      
+      // 3. Create refund requests for all orders
+      for (const order of ordersResult.rows) {
+        await client.query(`
+          INSERT INTO refund_requests (
+            order_id, user_id, reason, refund_amount,
+            description, status, reviewed_by, reviewed_at
+          ) VALUES ($1, $2, 'event_cancelled', $3, $4, 'approved', $5, NOW())
+        `, [
+          order.id,
+          order.user_id,
+          order.total_amount,
+          `Event cancelled by admin: ${cancellationReason}`,
+          adminId
+        ]);
+        
+        // 4. Update order status to refunded
+        await client.query(`
+          UPDATE orders
+          SET status = 'refunded', updated_at = NOW()
+          WHERE id = $1
+        `, [order.id]);
+        
+        // 5. Update tickets to refunded
+        await client.query(`
+          UPDATE tickets
+          SET status = 'refunded', refunded_at = NOW(), updated_at = NOW()
+          WHERE order_id = $1
+        `, [order.id]);
+        
+        // 6. Restore ticket quantities
+        await client.query(`
+          UPDATE ticket_types tt
+          SET sold_quantity = sold_quantity - oi.quantity,
+              updated_at = NOW()
+          FROM order_items oi
+          WHERE tt.id = oi.ticket_type_id 
+            AND oi.order_id = $1
+        `, [order.id]);
+        
+        // 7. Create notification
+        await client.query(`
+          INSERT INTO notifications (
+            user_id, type, title, content, event_id
+          ) VALUES ($1, 'system', 'Event Cancelled - Refund Issued', $2, $3)
+        `, [
+          order.user_id,
+          `The event "${event.title}" has been cancelled. Your order ${order.order_number} will be refunded automatically.`,
+          eventId
+        ]);
+        
+        // 8. Send email (optional, sau transaction)
+      }
+      
+      await client.query('COMMIT');
+      
+      console.log(`✅ Event cancelled: ${event.title}`);
+      console.log(`💰 Created ${ordersResult.rows.length} automatic refund requests`);
+      
+      // Send emails outside transaction
+      const emailService = require('../services/emailService');
+      for (const order of ordersResult.rows) {
+        const userResult = await pool.query(
+          'SELECT email, first_name FROM users WHERE id = $1',
+          [order.user_id]
+        );
+        
+        if (userResult.rows.length > 0) {
+          await emailService.sendRefundApprovalEmail({
+            user_email: userResult.rows[0].email,
+            first_name: userResult.rows[0].first_name,
+            event_title: event.title,
+            refund_amount: order.total_amount,
+            order_number: order.order_number
+          });
+        }
+      }
+      
+      return {
+        event: eventResult.rows[0],
+        refunds_created: ordersResult.rows.length
+      };
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 }
 
 module.exports = EventModel;
