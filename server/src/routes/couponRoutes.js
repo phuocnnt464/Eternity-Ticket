@@ -1,47 +1,92 @@
+// server/src/routes/couponRoutes.js
 const express = require('express');
 const router = express.Router();
 const CouponController = require('../controllers/couponController');
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
-const { validateCoupon } = require('../validations/couponValidation');
+const { validate, validateUUIDParam } = require('../middleware/validationMiddleware');
+const {
+  createCouponSchema,
+  validateCouponSchema,
+  couponParamSchema
+} = require('../validations/couponValidation');
 
-// Public routes (for checkout)
-router.post('/validate', authenticateToken, CouponController.validateCoupon);
+// =============================================
+// PUBLIC ROUTES (for checkout)
+// =============================================
 
-// Organizer routes
-router.post(
-  '/',
+/**
+ * @route   POST /api/coupons/validate
+ * @desc    Validate coupon code during checkout
+ * @access  Private (Authenticated users)
+ */
+router.post('/validate', 
   authenticateToken,
-  authorizeRoles(['organizer']),
-  validateCoupon,
+  validate(validateCouponSchema),
+  CouponController.validateCoupon
+);
+
+// =============================================
+// ORGANIZER ROUTES
+// =============================================
+
+/**
+ * @route   POST /api/coupons
+ * @desc    Create new coupon
+ * @access  Private (Organizer)
+ */
+router.post('/',
+  authenticateToken,
+  authorizeRoles('organizer'),
+  validate(createCouponSchema),
   CouponController.createCoupon
 );
 
-router.get(
-  '/event/:eventId',
+/**
+ * @route   GET /api/coupons/event/:eventId
+ * @desc    Get all coupons for an event
+ * @access  Private (Organizer/Admin)
+ */
+router.get('/event/:eventId',
   authenticateToken,
-  authorizeRoles(['organizer', 'admin', 'sub_admin']),
+  authorizeRoles('organizer', 'admin', 'sub_admin'),
+  validateUUIDParam('eventId'),
   CouponController.getEventCoupons
 );
 
-router.put(
-  '/:id',
+/**
+ * @route   PUT /api/coupons/:id
+ * @desc    Update coupon
+ * @access  Private (Organizer/Admin)
+ */
+router.put('/:id',
   authenticateToken,
-  authorizeRoles(['organizer', 'admin', 'sub_admin']),
-  validateCoupon,
+  authorizeRoles('organizer', 'admin', 'sub_admin'),
+  validate(couponParamSchema, 'params'),
+  validate(createCouponSchema),
   CouponController.updateCoupon
 );
 
-router.delete(
-  '/:id',
+/**
+ * @route   DELETE /api/coupons/:id
+ * @desc    Deactivate/delete coupon
+ * @access  Private (Organizer/Admin)
+ */
+router.delete('/:id',
   authenticateToken,
-  authorizeRoles(['organizer', 'admin', 'sub_admin']),
+  authorizeRoles('organizer', 'admin', 'sub_admin'),
+  validate(couponParamSchema, 'params'),
   CouponController.deleteCoupon
 );
 
-router.get(
-  '/:id/stats',
+/**
+ * @route   GET /api/coupons/:id/stats
+ * @desc    Get coupon usage statistics
+ * @access  Private (Organizer/Admin)
+ */
+router.get('/:id/stats',
   authenticateToken,
-  authorizeRoles(['organizer', 'admin', 'sub_admin']),
+  authorizeRoles('organizer', 'admin', 'sub_admin'),
+  validate(couponParamSchema, 'params'),
   CouponController.getCouponStats
 );
 

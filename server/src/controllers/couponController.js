@@ -1,4 +1,6 @@
+// server/src/controllers/couponController.js
 const CouponModel = require('../models/couponModel');
+const { createResponse } = require('../utils/helpers');
 
 const CouponController = {
   async createCoupon(req, res) {
@@ -11,18 +13,27 @@ const CouponController = {
 
       const coupon = await CouponModel.create(couponData);
       
-      res.status(201).json({
-        success: true,
-        message: 'Coupon created successfully',
-        data: coupon
-      });
+      res.status(201).json(
+        createResponse(
+          true,
+          'Coupon created successfully',
+          { coupon }
+        )
+      );
     } catch (error) {
-      console.error('Create coupon error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to create coupon',
-        error: error.message
-      });
+      console.error('❌ Create coupon error:', error);
+      
+      let statusCode = 500;
+      let message = 'Failed to create coupon';
+      
+      if (error.message.includes('duplicate key')) {
+        statusCode = 409;
+        message = 'Coupon code already exists';
+      }
+      
+      res.status(statusCode).json(
+        createResponse(false, message)
+      );
     }
   },
 
@@ -30,7 +41,9 @@ const CouponController = {
     try {
       const { code, eventId, orderAmount } = req.body;
       const userId = req.user.id;
-      const membershipTier = req.user.membershipTier || 'basic';
+      
+      // Get membership tier from user
+      const membershipTier = req.user.membership?.tier || 'basic';
 
       const validation = await CouponModel.validateCoupon(
         code, 
@@ -41,46 +54,55 @@ const CouponController = {
       );
 
       if (!validation.valid) {
-        return res.status(400).json({
-          success: false,
-          message: validation.message
-        });
+        return res.status(400).json(
+          createResponse(false, validation.message)
+        );
       }
 
-      res.json({
-        success: true,
-        message: 'Coupon is valid',
-        data: {
-          coupon: validation.coupon,
-          discountAmount: validation.discountAmount
-        }
-      });
+      res.json(
+        createResponse(
+          true,
+          'Coupon is valid',
+          {
+            coupon: validation.coupon,
+            discount_amount: validation.discountAmount
+          }
+        )
+      );
     } catch (error) {
-      console.error('Validate coupon error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to validate coupon',
-        error: error.message
-      });
+      console.error('❌ Validate coupon error:', error);
+      res.status(500).json(
+        createResponse(false, 'Failed to validate coupon')
+      );
     }
   },
 
   async getEventCoupons(req, res) {
     try {
       const { eventId } = req.params;
+      
+      // ✅ THÊM: Verify user has access to event
+      const hasAccess = await verifyEventAccess(req.user.id, eventId);
+      if (!hasAccess && !['admin', 'sub_admin'].includes(req.user.role)) {
+        return res.status(403).json(
+          createResponse(false, 'You do not have access to this event')
+        );
+      }
+      
       const coupons = await CouponModel.findByEvent(eventId);
       
-      res.json({
-        success: true,
-        data: coupons
-      });
+      res.json(
+        createResponse(
+          true,
+          `Found ${coupons.length} coupons`,
+          { coupons }
+        )
+      );
     } catch (error) {
-      console.error('Get event coupons error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch coupons',
-        error: error.message
-      });
+      console.error('❌ Get event coupons error:', error);
+      res.status(500).json(
+        createResponse(false, 'Failed to fetch coupons')
+      );
     }
   },
 
@@ -92,102 +114,73 @@ const CouponController = {
       const coupon = await CouponModel.update(id, updateData);
       
       if (!coupon) {
-        return res.status(404).json({
-          success: false,
-          message: 'Coupon not found'
-        });
+        return res.status(404).json(
+          createResponse(false, 'Coupon not found')
+        );
       }
 
-      res.json({
-        success: true,
-        message: 'Coupon updated successfully',
-        data: coupon
-      });
+      res.json(
+        createResponse(
+          true,
+          'Coupon updated successfully',
+          { coupon }
+        )
+      );
     } catch (error) {
-      console.error('Update coupon error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update coupon',
-        error: error.message
-      });
+      console.error('❌ Update coupon error:', error);
+      res.status(500).json(
+        createResponse(false, 'Failed to update coupon')
+      );
     }
   },
 
   async deleteCoupon(req, res) {
     try {
       const { id } = req.params;
+      
       const coupon = await CouponModel.delete(id);
       
       if (!coupon) {
-        return res.status(404).json({
-          success: false,
-          message: 'Coupon not found'
-        });
+        return res.status(404).json(
+          createResponse(false, 'Coupon not found')
+        );
       }
 
-      res.json({
-        success: true,
-        message: 'Coupon deleted successfully'
-      });
+      res.json(
+        createResponse(true, 'Coupon deleted successfully')
+      );
     } catch (error) {
-      console.error('Delete coupon error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to delete coupon',
-        error: error.message
-      });
+      console.error('❌ Delete coupon error:', error);
+      res.status(500).json(
+        createResponse(false, 'Failed to delete coupon')
+      );
     }
   },
 
   async getCouponStats(req, res) {
-        try {
-        const { id } = req.params;
-        
-        const coupon = await CouponModel.findById(id);
-        if (!coupon) {
-        return res.status(404).json({
-            success: false,
-            message: 'Coupon not found'
-        });
-        }
+    try {
+      const { id } = req.params;
+      
+      const stats = await CouponModel.getStats(id);
+      
+      if (!stats) {
+        return res.status(404).json(
+          createResponse(false, 'Coupon not found')
+        );
+      }
 
-        // Get usage statistics
-        const pool = require('../config/database');
-        const statsQuery = `
-        SELECT 
-            COUNT(DISTINCT cu.user_id) as unique_users,
-            COUNT(cu.id) as total_uses,
-            SUM(cu.discount_amount) as total_discount,
-            AVG(cu.discount_amount) as avg_discount,
-            MAX(cu.used_at) as last_used
-        FROM coupon_usages cu
-        WHERE cu.coupon_id = $1
-        `;
-        
-        const statsResult = await pool.query(statsQuery, [id]);
-        const stats = statsResult.rows[0];
-
-        res.json({
-        success: true,
-        data: {
-            coupon,
-            stats: {
-            unique_users: parseInt(stats.unique_users) || 0,
-            total_uses: parseInt(stats.total_uses) || 0,
-            total_discount: parseFloat(stats.total_discount) || 0,
-            avg_discount: parseFloat(stats.avg_discount) || 0,
-            last_used: stats.last_used,
-            remaining_uses: coupon.usage_limit ? coupon.usage_limit - coupon.used_count : null
-            }
-        }
-        });
+      res.json(
+        createResponse(
+          true,
+          'Coupon statistics retrieved successfully',
+          { stats }
+        )
+      );
     } catch (error) {
-        console.error('Get coupon stats error:', error);
-        res.status(500).json({
-        success: false,
-        message: 'Failed to fetch coupon statistics',
-        error: error.message
-        });
+      console.error('❌ Get coupon stats error:', error);
+      res.status(500).json(
+        createResponse(false, 'Failed to get coupon statistics')
+      );
     }
   }
 };

@@ -120,15 +120,26 @@ const CouponModel = {
   },
 
   async findByEvent(eventId) {
-    const query = `
-      SELECT c.*, 
-        (c.usage_limit IS NULL OR c.used_count < c.usage_limit) as is_available
-      FROM coupons c
-      WHERE c.event_id = $1 AND c.is_active = true
-      ORDER BY c.created_at DESC
-    `;
-    const result = await pool.query(query, [eventId]);
-    return result.rows;
+    try {
+      const query = `
+        SELECT 
+          c.*,
+          COUNT(cu.id) as total_uses,
+          COALESCE(SUM(cu.discount_amount), 0) as total_discount_given,
+          u.first_name || ' ' || u.last_name as created_by_name
+        FROM coupons c
+        LEFT JOIN coupon_usages cu ON c.id = cu.coupon_id
+        LEFT JOIN users u ON c.created_by = u.id
+        WHERE c.event_id = $1 OR (c.event_id IS NULL AND $1 IS NULL)
+        GROUP BY c.id, u.first_name, u.last_name
+        ORDER BY c.created_at DESC
+      `;
+      
+      const result = await pool.query(query, [eventId]);
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to fetch event coupons: ${error.message}`);
+    }
   },
 
   async findById(id) {
@@ -138,39 +149,135 @@ const CouponModel = {
   },
 
   async update(id, updateData) {
-    const fields = [];
-    const values = [];
-    let paramCount = 1;
+    try {
+      const fields = [];
+      const values = [];
+      let paramIndex = 1;
 
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key] !== undefined) {
-        fields.push(`${key} = $${paramCount}`);
-        values.push(updateData[key]);
-        paramCount++;
+      const allowedFields = [
+        'title', 'description', 'discount_value', 'max_discount_amount',
+        'min_order_amount', 'usage_limit', 'usage_limit_per_user',
+        'valid_from', 'valid_until', 'membership_tiers', 'is_active'
+      ];
+
+      allowedFields.forEach(field => {
+        if (updateData[field] !== undefined) {
+          fields.push(`${field} = $${paramIndex}`);
+          values.push(updateData[field]);
+          paramIndex++;
+        }
+      });
+
+      if (fields.length === 0) {
+        throw new Error('No valid fields to update');
       }
-    });
 
-    if (fields.length === 0) return null;
+      fields.push(`updated_at = NOW()`);
+      values.push(id);
 
-    fields.push(`updated_at = NOW()`);
-    values.push(id);
+      const query = `
+        UPDATE coupons
+        SET ${fields.join(', ')}
+        WHERE id = $${paramIndex}
+        RETURNING *
+      `;
 
-    const query = `
-      UPDATE coupons 
-      SET ${fields.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING *
-    `;
-    
-    const result = await pool.query(query, values);
-    return result.rows[0];
+      const result = await pool.query(query, values);
+      return result.rows[0];
+    } catch (error) {
+      throw new Error(`Failed to update coupon: ${error.message}`);
+    }
   },
 
   async delete(id) {
-    const query = 'UPDATE coupons SET is_active = false WHERE id = $1 RETURNING *';
-    const result = await pool.query(query, [id]);
-    return result.rows[0];
-  }
+    try {
+      // Soft delete - just deactivate
+      const query = `
+        UPDATE coupons
+        SET is_active = false, updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+      `;
+      
+      const result = await pool.query(query, [id]);
+      return result.rows[0];
+    } catch (error) {
+      throw new Error(`Failed to delete coupon: ${error.message}`);
+    }
+  },
+
+  async getStats(id) {
+    try {
+      const query = `
+        SELECT 
+          c.*,
+          COUNT(cu.id) as total_uses,
+          COUNT(DISTINCT cu.user_id) as unique_users,
+          COALESCE(SUM(cu.discount_amount), 0) as total_discount_given,
+          COALESCE(AVG(cu.discount_amount), 0) as avg_discount_per_use,
+          MIN(cu.used_at) as first_use,
+          MAX(cu.used_at) as last_use
+        FROM coupons c
+        LEFT JOIN coupon_usages cu ON c.id = cu.coupon_id
+        WHERE c.id = $1
+        GROUP BY c.id
+      `;
+      
+      const result = await pool.query(query, [id]);
+      
+      if (result.rows.length === 0) {
+        return null;
+      }
+      
+      const stats = result.rows[0];
+      
+      // Calculate usage rate
+      const usageRate = stats.usage_limit 
+        ? (stats.total_uses / stats.usage_limit * 100).toFixed(2)
+        : 0;
+      
+      return {
+        ...stats,
+        usage_rate: parseFloat(usageRate),
+        is_expired: new Date() > new Date(stats.valid_until),
+        is_active: stats.is_active && new Date() <= new Date(stats.valid_until)
+      };
+    } catch (error) {
+      throw new Error(`Failed to get coupon stats: ${error.message}`);
+    }
+  },
+
+  async recordUsage(couponId, userId, orderId, discountAmount) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Insert usage record
+      await client.query(`
+        INSERT INTO coupon_usages (coupon_id, user_id, order_id, discount_amount, used_at)
+        VALUES ($1, $2, $3, $4, NOW())
+      `, [couponId, userId, orderId, discountAmount]);
+
+      // Increment used_count
+      await client.query(`
+        UPDATE coupons
+        SET used_count = used_count + 1,
+            updated_at = NOW()
+        WHERE id = $1
+      `, [couponId]);
+
+      await client.query('COMMIT');
+      
+      console.log(`✅ Coupon usage recorded: ${couponId} by user ${userId}`);
+      return true;
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw new Error(`Failed to record coupon usage: ${error.message}`);
+    } finally {
+      client.release();
+    }
+  },
 };
 
 module.exports = CouponModel;
