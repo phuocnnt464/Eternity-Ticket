@@ -342,6 +342,46 @@ class OrderModel {
       const createdTickets = [];
 
       for (const ticketDetail of ticketDetails) {
+        // ✅ STEP 1: Lock ticket type
+        const lockQuery = `
+          SELECT id, name, total_quantity, sold_quantity, 
+                sale_start_time, sale_end_time
+          FROM ticket_types
+          WHERE id = $1 AND is_active = true
+          FOR UPDATE NOWAIT
+        `;
+        
+        let ticketType;
+        try {
+          const lockResult = await client.query(lockQuery, [ticketDetail.ticket_type_id]);
+          
+          if (lockResult.rows.length === 0) {
+            throw new Error(`Ticket type not found or inactive`);
+          }
+          
+          ticketType = lockResult.rows[0];
+        } catch (lockError) {
+          if (lockError.code === '55P03') {
+            throw new Error('Too many people are buying this ticket right now. Please try again in a few seconds.');
+          }
+          throw lockError;
+        }
+
+        // ✅ STEP 2: Check availability AFTER lock
+        const available = ticketType.total_quantity - ticketType.sold_quantity;
+        if (available < ticketDetail.quantity) {
+          throw new Error(`Not enough tickets available. Only ${available} tickets left for ${ticketType.name}`);
+        }
+
+        // ✅ STEP 3: Verify sale period
+        const now = new Date();
+        if (now < new Date(ticketType.sale_start_time)) {
+          throw new Error(`Sale for ${ticketType.name} has not started yet`);
+        }
+        if (now > new Date(ticketType.sale_end_time)) {
+          throw new Error(`Sale for ${ticketType.name} has ended`);
+        }
+
         // Create order item
         const orderItemQuery = `
           INSERT INTO order_items (order_id, ticket_type_id, quantity, unit_price, total_price)

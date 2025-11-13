@@ -82,11 +82,21 @@ class CheckinModel {
         JOIN event_sessions es ON t.session_id = es.id
         JOIN orders o ON t.order_id = o.id
         WHERE t.ticket_code = $1
-        FOR UPDATE  -- Khóa row cho đến khi COMMIT
+        FOR UPDATE NOWAIT  -- Khóa row cho đến khi COMMIT
       `;
       
-      const result = await client.query(verifyQuery, [ticketCode]);
+      // const result = await client.query(verifyQuery, [ticketCode]);
       
+      let result;
+      try {
+        result = await client.query(verifyQuery, [ticketCode]);
+      } catch (lockError) {
+        if (lockError.code === '55P03') { // Lock not available
+          throw new Error('Ticket is being scanned at another gate. Please wait a moment.');
+        }
+        throw lockError;
+      }
+
       if (result.rows.length === 0) {
         throw new Error('Ticket not found');
       }

@@ -92,6 +92,10 @@ api.interceptors.response.use(
         }
         authStore.setAccessToken(access_token)
 
+        // Trigger queued requests
+        isRefreshing = false
+        onRefreshed(access_token) 
+
         originalRequest.headers.Authorization = `Bearer ${access_token}`
         return api(originalRequest)
       } catch (refreshError) {
