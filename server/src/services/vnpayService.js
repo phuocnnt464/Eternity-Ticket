@@ -86,6 +86,15 @@ class VNPayService {
    * @returns {Boolean} Is valid
    */
   verifyReturnUrl(vnpParams) {
+    const requiredFields = ['vnp_TxnRef', 'vnp_Amount', 'vnp_ResponseCode', 'vnp_SecureHash'];
+  
+    for (const field of requiredFields) {
+      if (!vnpParams[field]) {
+        console.error(`❌ VNPay missing required field: ${field}`);
+        return false;
+      }
+    }
+
     const secureHash = vnpParams['vnp_SecureHash'];
 
     // Remove hash params

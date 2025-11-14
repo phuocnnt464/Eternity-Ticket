@@ -605,6 +605,32 @@ class OrderController {
         );
       }
 
+      // Validate amount
+      const vnpAmount = parseInt(vnpayParams.vnp_Amount) / 100;
+      if (Math.abs(vnpAmount - parseFloat(order.total_amount)) > 0.01) {
+        console.error(`❌ Amount mismatch. VNP: ${vnpAmount}, Order: ${order.total_amount}`);
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/payment/result?status=failed&message=Amount_mismatch`
+        );
+      }
+
+      // Check order expiry
+      if (new Date() > new Date(order.reserved_until)) {
+        console.error(`❌ Order ${orderNumber} expired before payment`);
+        
+        await OrderModel.updateOrderStatus(order.id, {
+          status: 'expired_paid',
+          payment_method: 'vnpay',
+          payment_transaction_id: transactionId,
+          payment_data: vnpayParams,
+          paid_at: new Date()
+        });
+        
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/payment/result?status=failed&message=Order_expired`
+        );
+      }
+
       // Process payment
       if (responseCode === '00') {
         await OrderModel.updateOrderStatus(order.id, {
@@ -638,7 +664,7 @@ class OrderController {
       );
     }
   }
-  
+
   /**
    * VNPay IPN callback (server-to-server)
    * GET /api/orders/payment/vnpay-ipn

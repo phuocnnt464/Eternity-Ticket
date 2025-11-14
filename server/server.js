@@ -44,6 +44,17 @@ const gracefulShutdown = async (signal) => {
     server.close(async () => {
       console.log('✅ HTTP server closed');
       
+      // Disconnect Redis (if queue processor not running)
+      try {
+        const redisService = require('./src/services/redisService');
+        if (redisService.isConnected) {
+          await redisService.disconnect();
+          console.log('✅ Redis disconnected');
+        }
+      } catch (error) {
+        console.error('❌ Error disconnecting Redis:', error.message);
+      }
+
       // Close database connections
       try {
         await pool.end();
