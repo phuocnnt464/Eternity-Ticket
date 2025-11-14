@@ -2,8 +2,8 @@ const RefundModel = require('../models/refundModel');
 const OrderModel = require('../models/orderModel');
 const EmailService = require('../services/emailService');
 
-const RefundController = {
-  async createRefundRequest(req, res) {
+class RefundController {
+  static async createRefundRequest(req, res) {
     try {
       const userId = req.user.id;
       const { orderId, reason, description } = req.body;
@@ -60,9 +60,9 @@ const RefundController = {
         error: error.message
       });
     }
-  },
+  }
 
-  async getRefundRequests(req, res) {
+  static async getRefundRequests(req, res) {
     try {
       const { status, page = 1, limit = 50 } = req.query;
       const offset = (page - 1) * limit;
@@ -93,9 +93,9 @@ const RefundController = {
         error: error.message
       });
     }
-  },
+  }
 
-  async getMyRefundRequests(req, res) {
+  static async getMyRefundRequests(req, res) {
     try {
         const userId = req.user.id;
         const { page = 1, limit = 20 } = req.query;
@@ -120,9 +120,9 @@ const RefundController = {
         error: error.message
         });
     }
-  },
+  }
 
-  async getRefundById(req, res) {
+  static async getRefundById(req, res) {
     try {
         const { id } = req.params;
         const refund = await RefundModel.findById(id);
@@ -154,9 +154,9 @@ const RefundController = {
         error: error.message
         });
     }
-    },
+    }
 
-  async approveRefund(req, res) {
+  static async approveRefund(req, res) {
     try {
       const { id } = req.params;
       const { reviewNotes } = req.body;
@@ -206,9 +206,9 @@ const RefundController = {
         error: error.message
       });
     }
-  },
+  }
 
-  async rejectRefund(req, res) {
+  static async rejectRefund(req, res) {
     try {
       const { id } = req.params;
       const { rejectionReason } = req.body;
@@ -260,9 +260,9 @@ const RefundController = {
         error: error.message
       });
     }
-  },
+  }
 
-  async processRefund(req, res) {
+  static async processRefund(req, res) {
     const pool = require('../config/database');
     const client = await pool.connect();
   

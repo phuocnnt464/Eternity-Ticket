@@ -2,8 +2,8 @@
 const CouponModel = require('../models/couponModel');
 const { createResponse } = require('../utils/helpers');
 
-const CouponController = {
-  async createCoupon(req, res) {
+class CouponController {
+  static async createCoupon(req, res) {
     try {
       const userId = req.user.id;
       const couponData = {
@@ -35,9 +35,9 @@ const CouponController = {
         createResponse(false, message)
       );
     }
-  },
+  }
 
-  async validateCoupon(req, res) {
+  static async validateCoupon(req, res) {
     try {
       const { code, eventId, orderAmount } = req.body;
       const userId = req.user.id;
@@ -75,9 +75,9 @@ const CouponController = {
         createResponse(false, 'Failed to validate coupon')
       );
     }
-  },
+  }
 
-  async getEventCoupons(req, res) {
+  static async getEventCoupons(req, res) {
     try {
       const { eventId } = req.params;
       const userId = req.user.id;
@@ -117,9 +117,9 @@ const CouponController = {
         createResponse(false, 'Failed to fetch coupons')
       );
     }
-  },
+  }
 
-  async updateCoupon(req, res) {
+  static async updateCoupon(req, res) {
     try {
       const { id } = req.params;
       const updateData = req.body;
@@ -145,9 +145,9 @@ const CouponController = {
         createResponse(false, 'Failed to update coupon')
       );
     }
-  },
+  }
 
-  async deleteCoupon(req, res) {
+  static async deleteCoupon(req, res) {
     try {
       const { id } = req.params;
       
@@ -168,9 +168,9 @@ const CouponController = {
         createResponse(false, 'Failed to delete coupon')
       );
     }
-  },
+  }
 
-  async getCouponStats(req, res) {
+  static async getCouponStats(req, res) {
     try {
       const { id } = req.params;
       

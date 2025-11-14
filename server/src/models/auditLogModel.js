@@ -1,7 +1,10 @@
 const pool = require('../config/database');
 
-const AuditLogModel = {
-  async create(logData) {
+class AuditLogModel {
+  /**
+   * Create audit log entry
+   */
+  static async create(logData) {
     const query = `
       INSERT INTO admin_audit_logs (
         admin_id, action, target_type, target_id,
@@ -21,9 +24,12 @@ const AuditLogModel = {
     ];
     const result = await pool.query(query, values);
     return result.rows[0];
-  },
+  }
 
-  async findAll(filters = {}, limit = 100, offset = 0) {
+   /**
+   * Find all audit logs with filters
+   */
+  static async findAll(filters = {}, limit = 100, offset = 0) {
     let query = `
       SELECT aal.*, 
         u.email as admin_email,
@@ -80,9 +86,12 @@ const AuditLogModel = {
       page: Math.floor(offset / limit) + 1,
       totalPages: Math.ceil(parseInt(countResult.rows[0].count) / limit)
     };
-  },
+  }
 
-  async findByTarget(targetType, targetId) {
+  /**
+   * Find audit logs by target
+   */
+  static async findByTarget(targetType, targetId) {
     const query = `
       SELECT aal.*, 
         u.email as admin_email,

@@ -1,7 +1,10 @@
 const pool = require('../config/database');
 
-const RefundModel = {
-  async create(refundData) {
+class RefundModel {
+  /**
+   * Create refund request
+   */
+  static async create(refundData) {
     const query = `
       INSERT INTO refund_requests (
         order_id, user_id, reason, description, refund_amount, status
@@ -17,9 +20,12 @@ const RefundModel = {
     ];
     const result = await pool.query(query, values);
     return result.rows[0];
-  },
+  }
 
-  async findById(id) {
+   /**
+   * Find refund by ID
+   */
+  static async findById(id) {
     const query = `
       SELECT rr.*, 
         o.order_number,
@@ -34,9 +40,12 @@ const RefundModel = {
     `;
     const result = await pool.query(query, [id]);
     return result.rows[0];
-  },
+  }
 
-  async findAll(filters = {}, limit = 50, offset = 0) {
+  /**
+   * Find all refunds with filters
+   */
+  static async findAll(filters = {}, limit = 50, offset = 0) {
     let query = `
       SELECT rr.*, 
         o.order_number,
@@ -75,9 +84,12 @@ const RefundModel = {
 
     const result = await pool.query(query, values);
     return result.rows;
-  },
+  }
 
-  async updateStatus(id, status, reviewedBy, reviewNotes = null) {
+  /**
+   * Update refund status (simple update)
+   */
+  static async updateStatus(id, status, reviewedBy, reviewNotes = null) {
     const query = `
       UPDATE refund_requests 
       SET status = $1, 
@@ -90,23 +102,7 @@ const RefundModel = {
     `;
     const result = await pool.query(query, [status, reviewedBy, reviewNotes, id]);
     return result.rows[0];
-  },
-
-  async processRefund(id, processedBy, transactionId) {
-    const query = `
-      UPDATE refund_requests 
-      SET status = 'completed',
-          processed_by = $1,
-          processed_at = NOW(),
-          refunded_at = NOW(),
-          refund_transaction_id = $2,
-          updated_at = NOW()
-      WHERE id = $3
-      RETURNING *
-    `;
-    const result = await pool.query(query, [processedBy, transactionId, id]);
-    return result.rows[0];
-  },
+  }
 
   /**
    * Approve refund request with full transaction handling
@@ -115,7 +111,7 @@ const RefundModel = {
    * @param {String} reviewNotes - Optional review notes
    * @returns {Object} Updated refund data
    */
-  async approve(refundId, adminId, reviewNotes = null) {
+  static async approve(refundId, adminId, reviewNotes = null) {
     const client = await pool.connect();
     
     try {
@@ -212,7 +208,7 @@ const RefundModel = {
     } finally {
       client.release();
     }
-  },
+  }
 
   /**
    * Reject refund request
@@ -221,7 +217,7 @@ const RefundModel = {
    * @param {String} rejectionReason - Reason for rejection (required)
    * @returns {Object} Updated refund data
    */
-  async reject(refundId, adminId, rejectionReason) {
+  static async reject(refundId, adminId, rejectionReason) {
     const client = await pool.connect();
 
     try {
@@ -296,6 +292,25 @@ const RefundModel = {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Process refund (mark as completed)
+   */
+  static async processRefund(id, processedBy, transactionId) {
+    const query = `
+      UPDATE refund_requests 
+      SET status = 'completed',
+          processed_by = $1,
+          processed_at = NOW(),
+          refunded_at = NOW(),
+          refund_transaction_id = $2,
+          updated_at = NOW()
+      WHERE id = $3
+      RETURNING *
+    `;
+    const result = await pool.query(query, [processedBy, transactionId, id]);
+    return result.rows[0];
   }
 };
 

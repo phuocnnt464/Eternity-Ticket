@@ -1,7 +1,7 @@
 const pool = require('../config/database');
 
-const CouponModel = {
-  async create(couponData) {
+class CouponModel {
+  static async create(couponData) {
     const query = `
       INSERT INTO coupons (
         code, title, description, event_id, created_by, type,
@@ -21,9 +21,9 @@ const CouponModel = {
     ];
     const result = await pool.query(query, values);
     return result.rows[0];
-  },
+  }
 
-  async findByCode(code, eventId = null) {
+  static async findByCode(code, eventId = null) {
     const query = `
       SELECT * FROM coupons 
       WHERE code = $1 
@@ -35,9 +35,9 @@ const CouponModel = {
     `;
     const result = await pool.query(query, [code, eventId]);
     return result.rows[0];
-  },
+  }
 
-  async validateCoupon(code, userId, eventId, orderAmount, membershipTier) {
+  static async validateCoupon(code, userId, eventId, orderAmount, membershipTier) {
     const coupon = await this.findByCode(code, eventId);
     
     if (!coupon) {
@@ -90,9 +90,9 @@ const CouponModel = {
       coupon, 
       discountAmount: Math.min(discountAmount, orderAmount)
     };
-  },
+  }
 
-  async findByEvent(eventId) {
+  static async findByEvent(eventId) {
     try {
       const query = `
         SELECT 
@@ -113,15 +113,15 @@ const CouponModel = {
     } catch (error) {
       throw new Error(`Failed to fetch event coupons: ${error.message}`);
     }
-  },
+  }
 
-  async findById(id) {
+  static async findById(id) {
     const query = 'SELECT * FROM coupons WHERE id = $1';
     const result = await pool.query(query, [id]);
     return result.rows[0];
-  },
+  }
 
-  async update(id, updateData) {
+  static async update(id, updateData) {
     try {
       const fields = [];
       const values = [];
@@ -160,9 +160,9 @@ const CouponModel = {
     } catch (error) {
       throw new Error(`Failed to update coupon: ${error.message}`);
     }
-  },
+  }
 
-  async delete(id) {
+  static async delete(id) {
     try {
       // Soft delete - just deactivate
       const query = `
@@ -177,9 +177,9 @@ const CouponModel = {
     } catch (error) {
       throw new Error(`Failed to delete coupon: ${error.message}`);
     }
-  },
+  }
 
-  async getStats(id) {
+  static async getStats(id) {
     try {
       const query = `
         SELECT 
@@ -218,9 +218,9 @@ const CouponModel = {
     } catch (error) {
       throw new Error(`Failed to get coupon stats: ${error.message}`);
     }
-  },
+  }
 
-  async recordUsage(couponId, userId, orderId, discountAmount) {
+  static async recordUsage(couponId, userId, orderId, discountAmount) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -250,7 +250,7 @@ const CouponModel = {
     } finally {
       client.release();
     }
-  },
+  }
 };
 
 module.exports = CouponModel;
