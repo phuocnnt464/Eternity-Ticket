@@ -80,8 +80,10 @@ const CouponController = {
   async getEventCoupons(req, res) {
     try {
       const { eventId } = req.params;
+      const userId = req.user.id;
+      const userRole = req.user.role;
       
-      // ✅ THÊM: Verify user has access to event
+      // Verify user has access to event
       if (!['admin', 'sub_admin'].includes(userRole)) {
         const pool = require('../config/database');
         

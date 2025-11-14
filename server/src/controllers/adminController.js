@@ -1013,23 +1013,6 @@ class AdminController {
     }
   }
 
-  async logAdminAction(adminId, action, targetType, targetId, oldValues, newValues, description, ipAddress) {
-    try {
-      await AuditLogModel.create({
-        admin_id: adminId,
-        action,
-        target_type: targetType,
-        target_id: targetId,
-        old_values: oldValues,
-        new_values: newValues,
-        description,
-        ip_address: ipAddress
-      });
-    } catch (error) {
-      console.error('Log admin action error:', error);
-    }
-  }
-
   static async cancelEvent(req, res) {
     try {
       const { eventId } = req.params;
