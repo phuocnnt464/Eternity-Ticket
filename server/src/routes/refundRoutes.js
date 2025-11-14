@@ -3,6 +3,7 @@ const router = express.Router();
 const RefundController = require('../controllers/refundController');
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 const { validate, validateUUIDParam } = require('../middleware/validationMiddleware');
+const { logAdminAudit } = require('../middleware/activityLogger');
 
 // Import Joi schemas
 const {
@@ -82,6 +83,7 @@ router.put(
   authorizeRoles('admin', 'sub_admin'),
   validateUUIDParam('id'),
   validate(approveRefundSchema),
+   logAdminAudit('APPROVE_REFUND', 'REFUND'), 
   RefundController.approveRefund
 );
 
@@ -96,6 +98,7 @@ router.put(
   authorizeRoles('admin', 'sub_admin'),
   validateUUIDParam('id'),
   validate(rejectRefundSchema),
+  logAdminAudit('REJECT_REFUND', 'REFUND'),
   RefundController.rejectRefund
 );
 
@@ -110,6 +113,7 @@ router.put(
   authorizeRoles('admin', 'sub_admin'),
   validateUUIDParam('id'),
   validate(processRefundSchema),
+  logAdminAudit('PROCESS_REFUND', 'REFUND'),
   RefundController.processRefund
 );
 

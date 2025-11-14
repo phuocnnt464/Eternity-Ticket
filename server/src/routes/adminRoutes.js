@@ -234,14 +234,20 @@ router.get('/activity-logs',
 /**
  * GET /api/admin/audit-logs
  * Get admin audit logs
+ * Get admin audit logs with filters
+ * Query params: admin_id, action, target_type, start_date, end_date, page, limit
  */
 router.get('/audit-logs',
   validatePagination(),
   AdminController.getAuditLogs
 );
 
-// router.get('/audit-logs', AdminController.getAuditLogs);
-router.get('/audit-logs/:targetType/:targetId', AdminController.getAuditLogsByTarget);
+/**
+ * GET /api/admin/audit-logs/:targetType/:targetId
+ * Get audit logs for specific target entity
+ */
+router.get('/audit-logs/:targetType/:targetId', 
+  AdminController.getAuditLogsByTarget);
 
 /**
  * @route   POST /api/admin/sub-admins

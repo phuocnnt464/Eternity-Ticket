@@ -90,13 +90,16 @@ const logAdminAudit = (action, targetType) => {
       if (data.success && req.user && ['admin', 'sub_admin'].includes(req.user.role)) {
         const targetId = req.params.userId 
           || req.params.eventId 
-          || req.params.orderId 
+          || req.params.orderId
+          || req.params.refundId
+          || req.params.id
+          || (data.data && data.data.id) 
           || null;
         
         const query = `
           INSERT INTO admin_audit_logs 
-          (admin_id, action, target_type, target_id, description, ip_address)
-          VALUES ($1, $2, $3, $4, $5, $6)
+          (admin_id, action, target_type, target_id, old_values, new_values, description, ip_address)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `;
         
         pool.query(query, [
@@ -104,6 +107,8 @@ const logAdminAudit = (action, targetType) => {
           action,
           targetType,
           targetId,
+          null, // old_values - có thể implement sau nếu cần
+          data.data ? JSON.stringify(data.data) : null, // new_values
           `Admin ${action} ${targetType}${targetId ? ` (ID: ${targetId})` : ''}`,
           req.ip
         ]).catch(err => console.error('❌ Admin audit log error:', err.message));
@@ -116,77 +121,75 @@ const logAdminAudit = (action, targetType) => {
   };
 };
 
-const logAdminAuditWithValues = (action, targetType) => {
-  return async (req, res, next) => {
-    // Capture old values before operation
-    const oldValues = await captureCurrentState(req);
+// const logAdminAuditWithValues = (action, targetType) => {
+//   return async (req, res, next) => {
+//     // Capture old values before operation
+//     const oldValues = await captureCurrentState(req);
     
-    const originalJson = res.json;
+//     const originalJson = res.json;
     
-    res.json = function(data) {
-      if (data.success) {
-        const newValues = data.data; // New state after operation
+//     res.json = function(data) {
+//       if (data.success) {
+//         const newValues = data.data; // New state after operation
         
-        const query = `
-          INSERT INTO admin_audit_logs 
-          (admin_id, action, target_type, target_id, old_values, new_values, description)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
-        `;
+//         const query = `
+//           INSERT INTO admin_audit_logs 
+//           (admin_id, action, target_type, target_id, old_values, new_values, description)
+//           VALUES ($1, $2, $3, $4, $5, $6, $7)
+//         `;
         
-        pool.query(query, [
-          req.user.id,
-          action,
-          targetType,
-          req.params.userId,
-          JSON.stringify(oldValues),
-          JSON.stringify(newValues),
-          `Admin ${action} ${targetType}`
-        ]).catch(err => console.error(err));
-      }
+//         pool.query(query, [
+//           req.user.id,
+//           action,
+//           targetType,
+//           req.params.userId,
+//           JSON.stringify(oldValues),
+//           JSON.stringify(newValues),
+//           `Admin ${action} ${targetType}`
+//         ]).catch(err => console.error(err));
+//       }
       
-      return originalJson.call(this, data);
-    };
+//       return originalJson.call(this, data);
+//     };
     
-    next();
-  };
-};
+//     next();
+//   };
+// };
 
-// Bổ sung vào activityLogger.js
-
-const logSensitiveDataChange = (action, entityType, oldValues, newValues) => {
-  return async (req, res, next) => {
-    const originalJson = res.json;
+// const logSensitiveDataChange = (action, entityType, oldValues, newValues) => {
+//   return async (req, res, next) => {
+//     const originalJson = res.json;
     
-    res.json = function(data) {
-      if (data.success && req.user) {
-        const query = `
-          INSERT INTO admin_audit_logs 
-          (admin_id, action, target_type, target_id, old_values, new_values, description, ip_address)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        `;
+//     res.json = function(data) {
+//       if (data.success && req.user) {
+//         const query = `
+//           INSERT INTO admin_audit_logs 
+//           (admin_id, action, target_type, target_id, old_values, new_values, description, ip_address)
+//           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+//         `;
         
-        pool.query(query, [
-          req.user.id,
-          action,
-          entityType,
-          req.params.userId || req.params.eventId,
-          JSON.stringify(oldValues),
-          JSON.stringify(newValues),
-          `${action} ${entityType}`,
-          req.ip
-        ]).catch(err => console.error(err));
-      }
+//         pool.query(query, [
+//           req.user.id,
+//           action,
+//           entityType,
+//           req.params.userId || req.params.eventId,
+//           JSON.stringify(oldValues),
+//           JSON.stringify(newValues),
+//           `${action} ${entityType}`,
+//           req.ip
+//         ]).catch(err => console.error(err));
+//       }
       
-      return originalJson.call(this, data);
-    };
+//       return originalJson.call(this, data);
+//     };
     
-    next();
-  };
-};
+//     next();
+//   };
+// };
 
 module.exports = { 
   logActivity, 
   logAdminAudit,
-  logAdminAuditWithValues,
-  logSensitiveDataChange
+  // logAdminAuditWithValues,
+  // logSensitiveDataChange
 };

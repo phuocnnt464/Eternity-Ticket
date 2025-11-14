@@ -745,8 +745,24 @@ class AdminController {
 
   static async getAuditLogs(req, res) {
     try {
-      const { page = 1, limit = 50 } = req.query;
+      const {
+        admin_id, 
+        action, 
+        target_type, 
+        start_date, 
+        end_date,
+        page = 1, 
+        limit = 50 
+      } = req.query;
       const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      const filters = {};
+
+      if (admin_id) filters.admin_id = admin_id;
+      if (action) filters.action = action;
+      if (target_type) filters.target_type = target_type;
+      if (start_date) filters.start_date = start_date;
+      if (end_date) filters.end_date = end_date;
       
       const query = `
         SELECT 
@@ -758,15 +774,16 @@ class AdminController {
         ORDER BY al.created_at DESC
         LIMIT $1 OFFSET $2
       `;
+      const result = await AuditLogModel.findAll(filters, parseInt(limit), offset);
       
-      const countQuery = `SELECT COUNT(*) as total FROM admin_audit_logs`;
+      // const countQuery = `SELECT COUNT(*) as total FROM admin_audit_logs`;
       
-      const [logsResult, countResult] = await Promise.all([
-        pool.query(query, [parseInt(limit), offset]),
-        pool.query(countQuery)
-      ]);
+      // const [logsResult, countResult] = await Promise.all([
+      //   pool.query(query, [parseInt(limit), offset]),
+      //   pool.query(countQuery)
+      // ]);
       
-      const totalCount = parseInt(countResult.rows[0].total);
+      // const totalCount = parseInt(countResult.rows[0].total);
       
       res.json(createResponse(
         true,
@@ -783,6 +800,27 @@ class AdminController {
       ));
     } catch (error) {
       console.error('❌ Get audit logs error:', error);
+      res.status(500).json(createResponse(false, 'Failed to retrieve logs'));
+    }
+  }
+
+  /**
+   * Get audit logs for a specific target
+   * GET /api/admin/audit-logs/:targetType/:targetId
+   */
+  static async getAuditLogsByTarget(req, res) {
+    try {
+      const { targetType, targetId } = req.params;
+      
+      const logs = await AuditLogModel.findByTarget(targetType, targetId);
+      
+      res.json(createResponse(
+        true,
+        'Audit logs retrieved successfully',
+        { logs, count: logs.length }
+      ));
+    } catch (error) {
+      console.error('❌ Get audit logs by target error:', error);
       res.status(500).json(createResponse(false, 'Failed to retrieve logs'));
     }
   }
@@ -974,49 +1012,6 @@ class AdminController {
       res.status(500).json(createResponse(false, 'Failed to deactivate'));
     }
   }
-
-
-  // async getAuditLogs(req, res) {
-  //   try {
-  //     const { 
-  //       admin_id, 
-  //       action, 
-  //       target_type, 
-  //       start_date, 
-  //       end_date,
-  //       page = 1, 
-  //       limit = 50 
-  //     } = req.query;
-
-  //     const offset = (page - 1) * limit;
-  //     const filters = {};
-
-  //     if (admin_id) filters.admin_id = admin_id;
-  //     if (action) filters.action = action;
-  //     if (target_type) filters.target_type = target_type;
-  //     if (start_date) filters.start_date = start_date;
-  //     if (end_date) filters.end_date = end_date;
-
-  //     const result = await AuditLogModel.findAll(filters, parseInt(limit), offset);
-
-  //     res.json({
-  //       success: true,
-  //       data: result.logs,
-  //       pagination: {
-  //         page: result.page,
-  //         totalPages: result.totalPages,
-  //         total: result.total
-  //       }
-  //     });
-  //   } catch (error) {
-  //     console.error('Get audit logs error:', error);
-  //     res.status(500).json({
-  //       success: false,
-  //       message: 'Failed to fetch audit logs',
-  //       error: error.message
-  //     });
-  //   }
-  // }
 
   async logAdminAction(adminId, action, targetType, targetId, oldValues, newValues, description, ipAddress) {
     try {

@@ -92,33 +92,6 @@ const CouponModel = {
     };
   },
 
-  async recordUsage(couponId, userId, orderId, discountAmount) {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-
-      // Increment usage count
-      await client.query(
-        'UPDATE coupons SET used_count = used_count + 1 WHERE id = $1',
-        [couponId]
-      );
-
-      // Record usage
-      await client.query(
-        `INSERT INTO coupon_usages (coupon_id, user_id, order_id, discount_amount)
-         VALUES ($1, $2, $3, $4)`,
-        [couponId, userId, orderId, discountAmount]
-      );
-
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  },
-
   async findByEvent(eventId) {
     try {
       const query = `

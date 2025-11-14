@@ -82,13 +82,24 @@ const CouponController = {
       const { eventId } = req.params;
       
       // ✅ THÊM: Verify user has access to event
-      const hasAccess = await verifyEventAccess(req.user.id, eventId);
-      if (!hasAccess && !['admin', 'sub_admin'].includes(req.user.role)) {
-        return res.status(403).json(
-          createResponse(false, 'You do not have access to this event')
-        );
+      if (!['admin', 'sub_admin'].includes(userRole)) {
+        const pool = require('../config/database');
+        
+        // Verify organizer owns this event or is team member
+        const accessCheck = await pool.query(`
+          SELECT 1 FROM events WHERE id = $1 AND organizer_id = $2
+          UNION
+          SELECT 1 FROM event_organizer_members 
+          WHERE event_id = $1 AND user_id = $2 AND is_active = true
+        `, [eventId, userId]);
+        
+        if (accessCheck.rows.length === 0) {
+          return res.status(403).json(
+            createResponse(false, 'You do not have access to this event')
+          );
+        }
       }
-      
+
       const coupons = await CouponModel.findByEvent(eventId);
       
       res.json(
