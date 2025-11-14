@@ -638,6 +638,93 @@ class OrderController {
       );
     }
   }
+  
+  /**
+   * VNPay IPN callback (server-to-server)
+   * GET /api/orders/payment/vnpay-ipn
+   */
+  static async vnpayIPN(req, res) {
+    try {
+      const vnpayParams = req.query;
+      
+      // ✅ Validate required fields
+      if (!vnpayParams.vnp_TxnRef || 
+          !vnpayParams.vnp_ResponseCode || 
+          !vnpayParams.vnp_TransactionNo ||
+          !vnpayParams.vnp_SecureHash) {
+        console.error('❌ VNPay IPN missing required parameters');
+        return res.json({ RspCode: '97', Message: 'Missing params' });
+      }
+
+      const VNPayService = require('../services/vnpayService');
+
+      // ✅ Verify signature
+      const isValid = VNPayService.verifyReturnUrl(vnpayParams);
+
+      if (!isValid) {
+        console.error('❌ VNPay IPN invalid signature');
+        return res.json({ RspCode: '97', Message: 'Invalid signature' });
+      }
+
+      const orderNumber = vnpayParams.vnp_TxnRef;
+      const responseCode = vnpayParams.vnp_ResponseCode;
+      const transactionId = vnpayParams.vnp_TransactionNo;
+
+      // ✅ Find order
+      const orderResult = await pool.query(
+        'SELECT * FROM orders WHERE order_number = $1',
+        [orderNumber]
+      );
+
+      if (orderResult.rows.length === 0) {
+        console.error(`❌ VNPay IPN order not found: ${orderNumber}`);
+        return res.json({ RspCode: '01', Message: 'Order not found' });
+      }
+
+      const order = orderResult.rows[0];
+
+      // ✅ Idempotency check
+      if (order.status === 'paid') {
+        console.log(`✅ VNPay IPN order already paid: ${orderNumber}`);
+        return res.json({ RspCode: '00', Message: 'Already confirmed' });
+      }
+
+      // ✅ Validate amount
+      const vnpAmount = parseInt(vnpayParams.vnp_Amount) / 100;
+      if (Math.abs(vnpAmount - parseFloat(order.total_amount)) > 0.01) {
+        console.error(`❌ VNPay IPN amount mismatch. VNP: ${vnpAmount}, Order: ${order.total_amount}`);
+        return res.json({ RspCode: '04', Message: 'Amount mismatch' });
+      }
+
+      // ✅ Process payment
+      if (responseCode === '00') {
+        await OrderModel.updateOrderStatus(order.id, {
+          status: 'paid',
+          payment_method: 'vnpay',
+          payment_transaction_id: transactionId,
+          payment_data: vnpayParams,
+          paid_at: new Date()
+        });
+
+        console.log(`✅ VNPay IPN payment confirmed: ${orderNumber}`);
+        return res.json({ RspCode: '00', Message: 'Confirm success' });
+      } else {
+        await OrderModel.updateOrderStatus(order.id, {
+          status: 'failed',
+          payment_method: 'vnpay',
+          payment_data: vnpayParams,
+          paid_at: null
+        });
+
+        console.log(`❌ VNPay IPN payment failed: ${orderNumber}, code: ${responseCode}`);
+        return res.json({ RspCode: responseCode, Message: 'Payment failed' });
+      }
+
+    } catch (error) {
+      console.error('❌ VNPay IPN error:', error);
+      return res.json({ RspCode: '99', Message: 'Unknown error' });
+    }
+  }
 }
 
 module.exports = OrderController;

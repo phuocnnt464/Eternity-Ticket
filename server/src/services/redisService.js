@@ -40,7 +40,13 @@ class RedisService {
       });
 
       this.client.on('reconnecting', () => {
-        console.log('Redis reconnecting...');
+        console.log('🔄 Redis reconnecting...');
+        this.isConnected = false;
+      });
+
+      this.client.on('end', () => {
+        console.log('🔌 Redis connection closed');
+        this.isConnected = false;
       });
 
       await this.client.connect();

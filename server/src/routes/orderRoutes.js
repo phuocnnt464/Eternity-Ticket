@@ -138,7 +138,7 @@ router.get('/payment/vnpay-return',
  * @access  Public
  */
 router.get('/payment/vnpay-ipn', 
-  OrderController.vnpayReturn // Dùng chung logic
+  OrderController.vnpayIPN // Dùng chung logic
 );
 
 // Admin routes

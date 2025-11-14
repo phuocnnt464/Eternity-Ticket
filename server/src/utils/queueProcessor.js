@@ -397,7 +397,7 @@ class QueueProcessor {
       await redisService.disconnect();
       
       console.log('Queue processor shutdown complete');
-      process.exit(0);
+      // process.exit(0);
     };
 
     process.on('SIGINT', shutdown);
