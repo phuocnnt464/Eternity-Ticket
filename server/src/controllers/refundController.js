@@ -162,37 +162,18 @@ const RefundController = {
       const { reviewNotes } = req.body;
       const adminId = req.user.id;
 
-      const refund = await RefundModel.findById(id);
-      if (!refund) {
-        return res.status(404).json({
-          success: false,
-          message: 'Refund request not found'
-        });
-      }
+      // Use RefundModel.approve with full transaction handling
+      const refundData = await RefundModel.approve(id, adminId, reviewNotes);
 
-      if (refund.status !== 'pending') {
-        return res.status(400).json({
-          success: false,
-          message: 'Refund request has already been processed'
-        });
-      }
-
-      const updatedRefund = await RefundModel.updateStatus(
-        id, 
-        'approved', 
-        adminId, 
-        reviewNotes
-      );
-
-      // ✅ Send approval email with correct method
+      // Send approval email
       try {
         const emailService = require('../services/emailService');
         await emailService.sendRefundApprovalEmail({
-          email: refund.user_email,
-          user_name: refund.user_name,
-          order_number: refund.order_number,
-          event_title: refund.event_title,
-          refund_amount: parseFloat(refund.refund_amount),
+          email: refundData.user_email,
+          user_name: refundData.user_name,
+          order_number: refundData.order_number,
+          event_title: refundData.event_title,
+          refund_amount: parseFloat(refundData.refund_amount),
           review_notes: reviewNotes
         });
       } catch (emailError) {
@@ -203,13 +184,25 @@ const RefundController = {
       res.json({
         success: true,
         message: 'Refund request approved successfully',
-        data: updatedRefund
+        data: {
+          refund_id: id,
+          status: 'approved'
+        }
       });
     } catch (error) {
-      console.error('Approve refund error:', error);
-      res.status(500).json({
+      console.error('❌ Approve refund error:', error);
+      
+      let statusCode = 500;
+      let message = 'Failed to approve refund request';
+      
+      if (error.message.includes('not found') || error.message.includes('already processed')) {
+        statusCode = 404;
+        message = error.message;
+      }
+      
+      res.status(statusCode).json({
         success: false,
-        message: 'Failed to approve refund request',
+        message,
         error: error.message
       });
     }
@@ -221,30 +214,18 @@ const RefundController = {
       const { rejectionReason } = req.body;
       const adminId = req.user.id;
 
-      const refund = await RefundModel.findById(id);
-      if (!refund) {
-        return res.status(404).json({
-          success: false,
-          message: 'Refund request not found'
-        });
-      }
+      // Use RefundModel.reject with full transaction handling
+      const refundData = await RefundModel.reject(id, adminId, rejectionReason);
 
-      const updatedRefund = await RefundModel.updateStatus(
-        id, 
-        'rejected', 
-        adminId, 
-        rejectionReason
-      );
-
-      // ✅ Send rejection email with correct method
+      // Send rejection email
       try {
         const emailService = require('../services/emailService');
         await emailService.sendRefundRejectionEmail({
-          email: refund.user_email,
-          user_name: refund.user_name,
-          order_number: refund.order_number,
-          event_title: refund.event_title,
-          refund_amount: parseFloat(refund.refund_amount),
+          email: refundData.user_email,
+          user_name: refundData.user_name,
+          order_number: refundData.order_number,
+          event_title: refundData.event_title,
+          refund_amount: parseFloat(refundData.refund_amount),
           rejection_reason: rejectionReason
         });
       } catch (emailError) {
@@ -254,13 +235,28 @@ const RefundController = {
       res.json({
         success: true,
         message: 'Refund request rejected',
-        data: updatedRefund
+        data: {
+          refund_id: id,
+          status: 'rejected'
+        }
       });
     } catch (error) {
-      console.error('Reject refund error:', error);
-      res.status(500).json({
+      console.error('❌ Reject refund error:', error);
+      
+      let statusCode = 500;
+      let message = 'Failed to reject refund request';
+      
+      if (error.message.includes('not found') || error.message.includes('already processed')) {
+        statusCode = 404;
+        message = error.message;
+      } else if (error.message.includes('required')) {
+        statusCode = 400;
+        message = error.message;
+      }
+      
+      res.status(statusCode).json({
         success: false,
-        message: 'Failed to reject refund request',
+        message,
         error: error.message
       });
     }
