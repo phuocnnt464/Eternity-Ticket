@@ -44,7 +44,17 @@ const handleSubmit = async () => {
     const redirect = route.query.redirect || '/'
     router.push(redirect)
   } catch (error) {
-    errors.value.general = error.message || 'Login failed'
+    const status = error.response?.status
+    const data = error.response?.data?.data
+    
+    if (status === 423) {
+      // Account locked
+      accountLocked.value = true
+      lockTimeRemaining.value = data?.minutes_remaining
+    }
+    
+    errors.value.general = error.response?.data?.error?.message || 'Login failed'
+    // errors.value.general = error.message || 'Login failed'
   } finally {
     loading.value = false
   }
@@ -60,6 +70,21 @@ const handleSubmit = async () => {
 
     <div v-if="errors.general" class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4">
       {{ errors.general }}
+    </div>
+
+    <div v-if="accountLocked" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+      <div class="flex items-center">
+        <LockClosedIcon class="w-5 h-5 text-yellow-600 mr-3" />
+        <div>
+          <p class="font-medium text-yellow-900">Account Temporarily Locked</p>
+          <p class="text-sm text-yellow-700 mt-1">
+            {{ errors.general }}
+          </p>
+          <p v-if="lockTimeRemaining" class="text-xs text-yellow-600 mt-2">
+            Time remaining: {{ lockTimeRemaining }} minutes
+          </p>
+        </div>
+      </div>
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-4">
