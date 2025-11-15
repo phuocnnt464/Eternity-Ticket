@@ -62,7 +62,7 @@ const loadProfile = async () => {
     }
 
     const response = await usersAPI.getUserById(userId)
-    const user = response.data.data.user
+    const user = response.data.user
     
     form.value = {
       first_name: user.first_name || '',

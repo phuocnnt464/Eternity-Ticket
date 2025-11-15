@@ -91,16 +91,17 @@ const getMembershipBadge = (tier) => {
 const fetchUsers = async () => {
   loading.value = true
   try {
-    const response = await adminAPI.getUsers({
+    const response = await adminAPI.getAllUsers({
       page: pagination.value.currentPage,
       limit: pagination.value.perPage
     })
     
-    users.value = response.data.data || []
+    users.value = response.data.users || []
     pagination.value.totalItems = response.data.pagination?.total || 0
-    pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
+    pagination.value.totalPages = response.data.pagination?.totalPages ||Math.ceil(pagination.value.totalItems / pagination.value.perPage)
   } catch (error) {
     console.error('Failed to fetch users:', error)
+    console.error('Error response:', error.response)
   } finally {
     loading.value = false
   }
