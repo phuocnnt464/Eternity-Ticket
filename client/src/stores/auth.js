@@ -204,7 +204,8 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     
     try {
-      const response = await usersAPI.updateProfile(data)
+      // const response = await usersAPI.updateProfile(data)
+      const response = await usersAPI.updateProfile(user.value.id, data) 
       user.value = response.data.user
       return user.value
     } catch (err) {

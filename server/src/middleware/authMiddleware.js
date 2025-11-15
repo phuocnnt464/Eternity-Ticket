@@ -133,7 +133,7 @@ const authenticateToken = async (req, res, next) => {
     next();
 
   } catch (error) {
-    // ✅ Increment fail counter
+    // Increment fail counter
     await incrementFailCounter(`auth_fail:${req.ip}`);
     
     console.error('❌ Auth middleware error:', error.message);
