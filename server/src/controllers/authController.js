@@ -163,6 +163,13 @@ class AuthController {
         );
       }
 
+      if (!user.is_email_verified) {
+        console.log(`Login failed: Email not verified for: ${email}`);
+        return res.status(403).json(
+          createResponse(false, 'Please verify your email address before logging in. Check your inbox for the verification link.')
+        );
+      }
+
        // Check if account is locked
       if (user.account_locked_until && new Date(user.account_locked_until) > new Date()) {
         const lockTimeRemaining = Math.ceil(
