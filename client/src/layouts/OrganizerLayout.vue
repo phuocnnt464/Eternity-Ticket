@@ -55,10 +55,12 @@ const isActive = (href) => route.path.startsWith(href)
         ]"
       >
         <div class="hidden md:flex items-center space-x-3 p-6 border-b">
-          <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg flex items-center justify-center">
-            <span class="text-white font-bold text-xl">ET</span>
-          </div>
-          <span class="text-xl font-bold">Organizer</span>
+          <RouterLink to="/" class="flex items-center space-x-2">
+            <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg flex items-center justify-center">
+              <span class="text-white font-bold text-xl">ET</span>
+            </div>
+            <span class="text-xl font-bold">Organizer</span>
+          </RouterLink>
         </div>
 
         <div class="p-6 border-b">
