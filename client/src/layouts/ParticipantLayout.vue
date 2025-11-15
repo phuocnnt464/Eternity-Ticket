@@ -26,10 +26,6 @@ const navigation = [
   { name: 'Notifications', href: '/participant/notifications', icon: BellIcon },
 ]
 
-const handleLogout = async () => {
-  await authStore.logout()
-}
-
 const isActive = (href) => route.path === href
 </script>
 
@@ -48,11 +44,22 @@ const isActive = (href) => route.path === href
 
     <div class="flex">
       <!-- Sidebar -->
-      <AppSidebar
-        :navigation="navigation"
-        :is-open="sidebarOpen"
-        @close="sidebarOpen = false"
+      <aside 
+        :class="[
+          'fixed md:sticky top-0 left-0 h-screen bg-white shadow-lg z-30 transition-transform duration-300',
+          'w-64 flex flex-col',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        ]"
       >
+
+        <!-- Logo (Desktop) -->
+        <div class="hidden md:flex items-center space-x-3 p-6 border-b">
+          <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-xl">ET</span>
+          </div>
+          <span class="text-xl font-bold">Eternity Ticket</span>
+        </div>
+
         <!-- User Info -->
         <div class="p-6 border-b">
           <div class="flex items-center space-x-3">
@@ -102,14 +109,14 @@ const isActive = (href) => route.path === href
         <!-- Logout -->
         <div class="p-4 border-t">
           <button 
-            @click="handleLogout"
+            @click="authStore.logout()"
             class="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 w-full transition-colors"
           >
             <ArrowRightOnRectangleIcon class="w-5 h-5" />
             <span>Logout</span>
           </button>
         </div>
-      </AppSidebar>
+      </aside>
 
       <!-- Mobile Overlay -->
       <div 

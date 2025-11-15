@@ -47,10 +47,12 @@ const isActive = (href) => route.path.startsWith(href)
 
     <div class="flex">
       <!-- Sidebar -->
-      <AppSidebar
-        :navigation="navigation"
-        :is-open="sidebarOpen"
-        @close="sidebarOpen = false"
+      <aside 
+        :class="[
+          'fixed md:sticky top-0 left-0 h-screen bg-white shadow-lg z-30 transition-transform duration-300',
+          'w-64 flex flex-col',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        ]"
       >
         <div class="hidden md:flex items-center space-x-3 p-6 border-b">
           <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg flex items-center justify-center">
@@ -100,7 +102,7 @@ const isActive = (href) => route.path.startsWith(href)
             <span>Logout</span>
           </button>
         </div>
-      </AppSidebar>
+      </aside>
 
       <div 
         v-if="sidebarOpen"
