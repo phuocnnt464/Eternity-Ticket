@@ -9,6 +9,8 @@ const {
 } = require('../utils/helpers');
 
 const emailService = require('../services/emailService');
+const redisService = require('../services/redisService');
+const pool = require('../config/database');
 
 class AuthController {
   /**
@@ -548,7 +550,6 @@ class AuthController {
 
       if (ttl > 0) {
         // ✅ 2. Blacklist access token in Redis
-        const redisService = require('../services/redisService');
         if (redisService.isReady()) {
           const blacklistKey = `blacklist:token:${token}`;
           await redisService.getClient().setEx(blacklistKey, ttl, 'revoked');

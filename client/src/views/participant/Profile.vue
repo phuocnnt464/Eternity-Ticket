@@ -54,7 +54,13 @@ const membershipBadge = computed(() => {
 
 const loadProfile = async () => {
   try {
-    const userId = authStore.user.user_id
+    const userId = authStore.user.id
+    
+    if (!userId) {
+      console.error('User ID not found')
+      return
+    }
+
     const response = await usersAPI.getUserById(userId)
     const user = response.data.data
     
@@ -105,11 +111,11 @@ const uploadAvatar = async () => {
   
   loading.value = true
   try {
-    const userId = authStore.user.user_id
+    const userId = authStore.user.id
     await usersAPI.uploadAvatar(userId, avatarFile.value)
     
     // Reload user data
-    await authStore.loadUser()
+    await authStore.fetchProfile()
     avatarFile.value = null
     alert('Avatar updated successfully!')
   } catch (error) {

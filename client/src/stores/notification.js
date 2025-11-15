@@ -7,6 +7,12 @@ export const useNotificationStore = defineStore('notification', () => {
   // ==========================================
   const notifications = ref([])
   const unreadCount = ref(0)
+
+  function $reset() {
+    notifications.value = []
+    unreadCount.value = 0
+    // Reset tất cả state
+  }
   const loading = ref(false)
   const error = ref(null)
   
@@ -191,6 +197,8 @@ export const useNotificationStore = defineStore('notification', () => {
     // State
     notifications,
     unreadCount,
+    $reset,
+    
     loading,
     error,
     pagination,

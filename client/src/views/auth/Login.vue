@@ -18,6 +18,10 @@ const form = ref({
 const errors = ref({})
 const loading = ref(false)
 
+
+const accountLocked = ref(false)
+const lockTimeRemaining = ref(null)
+
 const validate = () => {
   errors.value = {}
   

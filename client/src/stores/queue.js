@@ -2,6 +2,15 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export const useQueueStore = defineStore('queue', () => {
+  const queuePosition = ref(null)
+  const estimatedWaitTime = ref(null)
+  
+  function $reset() {
+    queuePosition.value = null
+    estimatedWaitTime.value = null
+    // Reset tất cả state
+  }
+  // ==========================================
   const isInQueue = ref(false)
   const queueId = ref(null)
   const queueNumber = ref(null)
@@ -174,6 +183,9 @@ export const useQueueStore = defineStore('queue', () => {
   }
   
   return {
+    queuePosition,
+    estimatedWaitTime,
+    $reset,
      // State
     isInQueue,
     queueId,
