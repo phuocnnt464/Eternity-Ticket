@@ -65,7 +65,7 @@ class AuthController {
  
       await emailService.sendVerificationEmail(
         result.user.email, 
-        result.verificationToken,
+        result.verification_token,
         `${result.user.first_name} ${result.user.last_name}`
       );
 
@@ -94,13 +94,7 @@ class AuthController {
           is_email_verified: result.user.is_email_verified,
           created_at: result.user.created_at
         },
-        membership: { tier: 'basic', is_active: true },  
-        // tokens: {
-        //   access_token: accessToken,
-        //   refresh_token: refreshToken,
-        //   token_type: 'Bearer',
-        //   expires_in: process.env.JWT_EXPIRES_IN ||'24h'
-        // }
+        membership: { tier: 'basic', is_active: true }
       };
 
       const response = createResponse(
