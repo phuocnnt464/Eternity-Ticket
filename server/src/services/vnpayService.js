@@ -9,7 +9,7 @@ class VNPayService {
     this.vnp_TmnCode = process.env.VNPAY_TMN_CODE;
     this.vnp_HashSecret = process.env.VNPAY_HASH_SECRET;
     this.vnp_Url = process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
-    this.vnp_ReturnUrl = process.env.VNPAY_RETURN_URL;
+    // this.vnp_ReturnUrl = process.env.VNPAY_RETURN_URL;
   }
 
   /**
@@ -42,6 +42,12 @@ class VNPayService {
       locale = 'vn'
     } = params;
 
+    // Validate returnUrl is required
+    if (!returnUrl) {
+      throw new Error('returnUrl is required for VNPay payment');
+    }
+
+
     // Create date
     const date = new Date();
     const createDate = this.formatDate(date);
@@ -58,7 +64,7 @@ class VNPayService {
       vnp_OrderInfo: orderInfo,
       vnp_OrderType: orderType,
       vnp_Amount: Math.round(amount * 100), // VNPay uses smallest currency unit
-      vnp_ReturnUrl: returnUrl || this.vnp_ReturnUrl,
+      vnp_ReturnUrl: returnUrl,
       vnp_IpAddr: ipAddr,
       vnp_CreateDate: createDate,
       vnp_ExpireDate: expireDate

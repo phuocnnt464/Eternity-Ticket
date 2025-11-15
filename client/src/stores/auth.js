@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authAPI } from '@/api/auth'
+import { usersAPI } from '../api/users'
 import { useRouter } from 'vue-router' 
 import { useCartStore } from './cart' 
 import { useQueueStore } from './queue' 
@@ -133,8 +134,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       // ✅ 3. Clear localStorage
       const keysToRemove = [
-        'accessToken',
-        'refreshToken', 
+        'access_token',
+        'refresh_token', 
         'user',
         'auth' // Nếu dùng pinia-plugin-persistedstate
       ]
@@ -203,7 +204,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     
     try {
-      const response = await authAPI.updateProfile(data)
+      const response = await usersAPI.updateProfile(data)
       user.value = response.data.user
       return user.value
     } catch (err) {
@@ -325,7 +326,6 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     logout,
     fetchProfile,
-    getProfile: fetchProfile,
     updateProfile,
     changePassword,
     forgotPassword,
