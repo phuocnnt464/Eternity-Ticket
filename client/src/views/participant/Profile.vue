@@ -144,11 +144,11 @@ const handleUpdateProfile = async () => {
   
   loading.value = true
   try {
-    const userId = authStore.user.user_id
+    const userId = authStore.user.id
     await usersAPI.updateProfile(userId, form.value)
     
     // Reload user data
-    await authStore.loadUser()
+    await authStore.fetchProfile()
     alert('Profile updated successfully!')
   } catch (error) {
     errors.value.general = error.response?.data?.error?.message || 'Failed to update profile'
