@@ -92,6 +92,7 @@ class AuthController {
           is_email_verified: result.user.is_email_verified,
           created_at: result.user.created_at
         },
+        membership: { tier: 'basic', is_active: true },  
         tokens: {
           access_token: accessToken,
           refresh_token: refreshToken,
@@ -271,8 +272,8 @@ class AuthController {
           first_name: user.first_name,
           last_name: user.last_name,
           is_email_verified: user.is_email_verified,
-          membership: membership || { tier: 'basic', is_active: false }
         },
+        membership: membership || { tier: 'basic', is_active: false },
         tokens: {
           access_token: accessToken,
           refresh_token: refreshToken,
