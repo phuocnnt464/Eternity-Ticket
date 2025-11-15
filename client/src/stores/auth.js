@@ -111,10 +111,11 @@ export const useAuthStore = defineStore('auth', () => {
     
     try {
       const response = await authAPI.register(data)
-      const { user: userData, tokens, membership } = response.data
+      // const { user: userData, tokens, membership } = response.data
       
-      setAuth(userData, tokens, membership)
-      return userData
+      // setAuth(userData, tokens, membership)
+      // return userData
+      return response.data.user
     } catch (err) {
       error.value = err.response?.data?.error?.message || 'Registration failed'
       throw err
