@@ -31,6 +31,8 @@ app.use(Vue3Toastify, {
   draggable: true
 })
 
+app.config.globalProperties.$toast = toast
+
 // Global error handler
 app.config.errorHandler = (err, instance, info) => {
   console.error('Global error:', err)
