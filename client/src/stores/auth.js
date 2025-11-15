@@ -53,7 +53,11 @@ export const useAuthStore = defineStore('auth', () => {
    * Set auth data (user + tokens)
    */
   const setAuth = (userData, tokens) => {
-    user.value = userData
+    // user.value = userData
+    user.value = {
+      ...userData,
+      membership: membership || { tier: 'basic', is_active: false }
+    }
     accessToken.value = tokens.access_token
     refreshToken.value = tokens.refresh_token
     
@@ -85,9 +89,9 @@ export const useAuthStore = defineStore('auth', () => {
     
     try {
       const response = await authAPI.login(credentials)
-      const { user: userData, tokens } = response.data
+      const { user: userData, tokens, membership } = response.data
       
-      setAuth(userData, tokens)
+      setAuth(userData, tokens, membership)
       return userData
     } catch (err) {
       error.value = err.response?.data?.error?.message || 'Login failed'
@@ -106,9 +110,9 @@ export const useAuthStore = defineStore('auth', () => {
     
     try {
       const response = await authAPI.register(data)
-      const { user: userData, tokens } = response.data
+      const { user: userData, tokens, membership } = response.data
       
-      setAuth(userData, tokens)
+      setAuth(userData, tokens, membership)
       return userData
     } catch (err) {
       error.value = err.response?.data?.error?.message || 'Registration failed'
@@ -182,7 +186,15 @@ export const useAuthStore = defineStore('auth', () => {
     
     try {
       const response = await authAPI.getProfile()
-      user.value = response.data.user
+      // user.value = response.data.user
+
+      const { user: userData, membership } = response.data
+    
+      // Merge membership vào user
+      user.value = {
+        ...userData,
+        membership: membership || { tier: 'basic', is_active: false }
+      }
       return user.value
     } catch (err) {
       error.value = 'Failed to fetch profile'
