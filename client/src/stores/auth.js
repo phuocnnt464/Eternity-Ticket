@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import { useCartStore } from './cart' 
 import { useQueueStore } from './queue' 
 import { useNotificationStore } from './notification' 
+import router from '@/router' 
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -178,6 +179,8 @@ export const useAuthStore = defineStore('auth', () => {
       })
       
       loading.value = false
+
+      router.push('/')
     }
   }
   

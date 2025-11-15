@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AppSidebar from '@/components/layout/AppSidebar.vue'
 import {
   HomeIcon,
   CalendarIcon,
@@ -24,6 +25,10 @@ const navigation = [
   { name: 'Create Event', href: '/organizer/events/create', icon: PlusCircleIcon },
 ]
 
+const handleLogout = async () => {
+  await authStore.logout()
+}
+
 const isActive = (href) => route.path.startsWith(href)
 </script>
 
@@ -42,12 +47,10 @@ const isActive = (href) => route.path.startsWith(href)
 
     <div class="flex">
       <!-- Sidebar -->
-      <aside 
-        :class="[
-          'fixed md:sticky top-0 left-0 h-screen bg-white shadow-lg z-30 transition-transform duration-300',
-          'w-64 flex flex-col',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        ]"
+      <AppSidebar
+        :navigation="navigation"
+        :is-open="sidebarOpen"
+        @close="sidebarOpen = false"
       >
         <div class="hidden md:flex items-center space-x-3 p-6 border-b">
           <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg flex items-center justify-center">
@@ -90,14 +93,14 @@ const isActive = (href) => route.path.startsWith(href)
 
         <div class="p-4 border-t">
           <button 
-            @click="authStore.logout()"
+            @click="handleLogout"
             class="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 w-full transition-colors"
           >
             <ArrowRightOnRectangleIcon class="w-5 h-5" />
             <span>Logout</span>
           </button>
         </div>
-      </aside>
+      </AppSidebar>
 
       <div 
         v-if="sidebarOpen"
