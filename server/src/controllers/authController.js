@@ -407,14 +407,14 @@ class AuthController {
       const stats = await UserModel.getUserStats(userId);
 
       // Remove sensitive data
-      const { 
-        password_hash, 
-        email_verification_token, 
-        reset_password_token,
-        failed_login_attempts,
-        account_locked_until,
-        ...safeUser 
-      } = user;
+      // const { 
+      //   password_hash, 
+      //   email_verification_token, 
+      //   reset_password_token,
+      //   failed_login_attempts,
+      //   account_locked_until,
+      //   ...safeUser 
+      // } = user;
 
       // const responseData = {
       //   user: {
@@ -429,9 +429,31 @@ class AuthController {
       // };
 
       const responseData = {
-        user: safeUser,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          phone: user.phone,
+          avatar_url: user.avatar_url,
+          date_of_birth: user.date_of_birth,
+          gender: user.gender,
+          address: user.address,
+          city: user.city,
+          country: user.country,
+          is_email_verified: user.is_email_verified,
+          last_login_at: user.last_login_at,
+          created_at: user.created_at
+        },
         membership: membership || { tier: 'basic', is_active: false },
-        statistics: stats
+        statistics: {
+          total_orders: parseInt(stats.total_orders) || 0,
+          total_tickets: parseInt(stats.total_tickets) || 0,
+          used_tickets: parseInt(stats.used_tickets) || 0,
+          events_attended: parseInt(stats.events_attended) || 0,
+          total_spent: parseFloat(stats.total_spent) || 0
+        }
       };
 
       const response = createResponse(
