@@ -76,8 +76,8 @@ class AuthController {
         role: result.user.role
       };
 
-      const accessToken = generateAccessToken(tokenPayload);
-      const refreshToken = generateRefreshToken(tokenPayload);
+      // const accessToken = generateAccessToken(tokenPayload);
+      // const refreshToken = generateRefreshToken(tokenPayload);
 
       // Log activity
       console.log(`🔑 Tokens generated for user: ${result.user.email}`);
@@ -95,12 +95,12 @@ class AuthController {
           created_at: result.user.created_at
         },
         membership: { tier: 'basic', is_active: true },  
-        tokens: {
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          token_type: 'Bearer',
-          expires_in: process.env.JWT_EXPIRES_IN ||'24h'
-        }
+        // tokens: {
+        //   access_token: accessToken,
+        //   refresh_token: refreshToken,
+        //   token_type: 'Bearer',
+        //   expires_in: process.env.JWT_EXPIRES_IN ||'24h'
+        // }
       };
 
       const response = createResponse(

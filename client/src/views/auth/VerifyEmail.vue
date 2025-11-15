@@ -14,7 +14,8 @@ const success = ref(false)
 const error = ref('')
 
 onMounted(async () => {
-  const token = route.params.token
+  // const token = route.params.token
+  const token = route.query.token
   
   if (!token) {
     error.value = 'Invalid verification link'
