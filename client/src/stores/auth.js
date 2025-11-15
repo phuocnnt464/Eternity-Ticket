@@ -126,8 +126,12 @@ export const useAuthStore = defineStore('auth', () => {
    * Logout
    */
   const logout = async () => {
+    const tokenToRevoke = refreshToken.value
+
     try {
-      await authAPI.logout({ refresh_token: refreshToken.value })
+      if (tokenToRevoke) {
+        await authAPI.logout({ refresh_token: tokenToRevoke })
+      }
     } catch (err) {
       console.error('Logout error:', err)
     } finally {

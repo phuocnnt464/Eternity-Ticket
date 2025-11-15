@@ -551,7 +551,7 @@ class AuthController {
         const redisService = require('../services/redisService');
         if (redisService.isReady()) {
           const blacklistKey = `blacklist:token:${token}`;
-          await redisService.getClient().setex(blacklistKey, ttl, 'revoked');
+          await redisService.getClient().setEx(blacklistKey, ttl, 'revoked');
           console.log(`🔒 Token blacklisted: ${userId} for ${ttl}s`);
         }
       }
@@ -569,7 +569,7 @@ class AuthController {
             const refreshTTL = decodedRefresh.exp - now;
             if (refreshTTL > 0) {
               const refreshBlacklistKey = `blacklist:refresh:${refreshToken}`;
-              await redisService.getClient().setex(refreshBlacklistKey, refreshTTL, 'revoked');
+              await redisService.getClient().setEx(refreshBlacklistKey, refreshTTL, 'revoked');
             }
           } catch (err) {
             console.log('Failed to blacklist refresh token:', err.message);

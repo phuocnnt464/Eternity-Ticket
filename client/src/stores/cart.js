@@ -4,6 +4,12 @@ import { useAuthStore } from './auth'
 
 export const useCartStore = defineStore('cart', () => {
   const items = ref([])
+
+  function $reset() {
+    items.value = []
+    // Reset tất cả state về giá trị ban đầu
+  }
+  // ==========================================
   const event = ref(null)
   const session = ref(null)
   const couponCode = ref('')
@@ -215,6 +221,8 @@ export const useCartStore = defineStore('cart', () => {
   return {
      // State
     items,
+    $reset,
+    
     event,
     session,
     couponCode,
