@@ -52,7 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Set auth data (user + tokens)
    */
-  const setAuth = (userData, tokens) => {
+  const setAuth = (userData, tokens, membership) => {
     // user.value = userData
     user.value = {
       ...userData,

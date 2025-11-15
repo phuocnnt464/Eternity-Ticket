@@ -38,7 +38,7 @@ const authLimiter = rateLimit({
 
 const strictAuthLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 5 requests per windowMs for sensitive endpoints
+  max: 10, // limit each IP to 10 requests per windowMs for sensitive endpoints
   message: {
     success: false,
     // message: 'Too many failed attempts, please try again later.',

@@ -23,7 +23,8 @@ export function useAuth() {
 
   // Membership
   const isPremium = computed(() => authStore.isPremium)
-  const isVIP = computed(() => authStore.isVIP)
+  const isAdvanced = computed(() => authStore.isAdvanced)  
+  const isBasic = computed(() => authStore.isBasic)
 
   // Full name
   const fullName = computed(() => authStore.fullName)
@@ -70,7 +71,8 @@ export function useAuth() {
     isOrganizer,
     isParticipant,
     isPremium,
-    isVIP,
+    isAdvanced,
+    isBasic,
 
     // Methods
     login,
