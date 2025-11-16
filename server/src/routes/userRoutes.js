@@ -146,7 +146,7 @@ router.get('/:userId/stats',
       const UserModel = require('../models/userModel');
       const { createResponse } = require('../utils/helpers');
       
-      const stats = await UserModel.getUserStats(req.user.id);
+      const stats = await UserModel.getUserStats(req.params.userId);
       
       const responseData = {
         statistics: {
