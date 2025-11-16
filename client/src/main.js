@@ -9,7 +9,7 @@ import 'vue3-toastify/dist/index.css'
 import App from './App.vue'
 import router from './router'
 
-
+import { directive as vClickAway } from 'vue3-click-away'
 
 // Create Pinia instance
 const pinia = createPinia()
@@ -32,6 +32,8 @@ app.use(Vue3Toastify, {
 })
 
 app.config.globalProperties.$toast = toast
+
+app.directive('click-away', vClickAway)
 
 // Global error handler
 app.config.errorHandler = (err, instance, info) => {

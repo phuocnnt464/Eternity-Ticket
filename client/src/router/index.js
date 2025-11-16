@@ -171,7 +171,7 @@ const routes = [
         meta: { title: 'Reset Password - Eternity Ticket' }
       },
       {
-        path: 'verify-email/:token',
+        path: 'verify-email',
         name: 'VerifyEmail',
         component: VerifyEmail,
         meta: { title: 'Verify Email - Eternity Ticket' }
