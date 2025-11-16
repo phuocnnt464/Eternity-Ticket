@@ -36,9 +36,9 @@ export const usersAPI = {
   },
 
   // GET /api/users/:userId/events (for organizer)
-  getMyEvents: (userId, params) => {
-    return api.get(`/users/${userId}/events`, { params })
-  },
+  // getMyEvents: (userId, params) => {
+  //   return api.get(`/users/${userId}/events`, { params })
+  // },
 
   // GET /api/users/:userId/activity
   // getActivityLog: (userId, params) => {

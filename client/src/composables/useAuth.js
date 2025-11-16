@@ -53,9 +53,9 @@ export function useAuth() {
     router.push('/auth/login')
   }
 
-  const checkAuth = async () => {
-    await authStore.checkAuth()
-  }
+  // const checkAuth = async () => {
+  //   await authStore.checkAuth()
+  // }
 
   return {
     // State
@@ -78,6 +78,6 @@ export function useAuth() {
     login,
     register,
     logout,
-    checkAuth
+    // checkAuth
   }
 }
