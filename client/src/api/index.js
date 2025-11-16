@@ -9,6 +9,8 @@ export { sessionsAPI } from './sessions'
 export { checkinAPI } from './checkin'
 export { queueAPI } from './queue'
 export { notificationsAPI } from './notifications'
+export { refundAPI } from './refund'
+export { couponAPI } from './coupon'  
 
 // Default export for convenience
 export default {
@@ -21,5 +23,7 @@ export default {
   sessions: require('./sessions').sessionsAPI,
   checkin: require('./checkin').checkinAPI,
   queue: require('./queue').queueAPI,
-  notifications: require('./notifications').notificationsAPI
+  notifications: require('./notifications').notificationsAPI,
+  refund: require('./refund').refundAPI,
+  coupon: require('./coupon').couponAPI
 }
