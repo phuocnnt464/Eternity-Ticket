@@ -57,9 +57,9 @@ export const adminAPI = {
   },
 
   // PUT /api/admin/sub-admins/:id
-  updateSubAdmin: (id, data) => {
-    return api.put(`/admin/sub-admins/${id}`, data)
-  },
+  // updateSubAdmin: (id, data) => {
+  //   return api.put(`/admin/sub-admins/${id}`, data)
+  // },
 
   // DELETE /api/admin/sub-admins/:id
   deleteSubAdmin: (id) => {
@@ -97,8 +97,8 @@ export const adminAPI = {
   },
 
   // PUT /api/admin/settings
-  updateSettings: (data) => {
-    return api.put('/admin/settings', data)
+  updateSetting: (key, data) => {
+    return api.put(`/admin/settings/${key}`, data)
   },
 
   // GET /api/admin/orders

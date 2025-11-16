@@ -77,6 +77,11 @@ export const eventsAPI = {
     return api.get('/events/my/all-events', { params })
   },
 
+  // GET /api/events/image-requirements
+  getImageRequirements: () => {
+    return api.get('/events/image-requirements')
+  },
+
   // PUT /api/events/:id
   updateEvent: (id, data) => {
     const formData = new FormData()
