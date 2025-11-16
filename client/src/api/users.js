@@ -21,9 +21,11 @@ export const usersAPI = {
   },
 
   // DELETE /api/users/:userId (deactivate)
-  deactivateAccount: (userId) => {
-    return api.delete(`/users/${userId}`)
-  },
+  deactivateAccount: (userId, password) => {
+  return api.delete(`/users/${userId}`, { 
+    data: { password }  
+  })
+},
 
   // GET /api/users/:userId/tickets
   getTicketHistory: (userId, params) => {
