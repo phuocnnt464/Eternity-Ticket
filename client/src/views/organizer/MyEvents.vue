@@ -80,7 +80,7 @@ const handlePageChange = (page) => {
 }
 
 const handleEventClick = (event) => {
-  router.push(`/organizer/events/${event.event_id}/edit`)
+  router.push(`/organizer/events/${event.id}/edit`)
 }
 
 onMounted(() => {
@@ -144,7 +144,7 @@ onMounted(() => {
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
           v-for="event in filteredEvents"
-          :key="event.event_id"
+          :key="event.id"
           @click="handleEventClick(event)"
           class="cursor-pointer"
         >
@@ -155,14 +155,14 @@ onMounted(() => {
             <Button
               variant="secondary"
               size="sm"
-              @click.stop="router.push(`/organizer/events/${event.event_id}/statistics`)"
+              @click.stop="router.push(`/organizer/events/${event.id}/statistics`)"
             >
               Statistics
             </Button>
             <Button
               variant="secondary"
               size="sm"
-              @click.stop="router.push(`/organizer/events/${event.event_id}/orders`)"
+              @click.stop="router.push(`/organizer/events/${event.id}/orders`)"
             >
               Orders
             </Button>
