@@ -10,7 +10,7 @@ const {
   authorizeEventOrganizer,
   requireEventRole
 } = require('../middleware/authMiddleware');
-const { validate, validateUUIDParam, validateUUIDParams } = require('../middleware/validationMiddleware');
+const { validate, validateUUIDParam, validateUUIDParams, validatePagination } = require('../middleware/validationMiddleware');
 const {
   uploadEventImages,
   processEventImages
