@@ -98,10 +98,10 @@ const fetchLogs = async () => {
     
     logs.value = response.data.logs || []
 
-    // pagination.value.totalItems = response.data.pagination?.total || 0
+    // pagination.value.totalItems = response.data.pagination?.total_count || 0
     // pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
     const paginationData = response.data.pagination || {}
-    pagination.value.totalItems = paginationData.total_count || 0  // ✅ ĐÚNG - dùng 'total_count'
+    pagination.value.totalItems = paginationData.total_count || 0  
     pagination.value.totalPages = paginationData.total_pages || 1
     pagination.value.currentPage = paginationData.current_page || 1
   } catch (error) {

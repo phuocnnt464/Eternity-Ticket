@@ -82,9 +82,9 @@ class AuditLogModel {
     
     return {
       logs: result.rows,
-      total: parseInt(countResult.rows[0].count),
+      total_count: parseInt(countResult.rows[0].count),
       page: Math.floor(offset / limit) + 1,
-      totalPages: Math.ceil(parseInt(countResult.rows[0].count) / limit)
+      total_pages: Math.ceil(parseInt(countResult.rows[0].count) / limit)
     };
   }
 
