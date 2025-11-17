@@ -197,6 +197,17 @@ router.get('/:id/statistics',
   EventController.getEventStatistics
 );
 
+/**
+ * @route   GET /api/events/my/stats
+ * @desc    Get organizer dashboard statistics
+ * @access  Private (Organizer)
+ */
+router.get('/my/stats',
+  authenticateToken,
+  authorizeRoles('organizer'),
+  EventController.getOrganizerStats
+);
+
 // Admin routes (for future admin panel)
 
 /**

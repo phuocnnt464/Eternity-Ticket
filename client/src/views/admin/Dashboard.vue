@@ -96,11 +96,27 @@ const fetchDashboardData = async () => {
     
     const response = await adminAPI.getDashboardStats() 
 
-    if (response.success) {
-      stats.value = response.data.stats || {}
-      recentEvents.value = response.data.recent_events || []
-      recentUsers.value = response.data.recent_users || []
+    // if (response.success) {
+    //   stats.value = response.data.stats || {}
+    //   recentEvents.value = response.data.recent_events || []
+    //   recentUsers.value = response.data.recent_users || []
+    // }
+
+      const data = response.data || {}
+    
+    // Map server data to stats
+    stats.value = {
+      total_events: data.events?.total || 0,
+      pending_events: data.events?.pending || 0,
+      total_users: data.users?.active || 0,
+      total_revenue: data.revenue?.total || 0,
+      total_tickets_sold: data.tickets?.total || 0,
+      active_organizers: data.users?.by_role?.organizer || 0,
+      pending_refunds: data.refunds?.pending || 0
     }
+
+    recentEvents.value = data.events?.recent || []
+    recentUsers.value = data.users?.recent || []
   } catch (error) {
     console.error('Failed to fetch dashboard data:', error)
   } finally {
@@ -153,7 +169,7 @@ onMounted(() => {
       <Spinner size="xl" />
     </div>
 
-    <div v-else>
+    <div v-else class="space-y-6">
       <!-- Alert Cards -->
       <div v-if="stats.pending_events > 0 || stats.pending_refunds > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <Card
@@ -239,7 +255,7 @@ onMounted(() => {
       </div>
 
       <!-- Recent Activity -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <!-- Recent Events -->
         <Card>
           <div class="flex items-center justify-between mb-4">

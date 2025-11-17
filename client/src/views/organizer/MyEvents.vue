@@ -62,7 +62,7 @@ const fetchEvents = async () => {
       limit: pagination.value.perPage
     })
     
-    events.value = response.data.data || []
+    events.value = response.data.events || []
     pagination.value.totalItems = response.data.pagination?.total || 0
     pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
   } catch (error) {

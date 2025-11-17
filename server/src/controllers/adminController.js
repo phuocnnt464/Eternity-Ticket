@@ -21,6 +21,22 @@ class AdminController {
         
         // Get recent users
         const recentUsers = await UserModel.getRecentUsers(7, 5);
+
+        // Get recent events - THÊM DÒNG NÀY
+        const recentEventsQuery = `
+          SELECT 
+            e.id as event_id,
+            e.title,
+            e.status,
+            e.created_at,
+            u.first_name || ' ' || u.last_name as organizer_name,
+            u.email as organizer_email
+          FROM events e
+          LEFT JOIN users u ON e.organizer_id = u.id
+          ORDER BY e.created_at DESC
+          LIMIT 5
+        `;
+        const recentEventsResult = await pool.query(recentEventsQuery);
         
         // Get total events, orders, tickets
         const statsQuery = `
@@ -67,7 +83,8 @@ class AdminController {
             events: {
             active: parseInt(stats.active_events),
             pending: parseInt(stats.pending_events),
-            total: parseInt(stats.total_events)
+            total: parseInt(stats.total_events),
+            recent: recentEventsResult.rows
             },
             orders: {
             paid: parseInt(stats.paid_orders),

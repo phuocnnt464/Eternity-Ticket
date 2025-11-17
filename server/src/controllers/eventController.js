@@ -628,6 +628,60 @@ class EventController {
   }
 
   /**
+   * Get organizer dashboard statistics
+   * GET /api/events/my/stats
+   * @access Private (Organizer)
+   */
+  static async getOrganizerStats(req, res) {
+    try {
+      const organizerId = req.user.id;
+      
+      console.log(`📊 Getting stats for organizer: ${organizerId}`);
+      
+      const statsQuery = `
+        SELECT 
+          COUNT(*) FILTER (WHERE status = 'active') as active_events,
+          COUNT(*) FILTER (WHERE status = 'pending') as pending_events,
+          COUNT(*) FILTER (WHERE status = 'draft') as draft_events,
+          COUNT(*) as total_events,
+          COALESCE(SUM(
+            (SELECT COUNT(*) FROM tickets WHERE tickets.event_id = events.id)
+          ), 0) as total_tickets_sold,
+          COALESCE(SUM(
+            (SELECT COALESCE(SUM(total_amount), 0) 
+            FROM orders 
+            WHERE orders.event_id = events.id AND orders.status = 'paid')
+          ), 0) as total_revenue
+        FROM events
+        WHERE organizer_id = $1
+      `;
+      
+      const result = await pool.query(statsQuery, [organizerId]);
+      const stats = result.rows[0];
+      
+      res.json({
+        success: true,
+        message: 'Organizer statistics retrieved successfully',
+        data: {
+          active_events: parseInt(stats.active_events) || 0,
+          pending_events: parseInt(stats.pending_events) || 0,
+          draft_events: parseInt(stats.draft_events) || 0,
+          total_events: parseInt(stats.total_events) || 0,
+          total_tickets_sold: parseInt(stats.total_tickets_sold) || 0,
+          total_revenue: parseFloat(stats.total_revenue) || 0
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Get organizer stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch organizer statistics'
+      });
+    }
+  }
+
+  /**
    * Get events pending approval (Admin only)
    * GET /api/admin/events/pending
    * @access Private (Admin only)

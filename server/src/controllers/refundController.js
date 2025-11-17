@@ -75,7 +75,7 @@ class RefundController {
         filters.user_id = req.user.id;
       }
 
-      const refunds = await RefundModel.findAll(filters, parseInt(limit), offset);
+      const result = await RefundModel.findAll(filters, parseInt(limit), offset);
 
       // res.json({
       //   success: true,
@@ -98,7 +98,7 @@ class RefundController {
           }
         }
       });
-      
+
     } catch (error) {
       console.error('Get refund requests error:', error);
       res.status(500).json({

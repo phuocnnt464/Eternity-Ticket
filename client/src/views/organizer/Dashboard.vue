@@ -130,7 +130,7 @@ onMounted(() => {
       <Spinner size="xl" />
     </div>
 
-    <div v-else>
+    <div v-else class="space-y-6">
       <!-- Stats Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card
