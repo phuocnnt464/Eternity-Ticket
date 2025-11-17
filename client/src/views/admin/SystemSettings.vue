@@ -128,10 +128,12 @@ const handleSave = async () => {
   successMessage.value = ''
   
   try {
-    // await adminAPI.updateSettings(settings.value)
-     for (const [key, value] of Object.entries(settings.value)) {
-      await adminAPI.updateSettings(key, { value })
-    }
+    await adminAPI.updateSettings(settings.value)
+    // for (const [key, value] of Object.entries(settings.value)) {
+    //   if (value !== '' && value !== null && value !== undefined) {
+    //     await adminAPI.updateSettings(key, { value })
+    //   }
+    // }
     successMessage.value = 'Settings saved successfully!'
     
     setTimeout(() => {
