@@ -19,44 +19,27 @@ const saving = ref(false)
 const activeTab = ref('general')
 
 const settings = ref({
-  // General Settings
+  // Site Information
   site_name: '',
   site_description: '',
-  support_email: '',
+  currency_code: '',
+  currency_symbol: '',
+  timezone: '',
+  date_format: '',
+  time_format: '',
   
-  // Payment Settings
-  payment_gateway: 'stripe',
-  stripe_public_key: '',
-  stripe_secret_key: '',
-  paypal_client_id: '',
-  paypal_secret: '',
-  platform_fee_percentage: 10,
+  // System Limits
+  max_queue_capacity: '',
+  ticket_hold_duration_minutes: '',
+  max_file_size_mb: '',
   
-  // Email Settings
-  smtp_host: '',
-  smtp_port: 587,
-  smtp_username: '',
-  smtp_password: '',
-  smtp_from_email: '',
-  smtp_from_name: '',
+  // Financial Settings
+  vat_rate: '',
   
-  // Notification Settings
-  enable_email_notifications: true,
-  enable_sms_notifications: false,
-  notify_event_approval: true,
-  notify_ticket_purchase: true,
-  notify_refund_request: true,
-  
-  // Security Settings
-  require_email_verification: true,
-  enable_two_factor_auth: false,
-  session_timeout_minutes: 60,
-  max_login_attempts: 5,
-  password_min_length: 8,
-  
-  // Maintenance Mode
-  maintenance_mode: false,
-  maintenance_message: ''
+  // Membership Discounts
+  premium_discount_rate: '',
+  advanced_discount_rate: '',
+  premium_early_access_hours: ''
 })
 
 const errors = ref({})
@@ -64,25 +47,34 @@ const successMessage = ref('')
 
 const tabs = [
   { id: 'general', name: 'General', icon: Cog6ToothIcon },
-  { id: 'payment', name: 'Payment', icon: CurrencyDollarIcon },
-  { id: 'email', name: 'Email', icon: EnvelopeIcon },
-  { id: 'notifications', name: 'Notifications', icon: BellIcon },
-  { id: 'security', name: 'Security', icon: ShieldCheckIcon }
+  // { id: 'payment', name: 'Payment', icon: CurrencyDollarIcon },
+  // { id: 'email', name: 'Email', icon: EnvelopeIcon },
+  // { id: 'notifications', name: 'Notifications', icon: BellIcon },
+  // { id: 'security', name: 'Security', icon: ShieldCheckIcon }
 ]
 
-const paymentGateways = [
-  { value: 'stripe', label: 'Stripe' },
-  { value: 'paypal', label: 'PayPal' },
-  { value: 'vnpay', label: 'VNPay' }
-]
+// const paymentGateways = [
+//   { value: 'stripe', label: 'Stripe' },
+//   { value: 'paypal', label: 'PayPal' },
+//   { value: 'vnpay', label: 'VNPay' }
+// ]
 
 const fetchSettings = async () => {
   loading.value = true
   try {
     const response = await adminAPI.getSettings()
-    settings.value = { ...settings.value, ...response.data.data }
+    const settingsArray = response.data.data.settings // Array từ server
+    
+    // Convert array sang object
+    const settingsObj = {}
+    settingsArray.forEach(setting => {
+      settingsObj[setting.setting_key] = setting.setting_value
+    })
+    
+    settings.value = { ...settings.value, ...settingsObj }
   } catch (error) {
     console.error('Failed to fetch settings:', error)
+    alert('Failed to load settings')
   } finally {
     loading.value = false
   }
@@ -91,29 +83,62 @@ const fetchSettings = async () => {
 const validateSettings = () => {
   errors.value = {}
   
-  if (activeTab.value === 'general') {
-    if (!settings.value.site_name) {
-      errors.value.site_name = 'Site name is required'
-    }
-    if (!settings.value.support_email) {
-      errors.value.support_email = 'Support email is required'
-    }
+  // if (activeTab.value === 'general') {
+  //   if (!settings.value.site_name) {
+  //     errors.value.site_name = 'Site name is required'
+  //   }
+  //   if (!settings.value.support_email) {
+  //     errors.value.support_email = 'Support email is required'
+  //   }
+  // }
+  
+  // if (activeTab.value === 'payment') {
+  //   if (settings.value.platform_fee_percentage < 0 || settings.value.platform_fee_percentage > 100) {
+  //     errors.value.platform_fee_percentage = 'Fee must be between 0 and 100'
+  //   }
+  // }
+  
+  // if (activeTab.value === 'email') {
+  //   if (!settings.value.smtp_host) {
+  //     errors.value.smtp_host = 'SMTP host is required'
+  //   }
+  //   if (!settings.value.smtp_from_email) {
+  //     errors.value.smtp_from_email = 'From email is required'
+  //   }
+  // }
+
+  // Validate required fields
+  if (!settings.value.site_name?.trim()) {
+    errors.value.site_name = 'Site name is required'
   }
   
-  if (activeTab.value === 'payment') {
-    if (settings.value.platform_fee_percentage < 0 || settings.value.platform_fee_percentage > 100) {
-      errors.value.platform_fee_percentage = 'Fee must be between 0 and 100'
-    }
+  if (!settings.value.site_description?.trim()) {
+    errors.value.site_description = 'Site description is required'
   }
   
-  if (activeTab.value === 'email') {
-    if (!settings.value.smtp_host) {
-      errors.value.smtp_host = 'SMTP host is required'
+  // Validate numeric fields
+  const numericFields = [
+    'max_queue_capacity',
+    'ticket_hold_duration_minutes', 
+    'max_file_size_mb',
+    'premium_early_access_hours'
+  ]
+  
+  numericFields.forEach(field => {
+    const value = Number(settings.value[field])
+    if (isNaN(value) || value <= 0) {
+      errors.value[field] = 'Must be a positive number'
     }
-    if (!settings.value.smtp_from_email) {
-      errors.value.smtp_from_email = 'From email is required'
+  })
+  
+  // Validate rate fields (0-1)
+  const rateFields = ['vat_rate', 'premium_discount_rate', 'advanced_discount_rate']
+  rateFields.forEach(field => {
+    const value = Number(settings.value[field])
+    if (isNaN(value) || value < 0 || value > 1) {
+      errors.value[field] = 'Must be between 0 and 1 (e.g., 0.1 for 10%)'
     }
-  }
+  })
   
   return Object.keys(errors.value).length === 0
 }
@@ -128,6 +153,23 @@ const handleSave = async () => {
   successMessage.value = ''
   
   try {
+    const settingsToSave = [
+      'site_name',
+      'site_description',
+      'currency_code',
+      'currency_symbol',
+      'timezone',
+      'date_format',
+      'time_format',
+      'max_queue_capacity',
+      'ticket_hold_duration_minutes',
+      'max_file_size_mb',
+      'vat_rate',
+      'premium_discount_rate',
+      'advanced_discount_rate',
+      'premium_early_access_hours'
+    ]
+
     await adminAPI.updateSettings(settings.value)
     // for (const [key, value] of Object.entries(settings.value)) {
     //   if (value !== '' && value !== null && value !== undefined) {
@@ -146,16 +188,16 @@ const handleSave = async () => {
   }
 }
 
-const handleTestEmail = async () => {
-  try {
-    await adminAPI.testEmailSettings({
-      to: settings.value.support_email
-    })
-    alert('Test email sent successfully! Please check your inbox.')
-  } catch (error) {
-    alert('Failed to send test email: ' + (error.response?.data?.error?.message || 'Unknown error'))
-  }
-}
+// const handleTestEmail = async () => {
+//   try {
+//     await adminAPI.testEmailSettings({
+//       to: settings.value.support_email
+//     })
+//     alert('Test email sent successfully! Please check your inbox.')
+//   } catch (error) {
+//     alert('Failed to send test email: ' + (error.response?.data?.error?.message || 'Unknown error'))
+//   }
+// }
 
 onMounted(() => {
   fetchSettings()
@@ -208,319 +250,167 @@ onMounted(() => {
 
       <!-- Content Area -->
       <div class="lg:col-span-3">
-        <!-- General Settings -->
-        <Card v-show="activeTab === 'general'">
-          <h2 class="text-xl font-semibold mb-6">General Settings</h2>
-          <div class="space-y-4">
-            <Input
-              v-model="settings.site_name"
-              label="Site Name"
-              placeholder="Eternity Ticket"
-              :error="errors.site_name"
-              required
-            />
-
-            <div>
-              <label class="label">Site Description</label>
-              <textarea
-                v-model="settings.site_description"
-                rows="3"
-                placeholder="Your trusted platform for event tickets..."
-                class="textarea"
-              ></textarea>
-            </div>
-
-            <Input
-              v-model="settings.support_email"
-              type="email"
-              label="Support Email"
-              placeholder="support@eternityticket.com"
-              :error="errors.support_email"
-              :icon="EnvelopeIcon"
-              help-text="This email will be displayed for customer support"
-              required
-            />
-          </div>
-        </Card>
-
-        <!-- Payment Settings -->
-        <Card v-show="activeTab === 'payment'">
-          <h2 class="text-xl font-semibold mb-6">Payment Settings</h2>
-          <div class="space-y-4">
-            <div>
-              <label class="label label-required">Payment Gateway</label>
-              <select v-model="settings.payment_gateway" class="select">
-                <option
-                  v-for="gateway in paymentGateways"
-                  :key="gateway.value"
-                  :value="gateway.value"
-                >
-                  {{ gateway.label }}
-                </option>
-              </select>
-            </div>
-
-            <Input
-              v-model.number="settings.platform_fee_percentage"
-              type="number"
-              label="Platform Fee (%)"
-              placeholder="10"
-              :error="errors.platform_fee_percentage"
-              help-text="Percentage of ticket price taken as platform fee"
-              required
-            />
-
-            <!-- Stripe Settings -->
-            <div v-if="settings.payment_gateway === 'stripe'" class="space-y-4 pt-4 border-t">
-              <h3 class="font-semibold">Stripe Configuration</h3>
+        <Card>
+          <h2 class="text-xl font-semibold mb-6">System Settings</h2>
+          
+          <div class="space-y-8">
+            <!-- Site Information -->
+            <div class="space-y-4">
+              <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Site Information</h3>
+              
               <Input
-                v-model="settings.stripe_public_key"
-                label="Stripe Public Key"
-                placeholder="pk_test_..."
-                :error="errors.stripe_public_key"
+                v-model="settings.site_name"
+                label="Site Name"
+                placeholder="Eternity Ticket"
+                :error="errors.site_name"
+                required
               />
-              <Input
-                v-model="settings.stripe_secret_key"
-                type="password"
-                label="Stripe Secret Key"
-                placeholder="sk_test_..."
-                :error="errors.stripe_secret_key"
-              />
-            </div>
 
-            <!-- PayPal Settings -->
-            <div v-if="settings.payment_gateway === 'paypal'" class="space-y-4 pt-4 border-t">
-              <h3 class="font-semibold">PayPal Configuration</h3>
-              <Input
-                v-model="settings.paypal_client_id"
-                label="PayPal Client ID"
-                placeholder="AXt..."
-                :error="errors.paypal_client_id"
-              />
-              <Input
-                v-model="settings.paypal_secret"
-                type="password"
-                label="PayPal Secret"
-                placeholder="EIL..."
-                :error="errors.paypal_secret"
-              />
-            </div>
-          </div>
-        </Card>
-
-        <!-- Email Settings -->
-        <Card v-show="activeTab === 'email'">
-          <h2 class="text-xl font-semibold mb-6">Email Settings</h2>
-          <div class="space-y-4">
-            <Input
-              v-model="settings.smtp_host"
-              label="SMTP Host"
-              placeholder="smtp.gmail.com"
-              :error="errors.smtp_host"
-              required
-            />
-
-            <Input
-              v-model.number="settings.smtp_port"
-              type="number"
-              label="SMTP Port"
-              placeholder="587"
-              :error="errors.smtp_port"
-              required
-            />
-
-            <Input
-              v-model="settings.smtp_username"
-              label="SMTP Username"
-              placeholder="your-email@gmail.com"
-              :error="errors.smtp_username"
-            />
-
-            <Input
-              v-model="settings.smtp_password"
-              type="password"
-              label="SMTP Password"
-              placeholder="••••••••"
-              :error="errors.smtp_password"
-            />
-
-            <Input
-              v-model="settings.smtp_from_email"
-              type="email"
-              label="From Email"
-              placeholder="noreply@eternityticket.com"
-              :error="errors.smtp_from_email"
-              required
-            />
-
-            <Input
-              v-model="settings.smtp_from_name"
-              label="From Name"
-              placeholder="Eternity Ticket"
-              :error="errors.smtp_from_name"
-            />
-
-            <div class="pt-4 border-t">
-              <Button variant="secondary" @click="handleTestEmail">
-                Send Test Email
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        <!-- Notification Settings -->
-        <Card v-show="activeTab === 'notifications'">
-          <h2 class="text-xl font-semibold mb-6">Notification Settings</h2>
-          <div class="space-y-4">
-            <label class="flex items-center space-x-3 cursor-pointer p-4 border rounded-lg hover:bg-gray-50">
-              <input
-                v-model="settings.enable_email_notifications"
-                type="checkbox"
-                class="w-5 h-5 rounded"
-              />
               <div>
-                <p class="font-medium">Enable Email Notifications</p>
-                <p class="text-sm text-gray-600">Send email notifications to users</p>
-              </div>
-            </label>
-
-            <label class="flex items-center space-x-3 cursor-pointer p-4 border rounded-lg hover:bg-gray-50">
-              <input
-                v-model="settings.enable_sms_notifications"
-                type="checkbox"
-                class="w-5 h-5 rounded"
-              />
-              <div>
-                <p class="font-medium">Enable SMS Notifications</p>
-                <p class="text-sm text-gray-600">Send SMS notifications to users</p>
-              </div>
-            </label>
-
-            <div class="pt-4 border-t">
-              <h3 class="font-semibold mb-3">Notification Events</h3>
-              <div class="space-y-2">
-                <label class="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    v-model="settings.notify_event_approval"
-                    type="checkbox"
-                    class="w-4 h-4 rounded"
-                  />
-                  <span class="text-sm">Event Approval/Rejection</span>
-                </label>
-
-                <label class="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    v-model="settings.notify_ticket_purchase"
-                    type="checkbox"
-                    class="w-4 h-4 rounded"
-                  />
-                  <span class="text-sm">Ticket Purchase</span>
-                </label>
-
-                <label class="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    v-model="settings.notify_refund_request"
-                    type="checkbox"
-                    class="w-4 h-4 rounded"
-                  />
-                  <span class="text-sm">Refund Requests</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <!-- Security Settings -->
-        <Card v-show="activeTab === 'security'">
-          <h2 class="text-xl font-semibold mb-6">Security Settings</h2>
-          <div class="space-y-4">
-            <label class="flex items-center space-x-3 cursor-pointer p-4 border rounded-lg hover:bg-gray-50">
-              <input
-                v-model="settings.require_email_verification"
-                type="checkbox"
-                class="w-5 h-5 rounded"
-              />
-              <div>
-                <p class="font-medium">Require Email Verification</p>
-                <p class="text-sm text-gray-600">Users must verify email before accessing platform</p>
-              </div>
-            </label>
-
-            <label class="flex items-center space-x-3 cursor-pointer p-4 border rounded-lg hover:bg-gray-50">
-              <input
-                v-model="settings.enable_two_factor_auth"
-                type="checkbox"
-                class="w-5 h-5 rounded"
-              />
-              <div>
-                <p class="font-medium">Enable Two-Factor Authentication</p>
-                <p class="text-sm text-gray-600">Allow users to enable 2FA for their accounts</p>
-              </div>
-            </label>
-
-            <Input
-              v-model.number="settings.session_timeout_minutes"
-              type="number"
-              label="Session Timeout (minutes)"
-              placeholder="60"
-              help-text="How long before inactive sessions expire"
-            />
-
-            <Input
-              v-model.number="settings.max_login_attempts"
-              type="number"
-              label="Max Login Attempts"
-              placeholder="5"
-              help-text="Number of failed attempts before account lockout"
-            />
-
-            <Input
-              v-model.number="settings.password_min_length"
-              type="number"
-              label="Minimum Password Length"
-              placeholder="8"
-              help-text="Minimum number of characters required for passwords"
-            />
-
-            <div class="pt-4 border-t">
-              <label class="flex items-center space-x-3 cursor-pointer p-4 bg-red-50 border-2 border-red-200 rounded-lg">
-                <input
-                  v-model="settings.maintenance_mode"
-                  type="checkbox"
-                  class="w-5 h-5 rounded"
-                />
-                <div>
-                  <p class="font-medium text-red-900">Maintenance Mode</p>
-                  <p class="text-sm text-red-700">Enable to temporarily disable the platform</p>
-                </div>
-              </label>
-
-              <div v-if="settings.maintenance_mode" class="mt-3">
-                <label class="label">Maintenance Message</label>
+                <label class="label label-required">Site Description</label>
                 <textarea
-                  v-model="settings.maintenance_message"
+                  v-model="settings.site_description"
                   rows="3"
-                  placeholder="We're currently performing maintenance. We'll be back soon!"
+                  placeholder="Event ticketing and management platform"
                   class="textarea"
+                  :class="{ 'border-red-500': errors.site_description }"
                 ></textarea>
+                <p v-if="errors.site_description" class="mt-1 text-sm text-red-600">
+                  {{ errors.site_description }}
+                </p>
               </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <Input
+                  v-model="settings.currency_code"
+                  label="Currency Code"
+                  placeholder="VND"
+                  help-text="ISO currency code"
+                />
+                <Input
+                  v-model="settings.currency_symbol"
+                  label="Currency Symbol"
+                  placeholder="₫"
+                />
+              </div>
+
+              <Input
+                v-model="settings.timezone"
+                label="Timezone"
+                placeholder="Asia/Ho_Chi_Minh"
+              />
+
+              <div class="grid grid-cols-2 gap-4">
+                <Input
+                  v-model="settings.date_format"
+                  label="Date Format"
+                  placeholder="DD/MM/YYYY"
+                />
+                <Input
+                  v-model="settings.time_format"
+                  label="Time Format"
+                  placeholder="24"
+                  help-text="12 or 24 hour format"
+                />
+              </div>
+            </div>
+
+            <!-- System Limits -->
+            <div class="space-y-4">
+              <h3 class="text-lg font-medium text-gray-900 border-b pb-2">System Limits</h3>
+              
+              <Input
+                v-model="settings.max_queue_capacity"
+                type="number"
+                label="Max Queue Capacity"
+                placeholder="1000"
+                :error="errors.max_queue_capacity"
+                help-text="Maximum waiting room capacity per event"
+                required
+              />
+
+              <Input
+                v-model="settings.ticket_hold_duration_minutes"
+                type="number"
+                label="Ticket Hold Duration (minutes)"
+                placeholder="15"
+                :error="errors.ticket_hold_duration_minutes"
+                help-text="How long tickets are held during checkout"
+                required
+              />
+
+              <Input
+                v-model="settings.max_file_size_mb"
+                type="number"
+                label="Max File Size (MB)"
+                placeholder="2"
+                :error="errors.max_file_size_mb"
+                help-text="Maximum file upload size"
+                required
+              />
+            </div>
+
+            <!-- Financial Settings -->
+            <div class="space-y-4">
+              <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Financial Settings</h3>
+              
+              <Input
+                v-model="settings.vat_rate"
+                type="number"
+                step="0.01"
+                label="VAT Rate"
+                placeholder="0.1"
+                :error="errors.vat_rate"
+                help-text="VAT/Tax rate as decimal (0.1 = 10%)"
+                required
+              />
+            </div>
+
+            <!-- Membership Settings -->
+            <div class="space-y-4">
+              <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Membership Discount Rates</h3>
+              
+              <Input
+                v-model="settings.premium_discount_rate"
+                type="number"
+                step="0.01"
+                label="Premium Discount Rate"
+                placeholder="0.1"
+                :error="errors.premium_discount_rate"
+                help-text="Premium membership discount (0.1 = 10%)"
+                required
+              />
+
+              <Input
+                v-model="settings.advanced_discount_rate"
+                type="number"
+                step="0.01"
+                label="Advanced Discount Rate"
+                placeholder="0.05"
+                :error="errors.advanced_discount_rate"
+                help-text="Advanced membership discount (0.05 = 5%)"
+                required
+              />
+
+              <Input
+                v-model="settings.premium_early_access_hours"
+                type="number"
+                label="Premium Early Access (hours)"
+                placeholder="5"
+                :error="errors.premium_early_access_hours"
+                help-text="Hours of early access for premium members"
+                required
+              />
             </div>
           </div>
         </Card>
 
         <!-- Save Button -->
         <div class="flex justify-end space-x-3 mt-6">
-          <Button
-            variant="secondary"
-            @click="fetchSettings"
-          >
+          <Button variant="secondary" @click="fetchSettings">
             Reset
           </Button>
-          <Button
-            variant="primary"
-            :loading="saving"
-            @click="handleSave"
-          >
+          <Button variant="primary" :loading="saving" @click="handleSave">
             Save Settings
           </Button>
         </div>
