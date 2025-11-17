@@ -63,7 +63,7 @@ const fetchSettings = async () => {
   loading.value = true
   try {
     const response = await adminAPI.getSettings()
-    const settingsArray = response.data.data.settings // Array từ server
+    const settingsArray = response.data.settings // Array từ server
     
     // Convert array sang object
     const settingsObj = {}
@@ -170,12 +170,12 @@ const handleSave = async () => {
       'premium_early_access_hours'
     ]
 
-    await adminAPI.updateSettings(settings.value)
-    // for (const [key, value] of Object.entries(settings.value)) {
-    //   if (value !== '' && value !== null && value !== undefined) {
-    //     await adminAPI.updateSettings(key, { value })
-    //   }
-    // }
+    // await adminAPI.updateSettings(settings.value)
+    for (const [key, value] of Object.entries(settings.value)) {
+      if (value !== '' || value !== null || value !== undefined) {
+        await adminAPI.updateSettings(key, { value })
+      }
+    }
     successMessage.value = 'Settings saved successfully!'
     
     setTimeout(() => {
