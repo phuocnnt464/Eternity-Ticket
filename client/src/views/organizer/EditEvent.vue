@@ -55,7 +55,7 @@ const loadEvent = async () => {
   loading.value = true
   try {
     const eventResponse = await eventsAPI.getEventById(eventId.value)
-    const event = eventResponse.data.data
+    const event = eventResponse.data.event
     
     eventForm.value = {
       title: event.title,
