@@ -19,7 +19,7 @@ import {
 const loading = ref(true)
 const events = ref([])
 const searchQuery = ref('')
-const selectedStatus = ref('pending')
+const selectedStatus = ref('all')
 const showDetailModal = ref(false)
 const selectedEvent = ref(null)
 const processingAction = ref(false)
@@ -75,7 +75,7 @@ const fetchEvents = async () => {
       status: selectedStatus.value !== 'all' ? selectedStatus.value : undefined
     })
     
-    events.value = response.data.data || []
+    events.value = response.data.events || []
     pagination.value.totalItems = response.data.pagination?.total || 0
     pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
   } catch (error) {
