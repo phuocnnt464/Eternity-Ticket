@@ -171,11 +171,25 @@ const handleSave = async () => {
     ]
 
     // await adminAPI.updateSettings(settings.value)
-    for (const [key, value] of Object.entries(settings.value)) {
-      if (value !== '' || value !== null || value !== undefined) {
-        await adminAPI.updateSettings(key, { value })
+    // for (const [key, value] of Object.entries(settings.value)) {
+    //   if (value !== '' || value !== null || value !== undefined) {
+    //     await adminAPI.updateSettings(key, { value })
+    //   }
+    // }
+
+    // Save each setting one by one
+    for (const key of settingsToSave) {
+      const value = settings.value[key]
+      
+      // Skip if value is undefined or null
+      if (value === undefined || value === null || value === '') {
+        continue
       }
+      
+      // Call API with correct parameters: (key, { value })
+      await adminAPI.updateSettings(key, { value: value })
     }
+
     successMessage.value = 'Settings saved successfully!'
     
     setTimeout(() => {
