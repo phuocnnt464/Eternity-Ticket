@@ -256,8 +256,15 @@ router.get('/audit-logs/:targetType/:targetId',
  */
 router.post('/sub-admins',
   sensitiveAdminLimiter,
-  authenticateToken,
-  authorizeRoles('admin'),  // ✅ CHỈ admin mới tạo được sub-admin
+  (req, res, next) => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: { message: 'Only main admin can create sub-admins' }
+      });
+    }
+    next();
+  },
   validate(createSubAdminSchema),
   logAdminAudit('CREATE_SUB_ADMIN', 'USER'),
   AdminController.createSubAdmin
@@ -269,8 +276,15 @@ router.post('/sub-admins',
  * @access  Private (Admin only)
  */
 router.get('/sub-admins',
-  authenticateToken,
-  authorizeRoles('admin'),  // ✅ CHỈ admin mới xem list sub-admin
+  (req, res, next) => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: { message: 'Only main admin can create sub-admins' }
+      });
+    }
+    next();
+  },
   validatePagination(),
   AdminController.getSubAdmins
 );
@@ -282,8 +296,15 @@ router.get('/sub-admins',
  */
 router.delete('/sub-admins/:userId',
   sensitiveAdminLimiter,
-  authenticateToken,
-  authorizeRoles('admin'),  // only admin can deactivate sub-admins
+  (req, res, next) => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: { message: 'Only main admin can deactivate sub-admins' }
+      });
+    }
+    next();
+  },
   validateUUIDParam('userId'),
   logAdminAudit('DEACTIVATE_SUB_ADMIN', 'USER'),
   AdminController.deactivateSubAdmin
