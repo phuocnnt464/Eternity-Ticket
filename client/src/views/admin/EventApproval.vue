@@ -19,7 +19,7 @@ import {
 const loading = ref(true)
 const events = ref([])
 const searchQuery = ref('')
-const selectedStatus = ref('pending_approval')
+const selectedStatus = ref('pending')
 const showDetailModal = ref(false)
 const selectedEvent = ref(null)
 const processingAction = ref(false)
@@ -34,7 +34,7 @@ const pagination = ref({
 
 const statusOptions = [
   { value: 'all', label: 'All Events' },
-  { value: 'pending_approval', label: 'Pending Approval' },
+  { value: 'pending', label: 'Pending Approval' },
   { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Rejected' }
 ]
@@ -60,18 +60,19 @@ const filteredEvents = computed(() => {
 const getStatusBadge = (status) => {
   const badges = {
     approved: { variant: 'success', text: 'Approved', icon: CheckCircleIcon },
-    pending_approval: { variant: 'warning', text: 'Pending', icon: ClockIcon },
+    pending: { variant: 'warning', text: 'Pending', icon: ClockIcon },
     rejected: { variant: 'danger', text: 'Rejected', icon: XCircleIcon }
   }
-  return badges[status] || badges.pending_approval
+  return badges[status] || badges.pending
 }
 
 const fetchEvents = async () => {
   loading.value = true
   try {
-    const response = await adminAPI.getEvents({
+    const response = await adminAPI.getAllEvents({
       page: pagination.value.currentPage,
-      limit: pagination.value.perPage
+      limit: pagination.value.perPage,
+      status: selectedStatus.value !== 'all' ? selectedStatus.value : undefined
     })
     
     events.value = response.data.data || []
@@ -323,7 +324,7 @@ onMounted(() => {
         </div>
 
         <!-- Rejection Reason (if pending) -->
-        <div v-if="selectedEvent.status === 'pending_approval'">
+        <div v-if="selectedEvent.status === 'pending'">
           <label class="label">Rejection Reason (if rejecting)</label>
           <textarea
             v-model="rejectionReason"
@@ -335,7 +336,7 @@ onMounted(() => {
       </div>
 
       <template #footer>
-        <div v-if="selectedEvent?.status === 'pending_approval'" class="flex space-x-3">
+        <div v-if="selectedEvent?.status === 'pending'" class="flex space-x-3">
           <Button
             variant="danger"
             :loading="processingAction"
