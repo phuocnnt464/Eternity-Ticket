@@ -79,7 +79,7 @@ const paymentGateways = [
 const fetchSettings = async () => {
   loading.value = true
   try {
-    const response = await adminAPI.getSystemSettings()
+    const response = await adminAPI.getSettings()
     settings.value = { ...settings.value, ...response.data.data }
   } catch (error) {
     console.error('Failed to fetch settings:', error)
@@ -128,7 +128,7 @@ const handleSave = async () => {
   successMessage.value = ''
   
   try {
-    await adminAPI.updateSystemSettings(settings.value)
+    await adminAPI.updateSettings(settings.value)
     successMessage.value = 'Settings saved successfully!'
     
     setTimeout(() => {

@@ -112,7 +112,7 @@ export const adminAPI = {
   },
 
   // PUT /api/admin/settings
-  updateSetting: (key, data) => {
+  updateSettings: (key, data) => {
     return api.put(`/admin/settings/${key}`, data)
   },
 

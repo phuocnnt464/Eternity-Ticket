@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { adminAPI } from '@/api/admin.js'
+import { refundAPI } from '@/api/refund.js'
 import Card from '@/components/common/Card.vue'
 import Button from '@/components/common/Button.vue'
 import Badge from '@/components/common/Badge.vue'
@@ -59,7 +59,7 @@ const filteredRefunds = computed(() => {
 const fetchRefunds = async () => {
   loading.value = true
   try {
-    const response = await adminAPI.getRefundRequests({
+    const response = await refundAPI.getRefundRequests({
       page: pagination.value.currentPage,
       limit: pagination.value.perPage
     })
@@ -85,7 +85,7 @@ const handleApprove = async (refundId) => {
 
   processingAction.value = true
   try {
-    await adminAPI.approveRefund(refundId)
+    await refundAPI.approveRefund(refundId)
     alert('Refund approved successfully!')
     showDetailModal.value = false
     await fetchRefunds()
@@ -106,7 +106,7 @@ const handleReject = async (refundId) => {
 
   processingAction.value = true
   try {
-    await adminAPI.rejectRefund(refundId, {
+    await refundAPI.rejectRefund(refundId, {
       reason: rejectionReason.value
     })
     alert('Refund rejected')

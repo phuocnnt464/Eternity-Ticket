@@ -861,7 +861,7 @@ class AdminController {
           is_active,
           is_email_verified,
           created_at,
-          last_login
+          last_login_at
         FROM users
         WHERE ${whereClause}
         ORDER BY created_at DESC
