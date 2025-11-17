@@ -231,7 +231,13 @@ class AdminController {
     try {
       const { page = 1, limit = 20, status } = req.query;
       
-      const filters = status ? { status } : {};
+      // const filters = status ? { status } : {};
+      const filters = {
+        admin_view: true 
+      };
+      if (status) {
+        filters.status = status;
+      }
       const result = await EventModel.findMany(filters, { 
         page: parseInt(page), 
         limit: parseInt(limit)

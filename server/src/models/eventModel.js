@@ -172,7 +172,8 @@ class EventModel {
         privacy_type,
         search,
         organizer_id,
-        city
+        city,
+        admin_view
       } = filters;
 
       const { page, limit } = pagination;
@@ -186,15 +187,34 @@ class EventModel {
       let paramCount = 1;
 
       // Only add status filter if explicitly provided
-      if (!status && !organizer_id) {
-        // Public listing - only show active events
-        whereConditions.push(`e.status = 'active'`);
-      } else if (status) {
-        // Explicit status filter
+      // if (!status && !organizer_id) {
+      //   // Public listing - only show active events
+      //   whereConditions.push(`e.status = 'active'`);
+      // } else if (status) {
+      //   // Explicit status filter
+      //   whereConditions.push(`e.status = $${paramCount}`);
+      //   queryParams.push(status);
+      //   paramCount++;
+      // }
+
+      // Only add status filter for public listings (no status and no organizer)
+      // Admin calls will have neither, so we need another indicator
+      if (status) {
+        // Explicit status filter (from admin or organizer)
         whereConditions.push(`e.status = $${paramCount}`);
         queryParams.push(status);
         paramCount++;
+      } else if (!organizer_id && !filters.admin_view) {
+        // Public listing - only show active events
+        // (admin_view flag indicates admin is calling)
+        whereConditions.push(`e.status = 'active'`);
       }
+
+      // if (status) {
+      //   whereConditions.push(`e.status = $${paramCount}`);
+      //   queryParams.push(status);
+      //   paramCount++;
+      // }
 
       if (privacy_type) {
         whereConditions.push(`e.privacy_type = $${paramCount}`);
