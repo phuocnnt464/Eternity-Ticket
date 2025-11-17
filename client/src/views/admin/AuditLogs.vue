@@ -96,7 +96,7 @@ const fetchLogs = async () => {
       limit: pagination.value.perPage
     })
     
-    logs.value = response.data.data || []
+    logs.value = response.data.logs || []
     pagination.value.totalItems = response.data.pagination?.total || 0
     pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
   } catch (error) {
@@ -267,7 +267,7 @@ onMounted(() => {
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP Address</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User Agent</th>
+              <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User Agent</th> -->
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
@@ -301,11 +301,11 @@ onMounted(() => {
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="text-sm font-mono text-gray-600">{{ log.ip_address || 'N/A' }}</span>
               </td>
-              <td class="px-6 py-4">
+              <!-- <td class="px-6 py-4">
                 <span class="text-xs text-gray-500 line-clamp-2">
                   {{ log.user_agent || 'N/A' }}
                 </span>
-              </td>
+              </td> -->
             </tr>
           </tbody>
         </table>
