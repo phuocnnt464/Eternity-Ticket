@@ -77,14 +77,28 @@ class RefundController {
 
       const refunds = await RefundModel.findAll(filters, parseInt(limit), offset);
 
+      // res.json({
+      //   success: true,
+      //   data: refunds,
+      //   pagination: {
+      //     page: parseInt(page),
+      //     limit: parseInt(limit)
+      //   }
+      // });
+
       res.json({
         success: true,
-        data: refunds,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit)
+        data: {
+          refunds: result.refunds || result,  // Tùy thuộc vào cấu trúc Model trả về
+          pagination: {
+            current_page: parseInt(page),
+            total_pages: result.total_pages || Math.ceil((result.total_count || 0) / limit),
+            total_count: result.total_count || 0,
+            per_page: parseInt(limit)
+          }
         }
       });
+      
     } catch (error) {
       console.error('Get refund requests error:', error);
       res.status(500).json({
