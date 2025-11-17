@@ -198,7 +198,7 @@ onMounted(() => {
                 v-for="event in recentEvents"
                 :key="event.event_id"
                 class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                @click="router.push(`/organizer/events/${event.event_id}/edit`)"
+                @click="router.push(`/organizer/events/${event.id}/edit`)"
               >
                 <div class="flex items-center space-x-3 flex-1">
                   <img
