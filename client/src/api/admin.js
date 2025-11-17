@@ -67,24 +67,24 @@ export const adminAPI = {
   },
 
   // GET /api/admin/refunds
-  getRefunds: (params) => {
-    return api.get('/admin/refunds', { params })
-  },
+  // getRefunds: (params) => {
+  //   return api.get('/admin/refunds', { params })
+  // },
 
   // POST /api/admin/refunds/:id/approve
-  approveRefund: (id, data) => {
-    return api.post(`/admin/refunds/${id}/approve`, data)
-  },
+  // approveRefund: (id, data) => {
+  //   return api.post(`/admin/refunds/${id}/approve`, data)
+  // },
 
   // POST /api/admin/refunds/:id/reject
-  rejectRefund: (id, data) => {
-    return api.post(`/admin/refunds/${id}/reject`, data)
-  },
+  // rejectRefund: (id, data) => {
+  //   return api.post(`/admin/refunds/${id}/reject`, data)
+  // },
 
   // POST /api/admin/refunds/:id/process
-  processRefund: (id) => {
-    return api.post(`/admin/refunds/${id}/process`)
-  },
+  // processRefund: (id) => {
+  //   return api.post(`/admin/refunds/${id}/process`)
+  // },
 
   // GET /api/admin/audit-logs
   getAuditLogs: (params) => {

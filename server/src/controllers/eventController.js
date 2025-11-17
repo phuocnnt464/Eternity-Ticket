@@ -1034,13 +1034,13 @@ class EventController {
 
   static async removeEventMember(req, res) {
     try {
-      const { eventId, memberId } = req.params;
+      const { eventId, userId } = req.params;
 
       await pool.query(`
         UPDATE event_organizer_members 
         SET is_active = false, updated_at = NOW()
         WHERE event_id = $1 AND user_id = $2 AND role != 'owner'
-      `, [eventId, memberId]);
+      `, [eventId, userId]);
 
       res.json(createResponse(true, 'Team member removed successfully'));
 
@@ -1185,6 +1185,156 @@ class EventController {
       'Image requirements retrieved',
       requirements
     ));
+  }
+
+  /**
+   * Get event orders
+   * GET /api/events/:id/orders
+   * @access Private (Event organizer)
+   */
+  static async getEventOrders(req, res) {
+    try {
+      const { id: eventId } = req.params;
+      const { page = 1, limit = 20, status } = req.query;
+      const offset = (page - 1) * limit;
+
+      let query = `
+        SELECT 
+          o.id, o.order_number, o.total_amount, o.status, o.payment_method,
+          o.created_at, o.paid_at,
+          u.first_name, u.last_name, u.email,
+          COUNT(t.id) as ticket_count
+        FROM orders o
+        JOIN users u ON o.user_id = u.id
+        LEFT JOIN tickets t ON o.id = t.order_id
+        WHERE o.event_id = $1
+      `;
+
+      const params = [eventId];
+      let paramCount = 2;
+
+      if (status) {
+        query += ` AND o.status = $${paramCount}`;
+        params.push(status);
+        paramCount++;
+      }
+
+      query += ` GROUP BY o.id, u.id ORDER BY o.created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+      params.push(parseInt(limit), offset);
+
+      const countQuery = `
+        SELECT COUNT(DISTINCT o.id) as total 
+        FROM orders o 
+        WHERE o.event_id = $1 ${status ? 'AND o.status = $2' : ''}
+      `;
+      const countParams = status ? [eventId, status] : [eventId];
+
+      const [ordersResult, countResult] = await Promise.all([
+        pool.query(query, params),
+        pool.query(countQuery, countParams)
+      ]);
+
+      const totalCount = parseInt(countResult.rows[0].total);
+      const totalPages = Math.ceil(totalCount / limit);
+
+      res.json(createResponse(true, 'Event orders retrieved', {
+        orders: ordersResult.rows,
+        pagination: {
+          current_page: parseInt(page),
+          total_pages: totalPages,
+          total_count: totalCount,
+          per_page: parseInt(limit)
+        }
+      }));
+
+    } catch (error) {
+      console.error('❌ Get event orders error:', error);
+      res.status(500).json(createResponse(false, 'Failed to get event orders'));
+    }
+  }
+
+  /**
+   * Get event attendees
+   * GET /api/events/:id/attendees
+   * @access Private (Event organizer)
+   */
+  static async getAttendees(req, res) {
+    try {
+      const { id: eventId } = req.params;
+      const { page = 1, limit = 50, session_id, checked_in } = req.query;
+      const offset = (page - 1) * limit;
+
+      let query = `
+        SELECT 
+          t.id, t.ticket_code, t.ticket_type_name, t.price,
+          t.attendee_name, t.attendee_email, t.attendee_phone,
+          t.check_in_status, t.checked_in_at,
+          es.session_name, es.start_time,
+          o.order_number, o.created_at as order_date,
+          u.first_name as buyer_first_name, u.last_name as buyer_last_name
+        FROM tickets t
+        JOIN orders o ON t.order_id = o.id
+        JOIN users u ON o.user_id = u.id
+        LEFT JOIN event_sessions es ON t.session_id = es.id
+        WHERE t.event_id = $1 AND o.status = 'completed'
+      `;
+
+      const params = [eventId];
+      let paramCount = 2;
+
+      if (session_id) {
+        query += ` AND t.session_id = $${paramCount}`;
+        params.push(session_id);
+        paramCount++;
+      }
+
+      if (checked_in !== undefined) {
+        const isCheckedIn = checked_in === 'true';
+        query += ` AND t.check_in_status = $${paramCount}`;
+        params.push(isCheckedIn ? 'checked_in' : 'not_checked_in');
+        paramCount++;
+      }
+
+      query += ` ORDER BY t.created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+      params.push(parseInt(limit), offset);
+
+      const countQuery = `
+        SELECT COUNT(*) as total 
+        FROM tickets t
+        JOIN orders o ON t.order_id = o.id
+        WHERE t.event_id = $1 AND o.status = 'completed'
+        ${session_id ? `AND t.session_id = $2` : ''}
+        ${checked_in !== undefined ? `AND t.check_in_status = $${session_id ? 3 : 2}` : ''}
+      `;
+      
+      const countParams = [eventId];
+      if (session_id) countParams.push(session_id);
+      if (checked_in !== undefined) {
+        countParams.push(checked_in === 'true' ? 'checked_in' : 'not_checked_in');
+      }
+
+      const [attendeesResult, countResult] = await Promise.all([
+        pool.query(query, params),
+        pool.query(countQuery, countParams)
+      ]);
+
+      const totalCount = parseInt(countResult.rows[0].total);
+      const totalPages = Math.ceil(totalCount / limit);
+
+      res.json(createResponse(true, 'Attendees retrieved', {
+        attendees: attendeesResult.rows,
+        pagination: {
+          current_page: parseInt(page),
+          total_pages: totalPages,
+          total_count: totalCount,
+          per_page: parseInt(limit)
+        }
+      }));
+
+    } catch (error) {
+      console.error('❌ Get attendees error:', error);
+      res.status(500).json(createResponse(false, 'Failed to get attendees'));
+    }
   }
 }
 

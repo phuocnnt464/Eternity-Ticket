@@ -140,14 +140,14 @@ export const eventsAPI = {
     return api.post(`/events/${eventId}/members`, data)
   },
 
-  // PATCH /api/events/:eventId/members/:memberId
-  updateMemberRole: (eventId, memberId, data) => {
-    return api.patch(`/events/${eventId}/members/${memberId}`, data)
+  // PATCH /api/events/:eventId/members/:userId
+  updateMemberRole: (eventId, userId, data) => {
+    return api.patch(`/events/${eventId}/members/${userId}`, data)
   },
 
-  // DELETE /api/events/:eventId/members/:memberId
-  removeTeamMember: (eventId, memberId) => {
-    return api.delete(`/events/${eventId}/members/${memberId}`)
+  // DELETE /api/events/:eventId/members/:userId
+  removeTeamMember: (eventId, userId) => {
+    return api.delete(`/events/${eventId}/members/${userId}`)
   },
 
   // POST /api/events/invitations/:token/accept
@@ -159,28 +159,28 @@ export const eventsAPI = {
   // COUPONS
   // ==========================================
   
-  // GET /api/events/:eventId/coupons
-  getCoupons: (eventId) => {
-    return api.get(`/events/${eventId}/coupons`)
-  },
+  // // GET /api/events/:eventId/coupons
+  // getCoupons: (eventId) => {
+  //   return api.get(`/events/${eventId}/coupons`)
+  // },
 
-  // POST /api/events/:eventId/coupons
-  createCoupon: (eventId, data) => {
-    return api.post(`/events/${eventId}/coupons`, data)
-  },
+  // // POST /api/events/:eventId/coupons
+  // createCoupon: (eventId, data) => {
+  //   return api.post(`/events/${eventId}/coupons`, data)
+  // },
 
-  // PUT /api/events/coupons/:couponId
-  updateCoupon: (couponId, data) => {
-    return api.put(`/events/coupons/${couponId}`, data)
-  },
+  // // PUT /api/events/coupons/:couponId
+  // updateCoupon: (couponId, data) => {
+  //   return api.put(`/events/coupons/${couponId}`, data)
+  // },
 
-  // DELETE /api/events/coupons/:couponId
-  deleteCoupon: (couponId) => {
-    return api.delete(`/events/coupons/${couponId}`)
-  },
+  // // DELETE /api/events/coupons/:couponId
+  // deleteCoupon: (couponId) => {
+  //   return api.delete(`/events/coupons/${couponId}`)
+  // },
 
-  // POST /api/events/coupons/validate
-  validateCoupon: (data) => {
-    return api.post('/events/coupons/validate', data)
-  }
+  // // POST /api/events/coupons/validate
+  // validateCoupon: (data) => {
+  //   return api.post('/events/coupons/validate', data)
+  // }
 }

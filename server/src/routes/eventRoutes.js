@@ -204,27 +204,27 @@ router.get('/:id/statistics',
  * @desc    Approve event (Admin only)
  * @access  Private (Admin)
  */
-router.put('/:id/approve',
-  authenticateToken,
-  authorizeRoles('admin', 'sub_admin'),
-  validateUUIDParam('id'),
-  logAdminAudit('APPROVE_EVENT', 'EVENT'),
-  EventController.approveEvent
-);
+// router.put('/:id/approve',
+//   authenticateToken,
+//   authorizeRoles('admin', 'sub_admin'),
+//   validateUUIDParam('id'),
+//   logAdminAudit('APPROVE_EVENT', 'EVENT'),
+//   EventController.approveEvent
+// );
 
 /**
  * @route   PUT /api/events/:id/reject
  * @desc    Reject event (Admin only)
  * @access  Private (Admin)
  */
-router.put('/:id/reject',
-  authenticateToken,
-  authorizeRoles('admin', 'sub_admin'),
-  validateUUIDParam('id'),
-  validate(rejectEventSchema),
-  logAdminAudit('REJECT_EVENT', 'EVENT'),
-  EventController.rejectEvent
-);
+// router.put('/:id/reject',
+//   authenticateToken,
+//   authorizeRoles('admin', 'sub_admin'),
+//   validateUUIDParam('id'),
+//   validate(rejectEventSchema),
+//   logAdminAudit('REJECT_EVENT', 'EVENT'),
+//   EventController.rejectEvent
+// );
 
 /**
  * @route   GET /api/events
@@ -341,21 +341,21 @@ router.post('/:eventId/members',
 );
 
 /**
- * @route   DELETE /api/events/:eventId/members/:memberId
+ * @route   DELETE /api/events/:eventId/members/:userId
  * @desc    Remove team member
  * @access  Private (Event Owner only)
  */
-router.delete('/:eventId/members/:memberId',
+router.delete('/:eventId/members/:userId',
   authenticateToken,
   authorizeRoles('organizer'),
-  validateUUIDParams('eventId', 'memberId'),
+  validateUUIDParams('eventId', 'userId'),
   authorizeEventOrganizer('eventId'),
   requireEventRole('owner'),
   EventController.removeEventMember
 );
 
 /**
- * @route   PATCH /api/events/:eventId/members/:memberId
+ * @route   PATCH /api/events/:eventId/members/:userId
  * @desc    Update member role
  * @access  Private (Event Owner)
  */
@@ -380,6 +380,36 @@ router.get('/image-requirements',
 router.post('/invitations/:token/accept',
   authenticateToken,
   EventController.acceptInvitation
+);
+
+/**
+ * @route   GET /api/events/:id/orders
+ * @desc    Get orders for this event
+ * @access  Private (Event Owner/Manager)
+ */
+router.get('/:id/orders',
+  authenticateToken,
+  authorizeRoles('organizer', 'admin', 'sub_admin'),
+  validateUUIDParam('id'),
+  authorizeEventOrganizer('id'),
+  requireEventRole('owner', 'manager'),
+  validatePagination(),
+  EventController.getEventOrders
+);
+
+/**
+ * @route   GET /api/events/:id/attendees
+ * @desc    Get attendees list for this event
+ * @access  Private (Event Owner/Manager)
+ */
+router.get('/:id/attendees',
+  authenticateToken,
+  authorizeRoles('organizer', 'admin', 'sub_admin'),
+  validateUUIDParam('id'),
+  authorizeEventOrganizer('id'),
+  requireEventRole('owner', 'manager', 'checkin_staff'),
+  validatePagination(),
+  EventController.getAttendees
 );
 
 module.exports = router;
