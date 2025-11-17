@@ -740,16 +740,16 @@ class AdminController {
       if (start_date) filters.start_date = start_date;
       if (end_date) filters.end_date = end_date;
       
-      const query = `
-        SELECT 
-          al.*,
-          u.first_name || ' ' || u.last_name as admin_name,
-          u.email as admin_email
-        FROM admin_audit_logs al
-        LEFT JOIN users u ON al.admin_id = u.id
-        ORDER BY al.created_at DESC
-        LIMIT $1 OFFSET $2
-      `;
+      // const query = `
+      //   SELECT 
+      //     al.*,
+      //     u.first_name || ' ' || u.last_name as admin_name,
+      //     u.email as admin_email
+      //   FROM admin_audit_logs al
+      //   LEFT JOIN users u ON al.admin_id = u.id
+      //   ORDER BY al.created_at DESC
+      //   LIMIT $1 OFFSET $2
+      // `;
       const result = await AuditLogModel.findAll(filters, parseInt(limit), offset);
       
       // const countQuery = `SELECT COUNT(*) as total FROM admin_audit_logs`;
@@ -765,11 +765,11 @@ class AdminController {
         true,
         'Audit logs retrieved successfully',
         {
-          logs: logsResult.rows,
+          logs: result.logs,
           pagination: {
             current_page: parseInt(page),
-            total_pages: Math.ceil(totalCount / limit),
-            total_count: totalCount,
+            total_pages: Math.ceil(result.total_count / limit),
+            total_count: result.total_count,
             per_page: parseInt(limit)
           }
         }
