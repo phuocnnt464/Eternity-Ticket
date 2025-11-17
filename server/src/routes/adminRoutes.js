@@ -184,24 +184,24 @@ router.get('/refunds/pending',
  * POST /api/admin/refunds/:refundId/approve
  * Approve refund request
  */
-router.post('/refunds/:refundId/approve',
-  sensitiveAdminLimiter,
-  validateUUIDParam('refundId'),
-  logAdminAudit('APPROVE_REFUND', 'REFUND'),
-  AdminController.approveRefund
-);
+// router.post('/refunds/:refundId/approve',
+//   sensitiveAdminLimiter,
+//   validateUUIDParam('refundId'),
+//   logAdminAudit('APPROVE_REFUND', 'REFUND'),
+//   AdminController.approveRefund
+// );
 
 /**
  * POST /api/admin/refunds/:refundId/reject
  * Reject refund request
  */
-router.post('/refunds/:refundId/reject',
-  sensitiveAdminLimiter,
-  validateUUIDParam('refundId'),
-  validate(rejectRefundSchema), 
-  logAdminAudit('REJECT_REFUND', 'REFUND'),
-  AdminController.rejectRefund
-);
+// router.post('/refunds/:refundId/reject',
+//   sensitiveAdminLimiter,
+//   validateUUIDParam('refundId'),
+//   validate(rejectRefundSchema), 
+//   logAdminAudit('REJECT_REFUND', 'REFUND'),
+//   AdminController.rejectRefund
+// );
 
 /**
  * GET /api/admin/settings
