@@ -153,22 +153,22 @@ const handleSave = async () => {
   successMessage.value = ''
   
   try {
-    const settingsToSave = [
-      'site_name',
-      'site_description',
-      'currency_code',
-      'currency_symbol',
-      'timezone',
-      'date_format',
-      'time_format',
-      'max_queue_capacity',
-      'ticket_hold_duration_minutes',
-      'max_file_size_mb',
-      'vat_rate',
-      'premium_discount_rate',
-      'advanced_discount_rate',
-      'premium_early_access_hours'
-    ]
+    const settingsToSave = {
+      site_name: settings.value.site_name,
+      site_description: settings.value.site_description,
+      currency_code: settings.value.currency_code,
+      currency_symbol: settings.value.currency_symbol,
+      timezone: settings.value.timezone,
+      date_format: settings.value.date_format,
+      time_format: settings.value.time_format,
+      max_queue_capacity: settings.value.max_queue_capacity,
+      ticket_hold_duration_minutes: settings.value.ticket_hold_duration_minutes,
+      max_file_size_mb: settings.value.max_file_size_mb,
+      vat_rate: settings.value.vat_rate,
+      premium_discount_rate: settings.value.premium_discount_rate,
+      advanced_discount_rate: settings.value.advanced_discount_rate,
+      premium_early_access_hours: settings.value.premium_early_access_hours
+    }
 
     // await adminAPI.updateSettings(settings.value)
     // for (const [key, value] of Object.entries(settings.value)) {
@@ -178,17 +178,28 @@ const handleSave = async () => {
     // }
 
     // Save each setting one by one
-    for (const key of settingsToSave) {
-      const value = settings.value[key]
+    // for (const key of settingsToSave) {
+    //   const value = settings.value[key]
       
-      // Skip if value is undefined or null
-      if (value === undefined || value === null || value === '') {
-        continue
+    //   // Skip if value is undefined or null
+    //   if (value === undefined || value === null || value === '') {
+    //     continue
+    //   }
+      
+    //   // Call API with correct parameters: (key, { value })
+    //   await adminAPI.updateSettings(key, { value: value })
+    // }
+
+    // Remove undefined/null/empty values
+    const cleanedSettings = {}
+    for (const [key, value] of Object.entries(settingsToSave)) {
+      if (value !== undefined && value !== null && value !== '') {
+        cleanedSettings[key] = value
       }
-      
-      // Call API with correct parameters: (key, { value })
-      await adminAPI.updateSettings(key, { value: value })
     }
+
+    // Update all settings in one request
+    await adminAPI.updateSettingsBulk(cleanedSettings) 
 
     successMessage.value = 'Settings saved successfully!'
     

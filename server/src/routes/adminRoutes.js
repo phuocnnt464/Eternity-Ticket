@@ -212,8 +212,18 @@ router.get('/settings',
 );
 
 /**
+ * PUT /api/admin/settings/bulk
+ * Update multiple settings at once
+ */
+router.put('/settings/bulk',
+  sensitiveAdminLimiter,
+  logAdminAudit('UPDATE_SETTINGS_BULK', 'SYSTEM_SETTING'),
+  AdminController.updateSettingsBulk
+);
+
+/**
  * PUT /api/admin/settings/:key
- * Update system setting
+ * Update system single setting
  */
 router.put('/settings/:key',
   sensitiveAdminLimiter,

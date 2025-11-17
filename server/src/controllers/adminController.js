@@ -439,6 +439,66 @@ class AdminController {
     }
   }
 
+  static async updateSettingsBulk(req, res) {
+    try {
+      const { settings } = req.body;
+      const adminId = req.user.id;
+      
+      if (!settings || typeof settings !== 'object') {
+        return res.status(400).json(
+          createResponse(false, 'Settings object is required')
+        );
+      }
+      
+      const client = await pool.connect();
+      
+      try {
+        await client.query('BEGIN');
+        
+        const updatedSettings = [];
+        
+        for (const [key, value] of Object.entries(settings)) {
+          if (value === undefined || value === null || value === '') {
+            continue;
+          }
+          
+          const query = `
+            UPDATE system_settings
+            SET setting_value = $1,
+                updated_by = $2,
+                updated_at = NOW()
+            WHERE setting_key = $3
+            RETURNING *
+          `;
+          
+          const result = await client.query(query, [value, adminId, key]);
+          
+          if (result.rows.length > 0) {
+            updatedSettings.push(result.rows[0]);
+          }
+        }
+        
+        await client.query('COMMIT');
+        
+        res.json(createResponse(
+          true,
+          `${updatedSettings.length} settings updated successfully`,
+          { settings: updatedSettings }
+        ));
+        
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+      
+    } catch (error) {
+      console.error('❌ Bulk update settings error:', error);
+      res.status(500).json(createResponse(false, 'Failed to update settings'));
+    }
+  }
+
   static async getPendingRefunds(req, res) {
     try {
       const { page = 1, limit = 20 } = req.query;

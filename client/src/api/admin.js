@@ -111,6 +111,11 @@ export const adminAPI = {
     return api.get('/admin/settings')
   },
 
+  // PUT /api/admin/settings/bulk
+  updateSettingsBulk: (settings) => {
+    return api.put('/admin/settings/bulk', { settings })
+  },
+
   // PUT /api/admin/settings
   updateSettings: (key, data) => {
     return api.put(`/admin/settings/${key}`, data)
