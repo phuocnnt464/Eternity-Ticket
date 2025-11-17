@@ -13,7 +13,7 @@ export const checkinAPI = {
 
   // POST /api/checkin/:ticketCode/undo
   undoCheckIn: (ticketCode) => {
-    return api.post(`/checkin/${ticketCode}/undo`)
+    return api.delete(`/checkin/${ticketCode}/undo`)
   },
 
   // GET /api/checkin/event/:eventId/stats

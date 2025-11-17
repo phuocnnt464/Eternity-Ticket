@@ -155,7 +155,7 @@ router.get('/event/:eventId/search',
  * @desc    Undo check-in (Admin/Owner only)
  * @access  Private (Event Owner/Admin)
  */
-router.delete('/:ticketCode',
+router.delete('/:ticketCode/undo',
   ...canUndoCheckin,
   CheckinController.undoCheckin
 );

@@ -41,6 +41,11 @@ export const adminAPI = {
     return api.post(`/admin/events/${id}/reject`, data)
   },
 
+  // POST /api/admin/events/:eventId/cancel
+  cancelEvent: (eventId) => {
+    return api.post(`/admin/events/${eventId}/cancel`)
+  },
+
   // GET /api/admin/events
   getAllEvents: (params) => {
     return api.get('/admin/events', { params })
@@ -89,6 +94,16 @@ export const adminAPI = {
   // GET /api/admin/audit-logs
   getAuditLogs: (params) => {
     return api.get('/admin/audit-logs', { params })
+  },
+
+  // GET /api/admin/audit-logs/:targetType/:targetId
+  getAuditLogsByTarget: (targetType, targetId) => {
+    return api.get(`/admin/audit-logs/${targetType}/${targetId}`)
+  },
+
+  // GET /api/admin/activity-logs
+  getActivityLogs: (params) => {
+    return api.get('/admin/activity-logs', { params })
   },
 
   // GET /api/admin/settings
