@@ -816,14 +816,27 @@ class EventController {
     try {
       const { slug } = req.params;
       const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       console.log(`Getting event by slug: ${slug}`);
       
+      // const query = `
+      //   SELECT id FROM events 
+      //   WHERE slug = $1 
+      //   AND status IN ('approved', 'active')
+      //   AND privacy_type = 'public'
+      // `;
+
       const query = `
-        SELECT id FROM events 
-        WHERE slug = $1 
-        AND status IN ('approved', 'active')
-        AND privacy_type = 'public'
+        SELECT 
+          id, 
+          status, 
+          privacy_type, 
+          organizer_id,
+          title,
+          rejection_reason
+        FROM events 
+        WHERE slug = $1
       `;
       
       const result = await pool.query(query, [slug]);
@@ -834,7 +847,49 @@ class EventController {
         );
       }
 
-      const eventId = result.rows[0].id;
+      const eventData = result.rows[0];
+    
+      // ✅ Logic phân quyền theo kịch bản dự án
+      const isAdmin = ['admin', 'sub_admin'].includes(userRole);
+      const isOrganizer = userId && eventData.organizer_id === userId;
+      const isPublicApproved = ['approved', 'active'].includes(eventData.status) 
+                              && eventData.privacy_type === 'public';
+      
+      // Kiểm tra quyền truy cập
+      if (!isPublicApproved) {
+        // Event không public hoặc chưa duyệt
+        
+        if (!userId) {
+          // Khách vãng lai không được xem
+          return res.status(401).json(
+            createResponse(false, 'Please login to view this event')
+          );
+        }
+        
+        if (!isOrganizer && !isAdmin) {
+          // Không phải owner cũng không phải admin
+          const statusMessages = {
+            'draft': 'This event is still in draft mode',
+            'pending_approval': 'This event is pending approval',
+            'rejected': 'This event has been rejected',
+            'cancelled': 'This event has been cancelled'
+          };
+          
+          return res.status(403).json(
+            createResponse(
+              false, 
+              statusMessages[eventData.status] || 'This event is not available',
+              { 
+                status: eventData.status,
+                canEdit: false
+              }
+            )
+          );
+        }
+      }
+      
+      // const eventId = result.rows[0].id;
+      const eventId = eventData.id;
       req.params.id = eventId;
       
       return EventController.getEventById(req, res);
