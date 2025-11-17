@@ -71,20 +71,33 @@ class AuditLogModel {
       paramCount++;
     }
 
+    const whereClause = query.split('WHERE')[1].split('ORDER BY')[0];
+
     query += ` ORDER BY aal.created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
     values.push(limit, offset);
 
     const result = await pool.query(query, values);
     
+     // Get total count - FIX: Use proper count query
+    const countQuery = `
+      SELECT COUNT(*) as total 
+      FROM admin_audit_logs aal
+      LEFT JOIN users u ON aal.admin_id = u.id
+      WHERE ${whereClause}
+    `;
+
     // Get total count
-    const countQuery = query.split('ORDER BY')[0].replace(/SELECT.*FROM/, 'SELECT COUNT(*) FROM');
-    const countResult = await pool.query(countQuery, values.slice(0, -2));
+    // let countQuery = query.split('ORDER BY')[0].replace(/SELECT.*FROM/, 'SELECT COUNT(*) FROM');
+    const countValues = values.slice(0, -2); // Remove LIMIT and OFFSET
+    const countResult = await pool.query(countQuery, countValues);
+    
+    const totalCount = parseInt(countResult.rows[0].total) || 0;
     
     return {
       logs: result.rows,
-      total_count: parseInt(countResult.rows[0].count),
+      total_count: totalCount,
       page: Math.floor(offset / limit) + 1,
-      total_pages: Math.ceil(parseInt(countResult.rows[0].count) / limit)
+      total_pages: Math.ceil(totalCount / limit)
     };
   }
 

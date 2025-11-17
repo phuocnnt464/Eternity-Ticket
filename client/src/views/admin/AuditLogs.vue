@@ -96,14 +96,31 @@ const fetchLogs = async () => {
       limit: pagination.value.perPage
     })
     
+    // DEBUG - Xem response thực tế
+    console.log('=== DEBUG AUDIT LOGS ===')
+    console.log('1. Full response:', response)
+    console.log('2. response.data:', response.data)
+    console.log('3. response.data.logs:', response.data.logs)
+    console.log('4. response.data.pagination:', response.data.pagination)
+
     logs.value = response.data.logs || []
+    console.log('5. logs.value.length:', logs.value.length)
 
     // pagination.value.totalItems = response.data.pagination?.total_count || 0
     // pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
     const paginationData = response.data.pagination || {}
+
+    console.log('6. paginationData:', paginationData)
+    console.log('7. paginationData.total_count:', paginationData.total_count)
     pagination.value.totalItems = paginationData.total_count || 0  
     pagination.value.totalPages = paginationData.total_pages || 1
     pagination.value.currentPage = paginationData.current_page || 1
+
+    console.log('8. FINAL pagination.totalItems:', pagination.value.totalItems)
+    console.log('9. FINAL pagination object:', pagination.value)
+    console.log('========================')
+
+
   } catch (error) {
     console.error('Failed to fetch audit logs:', error)
   } finally {
