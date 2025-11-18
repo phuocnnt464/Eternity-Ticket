@@ -331,4 +331,12 @@ router.delete('/sub-admins/:userId',
   AdminController.deactivateSubAdmin
 );
 
+/**
+ * GET /api/admin/audit-logs/export
+ * Export audit logs to CSV
+ */
+router.get('/audit-logs/export',
+  AdminController.exportAuditLogs
+);
+
 module.exports = router;

@@ -115,20 +115,31 @@ const fetchLogs = async () => {
 const handleExport = async () => {
   try {
     const response = await adminAPI.exportAuditLogs({
-      dateFrom: dateFrom.value,
-      dateTo: dateTo.value
+      start_date: dateFrom.value,
+      end_date: dateTo.value,
+      action: selectedAction.value !== 'all' ? selectedAction.value : undefined
     })
     
     // Create blob and download
     const url = window.URL.createObjectURL(new Blob([response.data]))
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `audit-logs-${new Date().toISOString()}.csv`)
+    link.setAttribute('download', `audit-logs-${new Date().toISOString().split('T')[0]}.csv`)
     document.body.appendChild(link)
     link.click()
     link.remove()
+    window.URL.revokeObjectURL(url)
+    
+    toast.success('Audit logs exported successfully!', {
+      position: 'top-right',
+      autoClose: 2000
+    })
   } catch (error) {
-    alert('Failed to export logs')
+    console.error('Export error:', error)
+    toast.error('Failed to export logs', {
+      position: 'top-right',
+      autoClose: 3000
+    })
   }
 }
 

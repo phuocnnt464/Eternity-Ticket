@@ -884,6 +884,94 @@ class AdminController {
   }
 
   /**
+   * Export audit logs to CSV
+   * GET /api/admin/audit-logs/export
+   */
+  static async exportAuditLogs(req, res) {
+    try {
+      const { start_date, end_date, action, admin_id } = req.query;
+      
+      let whereConditions = [];
+      let params = [];
+      let paramIndex = 1;
+      
+      if (admin_id) {
+        whereConditions.push(`al.admin_id = $${paramIndex}`);
+        params.push(admin_id);
+        paramIndex++;
+      }
+      
+      if (action) {
+        whereConditions.push(`al.action = $${paramIndex}`);
+        params.push(action);
+        paramIndex++;
+      }
+      
+      if (start_date) {
+        whereConditions.push(`al.created_at >= $${paramIndex}`);
+        params.push(start_date);
+        paramIndex++;
+      }
+      
+      if (end_date) {
+        whereConditions.push(`al.created_at <= $${paramIndex}`);
+        params.push(end_date);
+        paramIndex++;
+      }
+      
+      const whereClause = whereConditions.length > 0 
+        ? `WHERE ${whereConditions.join(' AND ')}` 
+        : '';
+      
+      const query = `
+        SELECT 
+          al.created_at,
+          u.first_name || ' ' || u.last_name as admin_name,
+          u.email as admin_email,
+          al.action,
+          al.target_type,
+          al.target_id,
+          al.description,
+          al.ip_address
+        FROM admin_audit_logs al
+        LEFT JOIN users u ON al.admin_id = u.id
+        ${whereClause}
+        ORDER BY al.created_at DESC
+      `;
+      
+      const result = await pool.query(query, params);
+      
+      // Create CSV
+      const headers = ['Timestamp', 'Admin Name', 'Admin Email', 'Action', 'Target Type', 'Target ID', 'Description', 'IP Address'];
+      const csvRows = [headers.join(',')];
+      
+      result.rows.forEach(row => {
+        const values = [
+          row.created_at,
+          `"${row.admin_name || 'System'}"`,
+          `"${row.admin_email || 'N/A'}"`,
+          row.action,
+          row.target_type || 'N/A',
+          row.target_id || 'N/A',
+          `"${row.description || ''}"`,
+          row.ip_address || 'N/A'
+        ];
+        csvRows.push(values.join(','));
+      });
+      
+      const csv = csvRows.join('\n');
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="audit-logs-eternity-${new Date().toISOString()}.csv"`);
+      res.send(csv);
+      
+    } catch (error) {
+      console.error('❌ Export audit logs error:', error);
+      res.status(500).json(createResponse(false, 'Failed to export audit logs'));
+    }
+  }
+
+  /**
    * Create sub-admin account
    * POST /api/admin/sub-admins
    * @access Private (Admin only - NOT sub_admin)

@@ -139,5 +139,13 @@ export const adminAPI = {
   // GET /api/admin/refunds/pending
   getPendingRefunds: (params) => {
     return api.get('/admin/refunds/pending', { params })
-  }
+  },
+
+  // GET /api/admin/audit-logs/export
+  exportAuditLogs: (params) => {
+    return api.get('/admin/audit-logs/export', { 
+      params,
+      responseType: 'blob'  // Important for CSV download
+    })
+  },
 }
