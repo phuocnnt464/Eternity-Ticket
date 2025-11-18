@@ -661,7 +661,7 @@ class EmailService {
   async sendAdminAccountCreated(data) {
     const { email, first_name, last_name, role, temporary_password } = data;
     
-    const loginUrl = `${process.env.FRONTEND_URL}/login`;
+    const loginUrl = `${process.env.FRONTEND_URL}/auth/login`;
     const roleLabel = role === 'sub_admin' ? 'Sub-Administrator' : 'Administrator';
     
     const html = `
