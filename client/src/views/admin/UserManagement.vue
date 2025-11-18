@@ -90,7 +90,7 @@ const getRoleBadge = (role) => {
 
 const getMembershipBadge = (tier) => {
   const badges = {
-    basic: { variant: 'secondary', text: 'Basic' },
+    basic: { variant: 'info', text: 'Basic' },
     premium: { variant: 'warning', text: 'Premium' },
     vip: { variant: 'success', text: 'VIP' }
   }
