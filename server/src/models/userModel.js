@@ -36,8 +36,8 @@ class UserModel {
       const userQuery = `
         INSERT INTO users (
           email, password_hash, role, first_name, last_name, 
-          phone, email_verification_token
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          phone, email_verification_token, is_email_verified! 
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING id, email, role, first_name, last_name, phone, 
                  is_email_verified, is_active, created_at
       `;

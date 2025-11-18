@@ -915,10 +915,11 @@ class AdminController {
       });
 
       // Log activity
-      await pool.query(`
-        INSERT INTO admin_audit_logs 
-        (admin_id, action, target_type, target_id, new_values, description, ip_address)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+      try {
+        await pool.query(`
+          INSERT INTO admin_audit_logs 
+          (admin_id, action, target_type, target_id, new_values, description, ip_address)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, [
           createdBy, 
           'CREATE_SUB_ADMIN',
@@ -933,16 +934,25 @@ class AdminController {
           `Admin created sub-admin account: ${email}`,
           req.ip || null
         ]);
+      } catch (auditError) {
+        console.error('⚠️ Failed to create audit log (non-critical):', auditError.message);
+        // Don't fail the request
+      }
 
-      // Send welcome email
-      const emailService = require('../services/emailService');
-      await emailService.sendAdminAccountCreated({
-        email,
-        first_name,
-        last_name,
-        role: 'sub_admin',
-        temporary_password: password
-      });
+      try {
+        // Send welcome email
+        const emailService = require('../services/emailService');
+        await emailService.sendAdminAccountCreated({
+          email,
+          first_name,
+          last_name,
+          role: 'sub_admin',
+          temporary_password: password
+        });
+      } catch (emailError) {
+        console.error('⚠️ Failed to send welcome email (non-critical):', emailError.message);
+        // Don't fail the request
+      }
 
       res.status(201).json(createResponse(
         true,
