@@ -27,26 +27,14 @@ const emailCheckLoading = ref(false)
 const emailExists = ref(false)
 const existingUser = ref(null)
 
-const isFormValid = computed(() => {
-  // Nếu email đã tồn tại → không valid
-  if (emailExists.value) {
-    return false
-  }
-  
-  // Kiểm tra tất cả fields đã điền chưa
-  return inviteForm.value.email && 
-         inviteForm.value.first_name && 
-         inviteForm.value.last_name
+const inviteForm = ref({
+  email: '',
+  first_name: '',
+  last_name: '',
+  // password: ''
 })
 
-watch(showInviteModal, (newVal) => {
-  if (!newVal) {
-    emailExists.value = false
-    existingUser.value = null
-    errors.value = {}
-    inviteForm.value = { email: '', first_name: '', last_name: '' }
-  }
-})
+const errors = ref({})
 
 let emailCheckTimeout = null
 
@@ -88,7 +76,7 @@ watch(
         if (foundUser) {
           emailExists.value = true
           existingUser.value = foundUser
-          errors.value.email = `Email of: ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
+          errors.value.email = `User exists: ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
           console.log('⚠️ Email exists!', existingUser.value)
         } else {
           console.log('✅ Email available')
@@ -98,18 +86,9 @@ watch(
       } finally {
         emailCheckLoading.value = false
       }
-    }, 500) // Đợi 500ms sau khi user ngừng gõ
+    }, 1000) // Đợi 1000ms sau khi user ngừng gõ
   }
 )
-
-const inviteForm = ref({
-  email: '',
-  first_name: '',
-  last_name: '',
-  // password: ''
-})
-
-const errors = ref({})
 
 const fetchSubAdmins = async () => {
   loading.value = true
@@ -176,13 +155,16 @@ const handleInvite = async () => {
     showInviteModal.value = false
     // inviteForm.value = { email: '', first_name: '', last_name: '', password: '' }
     inviteForm.value = { email: '', first_name: '', last_name: '' }
+    emailExists.value = false
+    existingUser.value = null
+
     await fetchSubAdmins()
   } catch (error) {
     const errorMessage = error.response?.data?.error?.message || 'Failed to send invitation'
 
     if (error.response?.status === 409) {
       // Clear general error
-      errors.value.general = ''
+      errors.value.email = 'This email already exists'
       
       // Hiển thị toast error với action button
       toast.error(
@@ -210,9 +192,6 @@ const handleInvite = async () => {
           }
         )
       }, 500)
-      
-      // Highlight email field
-      errors.value.email = 'This email already exists'
     } else {
       toast.error(errorMessage, {
         position: 'top-right',
@@ -256,10 +235,17 @@ const handleRemove = async (subAdminId, name) => {
   
   try {
     await adminAPI.removeSubAdmin(subAdminId)
-    alert('Sub-admin removed successfully')
+    toast.success('Sub-admin removed successfully', {
+      position: 'top-right',
+      autoClose: 3000
+    })
     await fetchSubAdmins()
   } catch (error) {
-    alert(error.response?.data?.error?.message || 'Failed to remove sub-admin')
+    // alert(error.response?.data?.error?.message || 'Failed to remove sub-admin')
+    toast.error(error.response?.data?.error?.message || 'Failed to remove sub-admin', {
+      position: 'top-right',
+      autoClose: 3000
+    })
   }
 }
 
