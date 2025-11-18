@@ -17,7 +17,8 @@ class UserModel {
       role = 'participant',
       first_name,
       last_name,
-      phone
+      phone,
+      is_email_verified = false
     } = userData;
 
     const client = await pool.connect();
@@ -48,7 +49,8 @@ class UserModel {
         first_name.trim(),
         last_name.trim(),
         phone ? phone.trim() : null,
-        email_verification_token
+        email_verification_token,
+        is_email_verified
       ];
 
       const userResult = await client.query(userQuery, userValues);
