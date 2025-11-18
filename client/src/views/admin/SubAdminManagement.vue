@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router' 
 import { toast } from 'vue3-toastify' 
 import { adminAPI } from '@/api/admin.js'
@@ -37,6 +37,15 @@ const isFormValid = computed(() => {
   return inviteForm.value.email && 
          inviteForm.value.first_name && 
          inviteForm.value.last_name
+})
+
+watch(showInviteModal, (newVal) => {
+  if (!newVal) {
+    emailExists.value = false
+    existingUser.value = null
+    errors.value = {}
+    inviteForm.value = { email: '', first_name: '', last_name: '' }
+  }
 })
 
 // Check email khi blur
