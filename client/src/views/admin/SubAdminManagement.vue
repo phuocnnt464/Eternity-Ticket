@@ -41,17 +41,9 @@ let emailCheckTimeout = null
 watch(
   () => inviteForm.value.email,
   (newEmail, oldEmail) => {
-    // ← THÊM: Chỉ check khi modal đang mở
-    if (!showInviteModal.value) {
-      return
-    }
+    if (!showInviteModal.value) return
+    if (newEmail === oldEmail) return
 
-    // ← THÊM: Nếu email giống nhau, skip
-    if (newEmail === oldEmail) {
-      return
-    }
-
-    // Clear timeout trước đó
     if (emailCheckTimeout) {
       clearTimeout(emailCheckTimeout)
     }
@@ -61,27 +53,15 @@ watch(
     existingUser.value = null
     errors.value.email = ''
     
-    // Nếu email rỗng hoặc không hợp lệ
-    if (!newEmail || newEmail.trim().length === 0) {
-      return
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
-      return
-    }
+    if (!newEmail || newEmail.trim().length === 0) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) return
     
-    // Debounce 800ms - tăng thời gian để tránh spam
     emailCheckTimeout = setTimeout(async () => {
-      // ← THÊM: Double check modal vẫn đang mở
-      if (!showInviteModal.value) {
-        return
-      }
+      if (!showInviteModal.value) return
 
       emailCheckLoading.value = true
       
       try {
-        console.log('🔍 Checking email:', newEmail)
-        
         const response = await adminAPI.getAllUsers({ 
           page: 1, 
           limit: 100
@@ -97,38 +77,19 @@ watch(
           existingUser.value = foundUser
           errors.value.email = `User exists: ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
           
-          // ← THÊM TOAST KHI EMAIL TỒN TẠI
-          toast.warning(
-            `⚠️ Email already exists: ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`,
-            {
-              position: 'top-right',
-              autoClose: 5000,
-              closeButton: true
-            }
-          )
-          
+          // ← XÓA TOAST: Chỉ hiển thị warning box, không cần toast
           console.log('⚠️ Email exists!', foundUser)
         } else {
+          // ← XÓA TOAST SUCCESS: Không spam mỗi lần gõ
           console.log('✅ Email available')
-          
-          // ← THÊM: Toast success khi email available
-          toast.success('✅ Email available!', {
-            position: 'top-right',
-            autoClose: 2000
-          })
         }
       } catch (error) {
         console.error('❌ Email check error:', error)
-        
-        // ← THÊM: Toast error nếu API fail
-        toast.error('Failed to check email availability', {
-          position: 'top-right',
-          autoClose: 3000
-        })
+        // ← XÓA TOAST ERROR: Không cần thông báo khi check fail
       } finally {
         emailCheckLoading.value = false
       }
-    }, 800) // ← Tăng từ 500ms lên 800ms
+    }, 800)
   }
 )
 
