@@ -158,6 +158,14 @@
   .badge-primary {
     @apply bg-primary-100 text-primary-800 border border-primary-200;
   }
+
+  .badge-secondary {
+    @apply bg-gray-100 text-gray-800 border border-gray-200;
+  }
+  
+  .badge-accent {
+    @apply bg-accent-100 text-accent-800 border border-accent-200;
+  }
   
   /* === LABELS === */
   .label {

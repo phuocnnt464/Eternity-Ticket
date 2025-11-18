@@ -82,7 +82,7 @@ const getRoleBadge = (role) => {
   const badges = {
     admin: { variant: 'danger', text: 'Admin' },
     sub_admin: { variant: 'warning', text: 'Sub Admin' },
-    organizer: { variant: 'primary', text: 'Organizer' },
+    organizer: { variant: 'accent', text: 'Organizer' },
     participant: { variant: 'info', text: 'Participant' }
   }
   return badges[role] || badges.participant
@@ -90,7 +90,7 @@ const getRoleBadge = (role) => {
 
 const getMembershipBadge = (tier) => {
   const badges = {
-    basic: { variant: 'info', text: 'Basic' },
+    basic: { variant: 'secondary', text: 'Basic' },
     premium: { variant: 'warning', text: 'Premium' },
     vip: { variant: 'success', text: 'VIP' }
   }
@@ -496,7 +496,7 @@ onMounted(() => {
            <!-- Deactivate Button (chỉ hiện cho active users, không phải admin) -->
           <Button
             v-if="selectedUser?.is_active && selectedUser?.role !== 'admin'"
-            variant="warning"
+            variant="danger"
             :loading="actionLoading"
             @click="handleDeactivateAccount(selectedUser.id, `${selectedUser.first_name} ${selectedUser.last_name}`)"
             full-width
@@ -561,7 +561,7 @@ onMounted(() => {
       <template #footer>
         <div class="flex space-x-3">
           <Button
-            variant="secondary"
+            variant="ghost"
             @click="showChangeRoleModal = false"
             full-width
           >
