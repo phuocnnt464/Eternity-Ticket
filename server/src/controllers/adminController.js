@@ -948,10 +948,10 @@ class AdminController {
       result.rows.forEach(row => {
         const values = [
           row.created_at,
-          `"${row.admin_name || 'System'}"`,
+          `"${row.admin_name || 'System'}"`, 
           `"${row.admin_email || 'N/A'}"`,
-          row.action,
-          row.target_type || 'N/A',
+          row.action, 
+          row.target_type || 'N/A', 
           row.target_id || 'N/A',
           `"${row.description || ''}"`,
           row.ip_address || 'N/A'
