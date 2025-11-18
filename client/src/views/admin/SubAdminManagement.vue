@@ -49,52 +49,52 @@ watch(showInviteModal, (newVal) => {
 })
 
 // Check email khi blur
-// const handleEmailBlur = async () => {
-//   if (!inviteForm.value.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteForm.value.email)) {
-//     console.log('❌ Email invalid, skip check')
-//     return
-//   }
+const handleEmailBlur = async () => {
+  if (!inviteForm.value.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteForm.value.email)) {
+    console.log('❌ Email invalid, skip check')
+    return
+  }
 
-//   emailCheckLoading.value = true
-//   emailExists.value = false
-//   existingUser.value = null
+  emailCheckLoading.value = true
+  emailExists.value = false
+  existingUser.value = null
 
-//   try {
-//     console.log('🔍 Checking email:', inviteForm.value.email)
+  try {
+    console.log('🔍 Checking email:', inviteForm.value.email)
     
-//     // ✅ SỬA: Dùng adminAPI thay vì fetch
-//     const response = await adminAPI.getAllUsers({ 
-//       page: 1, 
-//       limit: 100  // Lấy 100 users đầu để check
-//     })
+    // ✅ SỬA: Dùng adminAPI thay vì fetch
+    const response = await adminAPI.getAllUsers({ 
+      page: 1, 
+      limit: 100  // Lấy 100 users đầu để check
+    })
     
-//     console.log('✅ Got users:', response.data)
+    console.log('✅ Got users:', response.data)
     
-//     const users = response.data.users || []
+    const users = response.data.users || []
     
-//     // Tìm user với email trùng
-//     const foundUser = users.find(u => 
-//       u.email.toLowerCase() === inviteForm.value.email.toLowerCase()
-//     )
+    // Tìm user với email trùng
+    const foundUser = users.find(u => 
+      u.email.toLowerCase() === inviteForm.value.email.toLowerCase()
+    )
     
-//     console.log('🔍 Found user:', foundUser)
+    console.log('🔍 Found user:', foundUser)
     
-//     if (foundUser) {
-//       emailExists.value = true
-//       existingUser.value = foundUser
-//       errors.value.email = `This email belongs to ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
-//       console.log('⚠️ Email exists!', existingUser.value)
-//     } else {
-//       errors.value.email = ''
-//       console.log('✅ Email available')
-//     }
-//   } catch (error) {
-//     console.error('❌ Email check error:', error)
-//     console.error('Response:', error.response?.data)
-//   } finally {
-//     emailCheckLoading.value = false
-//   }
-// }
+    if (foundUser) {
+      emailExists.value = true
+      existingUser.value = foundUser
+      errors.value.email = `This email belongs to ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
+      console.log('⚠️ Email exists!', existingUser.value)
+    } else {
+      errors.value.email = ''
+      console.log('✅ Email available')
+    }
+  } catch (error) {
+    console.error('❌ Email check error:', error)
+    console.error('Response:', error.response?.data)
+  } finally {
+    emailCheckLoading.value = false
+  }
+}
 
 const inviteForm = ref({
   email: '',
