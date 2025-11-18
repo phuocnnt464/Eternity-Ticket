@@ -1,5 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router' 
+import { toast } from 'vue3-toastify' 
 import { adminAPI } from '@/api/admin.js'
 import Card from '@/components/common/Card.vue'
 import Button from '@/components/common/Button.vue'
@@ -14,10 +16,45 @@ import {
   EnvelopeIcon
 } from '@heroicons/vue/24/outline'
 
+const router = useRouter()  
+
 const loading = ref(true)
 const subAdmins = ref([])
 const showInviteModal = ref(false)
 const inviting = ref(false)
+
+const emailCheckLoading = ref(false)
+const emailExists = ref(false)
+const existingUser = ref(null)
+
+// Check email khi blur
+const handleEmailBlur = async () => {
+  if (!inviteForm.value.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteForm.value.email)) {
+    return
+  }
+
+  emailCheckLoading.value = true
+  emailExists.value = false
+  existingUser.value = null
+
+  try {
+    // Search user by email
+    const response = await adminAPI.searchUsers({ q: inviteForm.value.email, limit: 1 })
+    const users = response.data.users || []
+    
+    if (users.length > 0 && users[0].email.toLowerCase() === inviteForm.value.email.toLowerCase()) {
+      emailExists.value = true
+      existingUser.value = users[0]
+      errors.value.email = `This email belongs to ${users[0].first_name} ${users[0].last_name} (${users[0].role})`
+    } else {
+      errors.value.email = ''
+    }
+  } catch (error) {
+    console.error('Email check error:', error)
+  } finally {
+    emailCheckLoading.value = false
+  }
+}
 
 const inviteForm = ref({
   email: '',
@@ -77,13 +114,58 @@ const handleInvite = async () => {
     }
     await adminAPI.createSubAdmin(data)
     
-    alert('Sub-admin invitation sent successfully!')
+    // alert('Sub-admin invitation sent successfully!')
+    toast.success('Sub-admin account created successfully!', {
+      position: 'top-right',
+      autoClose: 3000
+    })
     showInviteModal.value = false
     // inviteForm.value = { email: '', first_name: '', last_name: '', password: '' }
     inviteForm.value = { email: '', first_name: '', last_name: '' }
     await fetchSubAdmins()
   } catch (error) {
-    errors.value.general = error.response?.data?.error?.message || 'Failed to send invitation'
+
+    if (error.response?.status === 409) {
+      // Clear general error
+      errors.value.general = ''
+      
+      // Hiển thị toast error với action button
+      toast.error(
+        `Email "${inviteForm.value.email}" already exists in the system.`,
+        {
+          position: 'top-right',
+          autoClose: 5000,
+          closeButton: true
+        }
+      )
+      
+      // Hiển thị warning toast với gợi ý
+      setTimeout(() => {
+        toast.warning(
+          '💡 You can change the user role in User Management instead.',
+          {
+            position: 'top-right',
+            autoClose: 7000,
+            closeButton: true,
+            onClick: () => {
+              // Đóng modal và navigate đến User Management
+              showInviteModal.value = false
+              router.push('/admin/users')
+            }
+          }
+        )
+      }, 500)
+      
+      // Highlight email field
+      errors.value.email = 'This email already exists'
+    } else {
+      toast.error(errorMessage, {
+        position: 'top-right',
+        autoClose: 5000
+      })
+      errors.value.general = errorMessage
+    }
+    // errors.value.general = error.response?.data?.error?.message || 'Failed to send invitation'
   } finally {
     inviting.value = false
   }
@@ -117,6 +199,44 @@ onMounted(() => {
 </script>
 
 <template>
+  <Input
+    v-model="inviteForm.email"
+    type="email"
+    label="Email Address"
+    placeholder="admin@example.com"
+    :error="errors.email"
+    :icon="EnvelopeIcon"
+    :loading="emailCheckLoading"
+    @blur="handleEmailBlur"
+    help-text="We'll check if this email exists"
+    required
+  />
+
+  <!-- ← THÊM: Warning nếu email đã tồn tại -->
+  <div v-if="emailExists && existingUser" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+    <div class="flex items-start">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm text-yellow-700">
+          <strong>User already exists:</strong> 
+          {{ existingUser.first_name }} {{ existingUser.last_name }} 
+          ({{ existingUser.role }})
+        </p>
+        <button
+          type="button"
+          @click="router.push(`/admin/users`); showInviteModal = false"
+          class="mt-2 text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
+        >
+          Go to User Management to change their role →
+        </button>
+      </div>
+    </div>
+  </div>
+  
   <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
@@ -250,7 +370,7 @@ onMounted(() => {
           placeholder="admin@example.com"
           :error="errors.email"
           :icon="EnvelopeIcon"
-          help-text="An invitation with admin credentials will be sent to this email"
+          help-text="Make sure this email hasn't been registered yet"
           required
         />
 
@@ -264,9 +384,28 @@ onMounted(() => {
           required
         /> -->
 
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <!-- <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p class="text-sm text-yellow-800">
             <strong>Note:</strong> The invited user will receive an email with instructions to set up their admin account.
+          </p>
+        </div> -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p class="text-sm text-blue-800">
+            <strong>💡 Tip:</strong> If the email already exists, you can change their role to "Sub Admin" in 
+            <button 
+              type="button"
+              @click="router.push('/admin/users'); showInviteModal = false"
+              class="underline hover:text-blue-900 font-medium"
+            >
+              User Management
+            </button>
+            instead.
+          </p>
+        </div>
+
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p class="text-sm text-yellow-800">
+            <strong>Note:</strong> The sub-admin will receive an email with login credentials.
           </p>
         </div>
       </form>
@@ -292,4 +431,5 @@ onMounted(() => {
       </template>
     </Modal>
   </div>
+  
 </template>
