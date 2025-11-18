@@ -241,7 +241,7 @@ const handleRemove = async (subAdminId, name) => {
   if (!confirm(`Remove ${name} as sub-admin? They will lose all admin privileges.`)) return
   
   try {
-    await adminAPI.removeSubAdmin(subAdminId)
+    await adminAPI.deleteSubAdmin(subAdminId)
     toast.success('Sub-admin removed successfully', {
       position: 'top-right',
       autoClose: 3000
