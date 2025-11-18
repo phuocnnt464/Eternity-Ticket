@@ -139,7 +139,7 @@ const handleChangeRole = async () => {
 
   actionLoading.value = true
   try {
-    await adminAPI.updateUserRole(selectedUser.value.user_id, { role: newRole.value })
+    await adminAPI.updateUserRole(selectedUser.value.id, { role: newRole.value })
     alert('User role updated successfully!')
     showChangeRoleModal.value = false
     showDetailModal.value = false
@@ -335,7 +335,7 @@ onMounted(() => {
           <tbody class="bg-white divide-y divide-gray-200">
             <tr
               v-for="user in filteredUsers"
-              :key="user.user_id"
+              :key="user.id"
               class="hover:bg-gray-50"
             >
               <td class="px-6 py-4">
@@ -498,7 +498,7 @@ onMounted(() => {
             v-if="selectedUser?.is_active && selectedUser?.role !== 'admin'"
             variant="warning"
             :loading="actionLoading"
-            @click="handleDeactivateAccount(selectedUser.user_id, `${selectedUser.first_name} ${selectedUser.last_name}`)"
+            @click="handleDeactivateAccount(selectedUser.id, `${selectedUser.first_name} ${selectedUser.last_name}`)"
             full-width
           >
             <LockClosedIcon class="w-5 h-5" />
@@ -510,7 +510,7 @@ onMounted(() => {
             v-if="!selectedUser?.is_active && selectedUser?.role !== 'admin'"
             variant="success"
             :loading="actionLoading"
-            @click="handleReactivateAccount(selectedUser.user_id, `${selectedUser.first_name} ${selectedUser.last_name}`)"
+            @click="handleReactivateAccount(selectedUser.id, `${selectedUser.first_name} ${selectedUser.last_name}`)"
             full-width
           >
             <LockOpenIcon class="w-5 h-5" />
