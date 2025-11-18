@@ -30,6 +30,7 @@ const existingUser = ref(null)
 // Check email khi blur
 const handleEmailBlur = async () => {
   if (!inviteForm.value.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteForm.value.email)) {
+    console.log('❌ Email invalid, skip check')
     return
   }
 
@@ -40,17 +41,22 @@ const handleEmailBlur = async () => {
   try {
     // Search user by email
     const response = await adminAPI.searchUsers({ q: inviteForm.value.email, limit: 1 })
+    console.log('✅ Search response:', response)
+
     const users = response.data.users || []
-    
+    console.log('👥 Users found:', users)
+
     if (users.length > 0 && users[0].email.toLowerCase() === inviteForm.value.email.toLowerCase()) {
       emailExists.value = true
       existingUser.value = users[0]
       errors.value.email = `This email belongs to ${users[0].first_name} ${users[0].last_name} (${users[0].role})`
+      console.log('⚠️ Email exists!', existingUser.value)
     } else {
       errors.value.email = ''
     }
   } catch (error) {
     console.error('Email check error:', error)
+    console.error('Response:', error.response)
   } finally {
     emailCheckLoading.value = false
   }
