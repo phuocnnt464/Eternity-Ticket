@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router' 
 import { toast } from 'vue3-toastify' 
 import { adminAPI } from '@/api/admin.js'
@@ -187,30 +187,18 @@ const handleInvite = async () => {
       
       // Hiển thị toast error với action button
       toast.error(
-        `Email "${inviteForm.value.email}" already exists in the system.`,
+        `Email "${inviteForm.value.email}" already exists. You can change their role in User Management instead.`,
         {
           position: 'top-right',
-          autoClose: 5000,
-          closeButton: true
+          autoClose: 7000,
+          closeButton: true,
+          onClick: () => {
+            showInviteModal.value = false
+            router.push('/admin/users')
+          }
         }
       )
       
-      // Hiển thị warning toast với gợi ý
-      setTimeout(() => {
-        toast.warning(
-          '💡 You can change the user role in User Management instead.',
-          {
-            position: 'top-right',
-            autoClose: 7000,
-            closeButton: true,
-            onClick: () => {
-              // Đóng modal và navigate đến User Management
-              showInviteModal.value = false
-              router.push('/admin/users')
-            }
-          }
-        )
-      }, 500)
     } else {
       toast.error(errorMessage, {
         position: 'top-right',

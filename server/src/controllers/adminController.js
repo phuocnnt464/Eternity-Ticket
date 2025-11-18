@@ -917,7 +917,7 @@ class AdminController {
       // Log activity
       await pool.query(`
         INSERT INTO admin_audit_logs 
-        (admin_id, action, entity_type, entity_id, metadata)
+        (admin_id, action, target_type, target_id, metadata)
         VALUES ($1, 'CREATE_SUB_ADMIN', 'USER', $2, $3)
       `, [
         createdBy, 
