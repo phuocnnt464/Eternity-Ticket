@@ -14,7 +14,8 @@ import {
   LockClosedIcon,
   LockOpenIcon,
   TrashIcon,
-  UserIcon
+  UserIcon,
+  PencilSquareIcon
 } from '@heroicons/vue/24/outline'
 
 const loading = ref(true)
@@ -23,9 +24,10 @@ const searchQuery = ref('')
 const selectedRole = ref('all')
 const selectedStatus = ref('all')
 const showDetailModal = ref(false)
+const showChangeRoleModal = ref(false)
 const selectedUser = ref(null)
+const newRole = ref('')  
 const actionLoading = ref(false)
-const newRole = ref('')
 
 const pagination = ref({
   currentPage: 1,
@@ -88,7 +90,7 @@ const getRoleBadge = (role) => {
 
 const getMembershipBadge = (tier) => {
   const badges = {
-    basic: { variant: 'info', text: 'Basic' },
+    basic: { variant: 'secondary', text: 'Basic' },
     premium: { variant: 'warning', text: 'Premium' },
     vip: { variant: 'success', text: 'VIP' }
   }
