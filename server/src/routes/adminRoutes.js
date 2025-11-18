@@ -107,6 +107,17 @@ router.post('/users/:userId/reactivate',
 );
 
 /**
+ * @route   POST /api/admin/users/:userId/deactivate
+ * @desc    Deactivate user account
+ * @access  Private (Admin only)
+ */
+router.post('/users/:userId/deactivate',  
+  validateUUIDParam('userId'),
+  logAdminAudit('DEACTIVATE_ACCOUNT', 'USER'),
+  AdminController.deactivateAccount
+);
+
+/**
  * GET /api/admin/events/pending
  * Get events pending approval
  */

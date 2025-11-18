@@ -25,6 +25,7 @@ const selectedStatus = ref('all')
 const showDetailModal = ref(false)
 const selectedUser = ref(null)
 const actionLoading = ref(false)
+const newRole = ref('')
 
 const pagination = ref({
   currentPage: 1,
@@ -38,6 +39,12 @@ const roleOptions = [
   { value: 'participant', label: 'Participants' },
   { value: 'organizer', label: 'Organizers' },
   { value: 'sub_admin', label: 'Sub Admins' }
+]
+
+const changeRoleOptions = [
+  { value: 'participant', label: 'Participant' },
+  { value: 'organizer', label: 'Organizer' },
+  { value: 'sub_admin', label: 'Sub Admin' }
 ]
 
 const statusOptions = [
@@ -112,34 +119,98 @@ const handleViewDetails = (user) => {
   showDetailModal.value = true
 }
 
-const handleToggleStatus = async (userId, currentStatus) => {
-  const action = currentStatus ? 'deactivate' : 'activate'
-  if (!confirm(`Are you sure you want to ${action} this user?`)) return
+const handleOpenChangeRole = (user) => {
+  selectedUser.value = user
+  newRole.value = user.role
+  showChangeRoleModal.value = true
+}
+
+const handleChangeRole = async () => {
+  if (!newRole.value || newRole.value === selectedUser.value.role) {
+    alert('Please select a different role')
+    return
+  }
+
+  if (!confirm(`Change role of "${selectedUser.value.first_name} ${selectedUser.value.last_name}" to ${newRole.value}?`)) {
+    return
+  }
 
   actionLoading.value = true
   try {
-    await adminAPI.toggleUserStatus(userId, { is_active: !currentStatus })
-    alert(`User ${action}d successfully!`)
+    await adminAPI.updateUserRole(selectedUser.value.user_id, { role: newRole.value })
+    alert('User role updated successfully!')
+    showChangeRoleModal.value = false
     showDetailModal.value = false
     await fetchUsers()
   } catch (error) {
-    alert(error.response?.data?.error?.message || `Failed to ${action} user`)
+    alert(error.response?.data?.error?.message || 'Failed to change user role')
   } finally {
     actionLoading.value = false
   }
 }
 
-const handleDeleteUser = async (userId, userName) => {
-  if (!confirm(`Delete user "${userName}"? This action cannot be undone.`)) return
+const handleReactivateAccount = async (userId, userName) => {
+  if (!confirm(`Reactivate account for "${userName}"?`)) return
 
   actionLoading.value = true
   try {
-    await adminAPI.deleteUser(userId)
-    alert('User deleted successfully')
+    await adminAPI.reactivateAccount(userId)
+    alert('Account reactivated successfully!')
     showDetailModal.value = false
     await fetchUsers()
   } catch (error) {
-    alert(error.response?.data?.error?.message || 'Failed to delete user')
+    alert(error.response?.data?.error?.message || 'Failed to reactivate account')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+// const handleToggleStatus = async (userId, currentStatus) => {
+//   const action = currentStatus ? 'deactivate' : 'activate'
+//   if (!confirm(`Are you sure you want to ${action} this user?`)) return
+
+//   actionLoading.value = true
+//   try {
+//     await adminAPI.toggleUserStatus(userId, { is_active: !currentStatus })
+//     alert(`User ${action}d successfully!`)
+//     showDetailModal.value = false
+//     await fetchUsers()
+//   } catch (error) {
+//     alert(error.response?.data?.error?.message || `Failed to ${action} user`)
+//   } finally {
+//     actionLoading.value = false
+//   }
+// }
+
+// const handleDeleteUser = async (userId, userName) => {
+//   if (!confirm(`Delete user "${userName}"? This action cannot be undone.`)) return
+
+//   actionLoading.value = true
+//   try {
+//     await adminAPI.deleteUser(userId)
+//     alert('User deleted successfully')
+//     showDetailModal.value = false
+//     await fetchUsers()
+//   } catch (error) {
+//     alert(error.response?.data?.error?.message || 'Failed to delete user')
+//   } finally {
+//     actionLoading.value = false
+//   }
+// }
+
+const handleDeactivateAccount = async (userId, userName) => {
+  if (!confirm(`Deactivate account for "${userName}"? They will lose access to the system.`)) {
+    return
+  }
+
+  actionLoading.value = true
+  try {
+    await adminAPI.deactivateAccount(userId)
+    alert('Account deactivated successfully!')
+    showDetailModal.value = false
+    await fetchUsers()
+  } catch (error) {
+    alert(error.response?.data?.error?.message || 'Failed to deactivate account')
   } finally {
     actionLoading.value = false
   }
@@ -407,26 +478,100 @@ onMounted(() => {
       </div>
 
       <template #footer>
+        <div class="flex flex-col space-y-2">
+          <!-- Change Role Button -->
+          <Button
+            v-if="selectedUser?.role !== 'admin'"
+            variant="primary"
+            :loading="actionLoading"
+            @click="handleOpenChangeRole(selectedUser)"
+            full-width
+          >
+            <PencilSquareIcon class="w-5 h-5" />
+            Change Role
+          </Button>
+
+           <!-- Deactivate Button (chỉ hiện cho active users, không phải admin) -->
+          <Button
+            v-if="selectedUser?.is_active && selectedUser?.role !== 'admin'"
+            variant="warning"
+            :loading="actionLoading"
+            @click="handleDeactivateAccount(selectedUser.user_id, `${selectedUser.first_name} ${selectedUser.last_name}`)"
+            full-width
+          >
+            <LockClosedIcon class="w-5 h-5" />
+            Deactivate Account
+          </Button>
+
+          <!-- Reactivate Button (chỉ hiện cho inactive users) -->
+          <Button
+            v-if="!selectedUser?.is_active && selectedUser?.role !== 'admin'"
+            variant="success"
+            :loading="actionLoading"
+            @click="handleReactivateAccount(selectedUser.user_id, `${selectedUser.first_name} ${selectedUser.last_name}`)"
+            full-width
+          >
+            <LockOpenIcon class="w-5 h-5" />
+            Reactivate Account
+          </Button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Change Role Modal -->
+    <Modal
+      v-model="showChangeRoleModal"
+      title="Change User Role"
+      size="md"
+    >
+      <div v-if="selectedUser" class="space-y-4">
+        <p class="text-gray-600">
+          Change role for <strong>{{ selectedUser.first_name }} {{ selectedUser.last_name }}</strong>
+        </p>
+
+        <div>
+          <label class="label">Current Role</label>
+          <Badge :variant="getRoleBadge(selectedUser.role).variant">
+            {{ getRoleBadge(selectedUser.role).text }}
+          </Badge>
+        </div>
+
+        <div>
+          <label class="label">New Role</label>
+          <select v-model="newRole" class="select">
+            <option
+              v-for="option in changeRoleOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <p class="text-sm text-yellow-800">
+            ⚠️ Changing user role will affect their access permissions immediately.
+          </p>
+        </div>
+      </div>
+
+      <template #footer>
         <div class="flex space-x-3">
           <Button
-            v-if="selectedUser?.role !== 'admin'"
-            :variant="selectedUser?.is_active ? 'warning' : 'success'"
-            :loading="actionLoading"
-            @click="handleToggleStatus(selectedUser.user_id, selectedUser.is_active)"
+            variant="secondary"
+            @click="showChangeRoleModal = false"
             full-width
           >
-            <component :is="selectedUser?.is_active ? LockClosedIcon : LockOpenIcon" class="w-5 h-5" />
-            {{ selectedUser?.is_active ? 'Deactivate' : 'Activate' }}
+            Cancel
           </Button>
           <Button
-            v-if="selectedUser?.role !== 'admin'"
-            variant="danger"
+            variant="primary"
             :loading="actionLoading"
-            @click="handleDeleteUser(selectedUser.user_id, `${selectedUser.first_name} ${selectedUser.last_name}`)"
+            @click="handleChangeRole"
             full-width
           >
-            <TrashIcon class="w-5 h-5" />
-            Delete
+            Confirm Change
           </Button>
         </div>
       </template>

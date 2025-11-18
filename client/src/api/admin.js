@@ -26,6 +26,11 @@ export const adminAPI = {
     return api.post(`/admin/users/${userId}/reactivate`)
   },
 
+  // POST /api/admin/users/:userId/deactivate
+  deactivateAccount: (userId) => {
+    return api.post(`/admin/users/${userId}/deactivate`)
+  },
+
   // GET /api/admin/events/pending
   getPendingEvents: (params) => {
     return api.get('/admin/events/pending', { params })

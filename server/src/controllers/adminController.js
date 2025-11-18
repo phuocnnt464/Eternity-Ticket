@@ -240,6 +240,71 @@ class AdminController {
     }
   }
 
+  /**
+   * Deactivate user account
+   * POST /api/admin/users/:userId/deactivate
+   */
+  static async deactivateAccount(req, res) {
+    try {
+      const { userId } = req.params;
+      const requestingUser = req.user;
+
+      // Get target user
+      const targetUser = await pool.query(
+        'SELECT id, role, email, is_active FROM users WHERE id = $1',
+        [userId]
+      );
+      
+      if (targetUser.rows.length === 0) {
+        return res.status(404).json(
+          createResponse(false, 'User not found')
+        );
+      }
+      
+      const target = targetUser.rows[0];
+      
+      // PROTECTION: Cannot deactivate admin
+      if (target.role === 'admin') {
+        return res.status(403).json(
+          createResponse(false, 'Cannot deactivate admin accounts')
+        );
+      }
+      
+      // PROTECTION: Sub-admin cannot deactivate other sub-admins
+      if (requestingUser.role === 'sub_admin' && target.role === 'sub_admin') {
+        return res.status(403).json(
+          createResponse(false, 'Sub-admins cannot deactivate other sub-admins')
+        );
+      }
+
+      // Check if already inactive
+      if (!target.is_active) {
+        return res.status(400).json(
+          createResponse(false, 'User is already inactive')
+        );
+      }
+      
+      const success = await UserModel.deactivateAccount(userId);
+      
+      if (!success) {
+        return res.status(500).json(
+          createResponse(false, 'Failed to deactivate account')
+        );
+      }
+      
+      console.log(`✅ Admin ${requestingUser.id} deactivated user ${userId}`);
+      
+      res.json(createResponse(
+        true,
+        'User account deactivated successfully'
+      ));
+      
+    } catch (error) {
+      console.error('❌ Deactivate account error:', error);
+      res.status(500).json(createResponse(false, 'Failed to deactivate account'));
+    }
+  }
+
   // ===============================
   // EVENT MANAGEMENT
   // ===============================

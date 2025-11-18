@@ -13,7 +13,8 @@ import {
   EyeIcon,
   ClockIcon,
   MagnifyingGlassIcon,
-  FunnelIcon
+  FunnelIcon,
+  BanIcon
 } from '@heroicons/vue/24/outline'
 
 const loading = ref(true)
@@ -24,6 +25,8 @@ const showDetailModal = ref(false)
 const selectedEvent = ref(null)
 const processingAction = ref(false)
 const rejectionReason = ref('')
+const showCancelModal = ref(false) 
+const cancellationReason = ref('')
 
 const pagination = ref({
   currentPage: 1,
@@ -125,6 +128,38 @@ const handleReject = async (eventId) => {
     await fetchEvents()
   } catch (error) {
     alert(error.response?.data?.error?.message || 'Failed to reject event')
+  } finally {
+    processingAction.value = false
+  }
+}
+
+const handleOpenCancel = (event) => {
+  selectedEvent.value = event
+  cancellationReason.value = ''
+  showCancelModal.value = true
+}
+
+const handleCancelEvent = async (eventId) => {
+  if (!cancellationReason.value.trim()) {
+    alert('Please provide a cancellation reason')
+    return
+  }
+
+  if (!confirm('Cancel this event? All paid orders will be refunded automatically.')) {
+    return
+  }
+
+  processingAction.value = true
+  try {
+    await adminAPI.cancelEvent(eventId, {
+      cancellation_reason: cancellationReason.value
+    })
+    alert('Event cancelled successfully! Refund requests have been created.')
+    showCancelModal.value = false
+    showDetailModal.value = false
+    await fetchEvents()
+  } catch (error) {
+    alert(error.response?.data?.error?.message || 'Failed to cancel event')
   } finally {
     processingAction.value = false
   }
@@ -356,6 +391,26 @@ onMounted(() => {
             Approve
           </Button>
         </div>
+
+        <div v-else-if="selectedEvent?.status === 'approved'" class="flex space-x-3">
+          <Button
+            variant="secondary"
+            @click="showDetailModal = false"
+            full-width
+          >
+            Close
+          </Button>
+          <Button
+            variant="danger"
+            :loading="processingAction"
+            @click="handleOpenCancel(selectedEvent)"
+            full-width
+          >
+            <BanIcon class="w-5 h-5" />
+            Cancel Event
+          </Button>
+        </div>
+
         <Button
           v-else
           variant="secondary"
@@ -364,6 +419,71 @@ onMounted(() => {
         >
           Close
         </Button>
+      </template>
+    </Modal>
+
+    <!-- Cancel Event Modal -->
+    <Modal
+      v-model="showCancelModal"
+      title="Cancel Event"
+      size="md"
+    >
+      <div v-if="selectedEvent" class="space-y-4">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p class="text-red-800 font-medium mb-2">⚠️ Warning</p>
+          <p class="text-sm text-red-700">
+            Cancelling this event will:
+          </p>
+          <ul class="list-disc list-inside text-sm text-red-700 mt-2 space-y-1">
+            <li>Mark the event as cancelled</li>
+            <li>Create automatic refund requests for all paid orders</li>
+            <li>Send notifications to all ticket holders</li>
+            <li>This action cannot be undone</li>
+          </ul>
+        </div>
+
+        <div>
+          <p class="font-medium text-gray-900 mb-2">
+            Event: {{ selectedEvent.title }}
+          </p>
+          <p class="text-sm text-gray-600">
+            Organizer: {{ selectedEvent.organizer_name }}
+          </p>
+        </div>
+
+        <div>
+          <label class="label">Cancellation Reason *</label>
+          <textarea
+            v-model="cancellationReason"
+            rows="4"
+            placeholder="Explain why this event is being cancelled..."
+            class="textarea"
+            required
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">
+            This reason will be sent to the organizer and ticket holders.
+          </p>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex space-x-3">
+          <Button
+            variant="secondary"
+            @click="showCancelModal = false"
+            full-width
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            :loading="processingAction"
+            @click="handleCancelEvent(selectedEvent.event_id)"
+            full-width
+          >
+            Confirm Cancellation
+          </Button>
+        </div>
       </template>
     </Modal>
   </div>
