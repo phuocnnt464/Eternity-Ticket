@@ -113,7 +113,7 @@ const fetchSubAdmins = async () => {
   loading.value = true
   try {
     const response = await adminAPI.getSubAdmins()
-    subAdmins.value = response.data.data || []
+    subAdmins.value = response.data.sub_admins || []
   } catch (error) {
     console.error('Failed to fetch sub-admins:', error)
   } finally {
@@ -298,7 +298,7 @@ onMounted(() => {
     <div v-else-if="subAdmins.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <Card
         v-for="admin in subAdmins"
-        :key="admin.user_id"
+        :key="admin.id"
       >
         <div class="flex items-start justify-between mb-4">
           <div class="flex items-center space-x-3">
@@ -328,7 +328,7 @@ onMounted(() => {
           <div class="flex items-center justify-between text-sm">
             <span class="text-gray-600">Last Login:</span>
             <span class="font-medium">
-              {{ admin.last_login ? new Date(admin.last_login).toLocaleDateString() : 'Never' }}
+              {{ admin.last_login_at ? new Date(admin.last_login_at).toLocaleDateString() : 'Never' }}
             </span>
           </div>
         </div>
@@ -336,7 +336,7 @@ onMounted(() => {
         <Button
           variant="danger"
           size="sm"
-          @click="handleRemove(admin.user_id, `${admin.first_name} ${admin.last_name}`)"
+          @click="handleRemove(admin.id, `${admin.first_name} ${admin.last_name}`)"
           full-width
         >
           <TrashIcon class="w-4 h-4" />
