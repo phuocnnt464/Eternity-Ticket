@@ -40,24 +40,43 @@ let emailCheckTimeout = null
 
 watch(
   () => inviteForm.value.email,
-  (newEmail) => {
+  (newEmail, oldEmail) => {
+    // ← THÊM: Chỉ check khi modal đang mở
+    if (!showInviteModal.value) {
+      return
+    }
+
+    // ← THÊM: Nếu email giống nhau, skip
+    if (newEmail === oldEmail) {
+      return
+    }
+
     // Clear timeout trước đó
     if (emailCheckTimeout) {
       clearTimeout(emailCheckTimeout)
     }
     
-    // Reset states ngay lập tức
+    // Reset states
     emailExists.value = false
     existingUser.value = null
     errors.value.email = ''
     
-    // Nếu email không valid, skip
-    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+    // Nếu email rỗng hoặc không hợp lệ
+    if (!newEmail || newEmail.trim().length === 0) {
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
       return
     }
     
-    // Debounce 500ms - đợi user gõ xong
+    // Debounce 800ms - tăng thời gian để tránh spam
     emailCheckTimeout = setTimeout(async () => {
+      // ← THÊM: Double check modal vẫn đang mở
+      if (!showInviteModal.value) {
+        return
+      }
+
       emailCheckLoading.value = true
       
       try {
@@ -77,18 +96,57 @@ watch(
           emailExists.value = true
           existingUser.value = foundUser
           errors.value.email = `User exists: ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
-          console.log('⚠️ Email exists!', existingUser.value)
+          
+          // ← THÊM TOAST KHI EMAIL TỒN TẠI
+          toast.warning(
+            `⚠️ Email already exists: ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`,
+            {
+              position: 'top-right',
+              autoClose: 5000,
+              closeButton: true
+            }
+          )
+          
+          console.log('⚠️ Email exists!', foundUser)
         } else {
           console.log('✅ Email available')
+          
+          // ← THÊM: Toast success khi email available
+          toast.success('✅ Email available!', {
+            position: 'top-right',
+            autoClose: 2000
+          })
         }
       } catch (error) {
         console.error('❌ Email check error:', error)
+        
+        // ← THÊM: Toast error nếu API fail
+        toast.error('Failed to check email availability', {
+          position: 'top-right',
+          autoClose: 3000
+        })
       } finally {
         emailCheckLoading.value = false
       }
-    }, 1000) // Đợi 1000ms sau khi user ngừng gõ
+    }, 800) // ← Tăng từ 500ms lên 800ms
   }
 )
+
+watch(showInviteModal, (newVal) => {
+  if (!newVal) {
+    // Reset tất cả states khi đóng modal
+    if (emailCheckTimeout) {
+      clearTimeout(emailCheckTimeout)
+      emailCheckTimeout = null
+    }
+    
+    emailCheckLoading.value = false
+    emailExists.value = false
+    existingUser.value = null
+    errors.value = {}
+    inviteForm.value = { email: '', first_name: '', last_name: '' }
+  }
+})
 
 const fetchSubAdmins = async () => {
   loading.value = true
@@ -380,19 +438,28 @@ onMounted(() => {
             required
           />
         </div>
-
-        <Input
-          v-model="inviteForm.email"
-          type="email"
-          label="Email Address"
-          placeholder="admin@example.com"
-          :error="errors.email"
-          :icon="EnvelopeIcon"
-          :loading="emailCheckLoading"
-          help-text="Make sure this email hasn't been registered yet"
-          required
-        />
-        
+        <div>
+          <Input
+            v-model="inviteForm.email"
+            type="email"
+            label="Email Address"
+            placeholder="admin@example.com"
+            :error="errors.email"
+            :icon="EnvelopeIcon"
+            :loading="emailCheckLoading"
+            :disabled="emailCheckLoading"
+            help-text="Make sure this email hasn't been registered yet"
+            required
+          />
+          <!-- ← LOADING TEXT -->
+          <p v-if="emailCheckLoading" class="text-xs text-gray-500 mt-1 flex items-center">
+            <svg class="animate-spin h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Checking email availability...
+          </p>
+        </div>
         <!-- <Input
           v-model="inviteForm.password"
           type="password"
@@ -402,6 +469,43 @@ onMounted(() => {
           help-text="This password will be sent to the sub-admin via email"
           required
         /> -->
+
+        <!-- ← WARNING BOX KHI EMAIL TỒN TẠI -->
+        <div v-if="emailExists && existingUser" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-yellow-700">
+                <strong>⚠️ User already exists:</strong> 
+                {{ existingUser.first_name }} {{ existingUser.last_name }} 
+                <span class="font-semibold">({{ existingUser.role }})</span>
+              </p>
+              <button
+                type="button"
+                @click="router.push('/admin/users'); showInviteModal = false"
+                class="mt-2 text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
+              >
+                Go to User Management to change their role →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ← SUCCESS INDICATOR -->
+        <div v-if="!emailCheckLoading && inviteForm.email && !emailExists && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteForm.email) === false" class="bg-green-50 border-l-4 border-green-400 p-3 rounded">
+          <div class="flex items-center">
+            <svg class="h-5 w-5 text-green-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <p class="text-sm text-green-700">
+              <strong>✓ Email available!</strong> You can proceed with this email.
+            </p>
+          </div>
+        </div>
 
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p class="text-sm text-blue-800">
