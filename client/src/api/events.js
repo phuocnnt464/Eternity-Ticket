@@ -69,7 +69,9 @@ export const eventsAPI = {
 
   // GET /api/events/my/stats
   getOrganizerStats: () => {
-    return api.get('/events/my/stats')
+    return api.get('/events/my/stats', {
+       headers: { 'Cache-Control': 'no-cache' }
+    })
   },
   
   // GET /api/events/my/all-events (alias)
