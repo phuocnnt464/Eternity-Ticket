@@ -917,18 +917,22 @@ class AdminController {
       // Log activity
       await pool.query(`
         INSERT INTO admin_audit_logs 
-        (admin_id, action, target_type, target_id, metadata)
-        VALUES ($1, 'CREATE_SUB_ADMIN', 'USER', $2, $3)
-      `, [
-        createdBy, 
-        result.user.id,
-        JSON.stringify({ 
-          email, 
-          first_name, 
-          last_name,
-          created_at: new Date()
-        })
-      ]);
+        (admin_id, action, target_type, target_id, new_values, description, ip_address)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, [
+          createdBy, 
+          'CREATE_SUB_ADMIN',
+          'USER',
+          result.user.id,
+          JSON.stringify({ 
+            email, 
+            first_name, 
+            last_name,
+            role: 'sub_admin'
+          }),
+          `Admin created sub-admin account: ${email}`,
+          req.ip || null
+        ]);
 
       // Send welcome email
       const emailService = require('../services/emailService');
