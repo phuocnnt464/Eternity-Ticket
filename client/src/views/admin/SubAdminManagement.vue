@@ -124,6 +124,7 @@ const handleInvite = async () => {
     inviteForm.value = { email: '', first_name: '', last_name: '' }
     await fetchSubAdmins()
   } catch (error) {
+    const errorMessage = error.response?.data?.error?.message || 'Failed to send invitation'
 
     if (error.response?.status === 409) {
       // Clear general error
@@ -165,7 +166,6 @@ const handleInvite = async () => {
       })
       errors.value.general = errorMessage
     }
-    // errors.value.general = error.response?.data?.error?.message || 'Failed to send invitation'
   } finally {
     inviting.value = false
   }
@@ -199,44 +199,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <Input
-    v-model="inviteForm.email"
-    type="email"
-    label="Email Address"
-    placeholder="admin@example.com"
-    :error="errors.email"
-    :icon="EnvelopeIcon"
-    :loading="emailCheckLoading"
-    @blur="handleEmailBlur"
-    help-text="We'll check if this email exists"
-    required
-  />
-
-  <!-- ← THÊM: Warning nếu email đã tồn tại -->
-  <div v-if="emailExists && existingUser" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
-    <div class="flex items-start">
-      <div class="flex-shrink-0">
-        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-        </svg>
-      </div>
-      <div class="ml-3">
-        <p class="text-sm text-yellow-700">
-          <strong>User already exists:</strong> 
-          {{ existingUser.first_name }} {{ existingUser.last_name }} 
-          ({{ existingUser.role }})
-        </p>
-        <button
-          type="button"
-          @click="router.push(`/admin/users`); showInviteModal = false"
-          class="mt-2 text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
-        >
-          Go to User Management to change their role →
-        </button>
-      </div>
-    </div>
-  </div>
-  
   <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
@@ -370,9 +332,35 @@ onMounted(() => {
           placeholder="admin@example.com"
           :error="errors.email"
           :icon="EnvelopeIcon"
+          :loading="emailCheckLoading"
+          @blur="handleEmailBlur"
           help-text="Make sure this email hasn't been registered yet"
           required
         />
+
+        <div v-if="emailExists && existingUser" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-yellow-700">
+                <strong>User already exists:</strong> 
+                {{ existingUser.first_name }} {{ existingUser.last_name }} 
+                ({{ existingUser.role }})
+              </p>
+              <button
+                type="button"
+                @click="router.push(`/admin/users`); showInviteModal = false"
+                class="mt-2 text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
+              >
+                Go to User Management to change their role →
+              </button>
+            </div>
+          </div>
+        </div>
 
         <!-- <Input
           v-model="inviteForm.password"
