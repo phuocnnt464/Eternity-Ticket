@@ -29,6 +29,8 @@ const existingUser = ref(null)
 
 // Check email khi blur
 const handleEmailBlur = async () => {
+  console.log('🔍 Email blur triggered:', inviteForm.value.email)
+  
   if (!inviteForm.value.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteForm.value.email)) {
     console.log('❌ Email invalid, skip check')
     return
@@ -39,24 +41,37 @@ const handleEmailBlur = async () => {
   existingUser.value = null
 
   try {
-    // Search user by email
-    const response = await adminAPI.searchUsers({ q: inviteForm.value.email, limit: 1 })
-    console.log('✅ Search response:', response)
-
+    console.log('🔍 Checking email:', inviteForm.value.email)
+    
+    // ✅ SỬA: Dùng adminAPI thay vì fetch
+    const response = await adminAPI.getAllUsers({ 
+      page: 1, 
+      limit: 100  // Lấy 100 users đầu để check
+    })
+    
+    console.log('✅ Got users:', response.data)
+    
     const users = response.data.users || []
-    console.log('👥 Users found:', users)
-
-    if (users.length > 0 && users[0].email.toLowerCase() === inviteForm.value.email.toLowerCase()) {
+    
+    // Tìm user với email trùng
+    const foundUser = users.find(u => 
+      u.email.toLowerCase() === inviteForm.value.email.toLowerCase()
+    )
+    
+    console.log('🔍 Found user:', foundUser)
+    
+    if (foundUser) {
       emailExists.value = true
-      existingUser.value = users[0]
-      errors.value.email = `This email belongs to ${users[0].first_name} ${users[0].last_name} (${users[0].role})`
+      existingUser.value = foundUser
+      errors.value.email = `This email belongs to ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
       console.log('⚠️ Email exists!', existingUser.value)
     } else {
       errors.value.email = ''
+      console.log('✅ Email available')
     }
   } catch (error) {
-    console.error('Email check error:', error)
-    console.error('Response:', error.response)
+    console.error('❌ Email check error:', error)
+    console.error('Response:', error.response?.data)
   } finally {
     emailCheckLoading.value = false
   }
@@ -178,13 +193,29 @@ const handleInvite = async () => {
 }
 
 const generatePassword = () => {
-  // password random 12 characters
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
+  // Đảm bảo password có đủ: uppercase, lowercase, number, special char
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz'
+  const numbers = '0123456789'
+  const special = '!@#$%^&*'
+  
+  // Tạo password 12 ký tự với đầy đủ yêu cầu
   let password = ''
-  for (let i = 0; i < 12; i++) {
-    password += charset.charAt(Math.floor(Math.random() * charset.length))
+  
+  // 1 uppercase, 1 lowercase, 1 number, 1 special
+  password += uppercase.charAt(Math.floor(Math.random() * uppercase.length))
+  password += lowercase.charAt(Math.floor(Math.random() * lowercase.length))
+  password += numbers.charAt(Math.floor(Math.random() * numbers.length))
+  password += special.charAt(Math.floor(Math.random() * special.length))
+  
+  // Phần còn lại: random từ tất cả
+  const allChars = uppercase + lowercase + numbers + special
+  for (let i = 4; i < 12; i++) {
+    password += allChars.charAt(Math.floor(Math.random() * allChars.length))
   }
-  return password
+  
+  // Shuffle password để không bị pattern cố định
+  return password.split('').sort(() => Math.random() - 0.5).join('')
 }
 
 const handleRemove = async (subAdminId, name) => {
