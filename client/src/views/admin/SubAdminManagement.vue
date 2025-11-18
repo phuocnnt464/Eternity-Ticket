@@ -62,11 +62,7 @@ const handleEmailBlur = async () => {
   try {
     console.log('🔍 Checking email:', inviteForm.value.email)
     
-    // ✅ SỬA: Dùng adminAPI thay vì fetch
-    const response = await adminAPI.getAllUsers({ 
-      page: 1, 
-      limit: 100  // Lấy 100 users đầu để check
-    })
+    const response = await adminAPI.getAllUsers()
     
     console.log('✅ Got users:', response.data)
     
@@ -82,7 +78,7 @@ const handleEmailBlur = async () => {
     if (foundUser) {
       emailExists.value = true
       existingUser.value = foundUser
-      errors.value.email = `This email belongs to ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
+      errors.value.email = `Email exists: ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
       console.log('⚠️ Email exists!', existingUser.value)
     } else {
       errors.value.email = ''
@@ -474,7 +470,7 @@ onMounted(() => {
           <Button
             variant="primary"
             :loading="inviting"
-            :disabled="!isFormValid || emailExists"
+            :disabled="emailExists"
             @click="handleInvite"
             full-width
           >
