@@ -944,7 +944,7 @@ class AdminController {
       // Create CSV
       const headers = ['Timestamp', 'Admin Name', 'Admin Email', 'Action', 'Target Type', 'Target ID', 'Description', 'IP Address'];
       const csvRows = [headers.join(',')];
-      
+
       result.rows.forEach(row => {
         const values = [
           row.created_at,
