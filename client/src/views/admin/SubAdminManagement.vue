@@ -22,7 +22,8 @@ const inviting = ref(false)
 const inviteForm = ref({
   email: '',
   first_name: '',
-  last_name: ''
+  last_name: '',
+  // password: ''
 })
 
 const errors = ref({})
@@ -55,6 +56,12 @@ const validateForm = () => {
   if (!inviteForm.value.last_name) {
     errors.value.last_name = 'Last name is required'
   }
+
+  // if (!inviteForm.value.password) {
+  //   errors.value.password = 'Password is required'
+  // } else if (inviteForm.value.password.length < 8) {
+  //   errors.value.password = 'Password must be at least 8 characters'
+  // }
   
   return Object.keys(errors.value).length === 0
 }
@@ -64,10 +71,15 @@ const handleInvite = async () => {
   
   inviting.value = true
   try {
-    await adminAPI.inviteSubAdmin(inviteForm.value)
+     const data = {
+      ...inviteForm.value,
+      password: generatePassword()
+    }
+    await adminAPI.createSubAdmin(data)
     
     alert('Sub-admin invitation sent successfully!')
     showInviteModal.value = false
+    // inviteForm.value = { email: '', first_name: '', last_name: '', password: '' }
     inviteForm.value = { email: '', first_name: '', last_name: '' }
     await fetchSubAdmins()
   } catch (error) {
@@ -75,6 +87,16 @@ const handleInvite = async () => {
   } finally {
     inviting.value = false
   }
+}
+
+const generatePassword = () => {
+  // password random 12 characters
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
+  let password = ''
+  for (let i = 0; i < 12; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length))
+  }
+  return password
 }
 
 const handleRemove = async (subAdminId, name) => {
@@ -231,6 +253,16 @@ onMounted(() => {
           help-text="An invitation with admin credentials will be sent to this email"
           required
         />
+
+        <!-- <Input
+          v-model="inviteForm.password"
+          type="password"
+          label="Temporary Password"
+          placeholder="Enter temporary password (min 8 characters)"
+          :error="errors.password"
+          help-text="This password will be sent to the sub-admin via email"
+          required
+        /> -->
 
         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p class="text-sm text-yellow-800">

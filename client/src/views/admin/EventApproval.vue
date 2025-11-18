@@ -14,7 +14,7 @@ import {
   ClockIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  BanIcon
+  NoSymbolIcon
 } from '@heroicons/vue/24/outline'
 
 const loading = ref(true)
@@ -406,7 +406,7 @@ onMounted(() => {
             @click="handleOpenCancel(selectedEvent)"
             full-width
           >
-            <BanIcon class="w-5 h-5" />
+            <NoSymbolIcon class="w-5 h-5" />
             Cancel Event
           </Button>
         </div>
