@@ -48,49 +48,59 @@ watch(showInviteModal, (newVal) => {
   }
 })
 
-// Check email khi blur
-const handleEmailBlur = async () => {
-  if (!inviteForm.value.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteForm.value.email)) {
-    console.log('❌ Email invalid, skip check')
-    return
-  }
+let emailCheckTimeout = null
 
-  emailCheckLoading.value = true
-  emailExists.value = false
-  existingUser.value = null
-
-  try {
-    console.log('🔍 Checking email:', inviteForm.value.email)
-    
-    const response = await adminAPI.getAllUsers()
-    
-    console.log('✅ Got users:', response.data)
-    
-    const users = response.data.users || []
-    
-    // Tìm user với email trùng
-    const foundUser = users.find(u => 
-      u.email.toLowerCase() === inviteForm.value.email.toLowerCase()
-    )
-    
-    console.log('🔍 Found user:', foundUser)
-    
-    if (foundUser) {
-      emailExists.value = true
-      existingUser.value = foundUser
-      errors.value.email = `Email exists: ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
-      console.log('⚠️ Email exists!', existingUser.value)
-    } else {
-      errors.value.email = ''
-      console.log('✅ Email available')
+watch(
+  () => inviteForm.value.email,
+  (newEmail) => {
+    // Clear timeout trước đó
+    if (emailCheckTimeout) {
+      clearTimeout(emailCheckTimeout)
     }
-  } catch (error) {
-    console.error('❌ Email check error:', error)
-    console.error('Response:', error.response?.data)
-  } finally {
-    emailCheckLoading.value = false
+    
+    // Reset states ngay lập tức
+    emailExists.value = false
+    existingUser.value = null
+    errors.value.email = ''
+    
+    // Nếu email không valid, skip
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      return
+    }
+    
+    // Debounce 500ms - đợi user gõ xong
+    emailCheckTimeout = setTimeout(async () => {
+      emailCheckLoading.value = true
+      
+      try {
+        console.log('🔍 Checking email:', newEmail)
+        
+        const response = await adminAPI.getAllUsers({ 
+          page: 1, 
+          limit: 100
+        })
+        
+        const users = response.data.users || []
+        const foundUser = users.find(u => 
+          u.email.toLowerCase() === newEmail.toLowerCase()
+        )
+        
+        if (foundUser) {
+          emailExists.value = true
+          existingUser.value = foundUser
+          errors.value.email = `Email of: ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
+          console.log('⚠️ Email exists!', existingUser.value)
+        } else {
+          console.log('✅ Email available')
+        }
+      } catch (error) {
+        console.error('❌ Email check error:', error)
+      } finally {
+        emailCheckLoading.value = false
+      }
+    }, 500) // Đợi 500ms sau khi user ngừng gõ
   }
-}
+)
 
 const inviteForm = ref({
   email: '',
@@ -393,7 +403,6 @@ onMounted(() => {
           :error="errors.email"
           :icon="EnvelopeIcon"
           :loading="emailCheckLoading"
-          @blur="handleEmailBlur"
           help-text="Make sure this email hasn't been registered yet"
           required
         />
@@ -406,11 +415,6 @@ onMounted(() => {
               </svg>
             </div>
             <div class="ml-3">
-              <p class="text-sm text-yellow-700">
-                <strong>User already exists:</strong> 
-                {{ existingUser.first_name }} {{ existingUser.last_name }} 
-                ({{ existingUser.role }})
-              </p>
               <button
                 type="button"
                 @click="router.push(`/admin/users`); showInviteModal = false"
@@ -432,11 +436,6 @@ onMounted(() => {
           required
         /> -->
 
-        <!-- <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p class="text-sm text-yellow-800">
-            <strong>Note:</strong> The invited user will receive an email with instructions to set up their admin account.
-          </p>
-        </div> -->
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p class="text-sm text-blue-800">
             <strong>💡 Tip:</strong> If the email already exists, you can change their role to "Sub Admin" in 

@@ -40,7 +40,7 @@ const props = defineProps({
     default: null
   },
   icon: {
-    type: Object,
+    type: [Object, Function],
     default: null
   },
   loading: {
