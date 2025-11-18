@@ -29,6 +29,11 @@ const existingUser = ref(null)
 
 // Check email khi blur
 const handleEmailBlur = async () => {
+  // ← THÊM LOG ĐẦU TIÊN
+  console.log('========================================')
+  console.log('🔍 BLUR EVENT TRIGGERED!')
+  console.log('Email value:', inviteForm.value.email)
+  console.log('========================================')
   console.log('🔍 Email blur triggered:', inviteForm.value.email)
   
   if (!inviteForm.value.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteForm.value.email)) {

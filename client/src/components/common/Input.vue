@@ -38,10 +38,19 @@ const props = defineProps({
   maxlength: {
     type: Number,
     default: null
+  },
+  icon: {
+    type: Object,
+    default: null
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+// ← SỬA: Thêm 'blur' vào emit
+const emit = defineEmits(['update:modelValue', 'blur'])
 
 const showPassword = ref(false)
 
@@ -62,12 +71,25 @@ const inputClass = computed(() => {
   if (props.type === 'password') {
     classes.push('pr-10')
   }
+
+  if (props.icon) {
+    classes.push('pl-10')
+  }
+
+  if (props.loading) {
+    classes.push('pr-10')
+  }
   
   return classes.join(' ')
 })
 
 const handleInput = (event) => {
   emit('update:modelValue', event.target.value)
+}
+
+// ← THÊM: Handle blur event
+const handleBlur = (event) => {
+  emit('blur', event)
 }
 </script>
 
@@ -78,15 +100,23 @@ const handleInput = (event) => {
     </label>
 
     <div class="relative">
+      <!-- Icon (nếu có) -->
+      <component
+        v-if="icon"
+        :is="icon"
+        class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+      />
+
       <!-- Textarea -->
       <textarea
         v-if="type === 'textarea'"
         :value="modelValue"
         :placeholder="placeholder"
-        :disabled="disabled"
+        :disabled="disabled || loading"
         :maxlength="maxlength"
         :class="inputClass"
         @input="handleInput"
+        @blur="handleBlur"
       ></textarea>
 
       <!-- Input -->
@@ -95,15 +125,24 @@ const handleInput = (event) => {
         :type="inputType"
         :value="modelValue"
         :placeholder="placeholder"
-        :disabled="disabled"
+        :disabled="disabled || loading"
         :maxlength="maxlength"
         :class="inputClass"
         @input="handleInput"
+        @blur="handleBlur"
       />
+
+      <!-- Loading Spinner -->
+      <div v-if="loading" class="absolute right-3 top-1/2 -translate-y-1/2">
+        <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
 
       <!-- Password Toggle -->
       <button
-        v-if="type === 'password'"
+        v-if="type === 'password' && !loading"
         type="button"
         @click="showPassword = !showPassword"
         class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
@@ -114,7 +153,7 @@ const handleInput = (event) => {
 
       <!-- Error Icon -->
       <ExclamationCircleIcon
-        v-if="error"
+        v-if="error && !loading"
         class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500"
       />
     </div>
