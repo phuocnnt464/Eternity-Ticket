@@ -101,6 +101,14 @@ export const adminAPI = {
     return api.get('/admin/audit-logs', { params })
   },
 
+  // GET /api/admin/audit-logs/export
+  exportAuditLogs: (params) => {
+    return api.get('/admin/audit-logs/export', { 
+      params,
+      responseType: 'blob'  // Important for CSV download
+    })
+  },
+
   // GET /api/admin/audit-logs/:targetType/:targetId
   getAuditLogsByTarget: (targetType, targetId) => {
     return api.get(`/admin/audit-logs/${targetType}/${targetId}`)
@@ -139,13 +147,5 @@ export const adminAPI = {
   // GET /api/admin/refunds/pending
   getPendingRefunds: (params) => {
     return api.get('/admin/refunds/pending', { params })
-  },
-
-  // GET /api/admin/audit-logs/export
-  exportAuditLogs: (params) => {
-    return api.get('/admin/audit-logs/export', { 
-      params,
-      responseType: 'blob'  // Important for CSV download
-    })
   },
 }
