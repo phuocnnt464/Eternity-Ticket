@@ -279,7 +279,13 @@ const handleSubmit = async (status = 'draft') => {
 onMounted(async () => {
   try {
     const response = await eventsAPI.getCategories() 
-    categories.value = response.data.categories || []
+    let cats = response.data.categories || []
+
+    categories.value = cats.sort((a, b) => {
+      if (a.name.toLowerCase() === 'others') return 1
+      if (b.name.toLowerCase() === 'others') return -1
+      return a.name.localeCompare(b.name)
+    })
   } catch (error) {
     console.error('Failed to load categories:', error)
     categories.value = [
