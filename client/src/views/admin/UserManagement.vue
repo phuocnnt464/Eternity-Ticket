@@ -105,24 +105,44 @@ const handleSearchInput = (event) => {
   const query = event.target.value.trim()
   searchQuery.value = query
   
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+  }
+
   if (!query) {
+    searching.value = false
     fetchUsers()
     return
   }
   
-  if (query.length >= 2) {
-    searchUsers(query)
-  } else {
+  // if (query.length >= 2) {
+  //   searchUsers(query)
+  // } else {
+  //   users.value = []
+  // }
+
+  if (query.length < 2) {
     users.value = []
+    return
   }
+  
+  // ✅ Debounce 400ms
+  searching.value = true // Show loading
+  searchTimeout = setTimeout(() => {
+    searchUsers(query)
+  }, 400)
 }
 
 const searchUsers = async (query) => {
-  searching.value = true
+  // searching.value = true
   try {
     const response = await adminAPI.searchUsers({ q: query, limit: 50 })
-    users.value = response?.users || []
-    pagination.value = { currentPage: 1, totalPages: 1, totalItems: users.value.length, perPage: 20 }
+    users.value = response.data.users || []
+    pagination.value = { 
+      currentPage: 1, 
+      totalPages: 1, 
+      totalItems: users.value.length, 
+      perPage: 20 }
   } catch (error) {
     console.error('Search error:', error)
     users.value = []
@@ -361,7 +381,6 @@ onMounted(() => {
             type="text"
             placeholder="Search by name or email (min 2 characters)..."
             class="input pl-10 pr-10"
-            :disabled="searching"
           />
           <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           
