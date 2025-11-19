@@ -278,14 +278,16 @@ const handleSubmit = async (status = 'draft') => {
 
 onMounted(async () => {
   try {
+    const response = await eventsAPI.getCategories() 
+    categories.value = response.data
+  } catch (error) {
+    console.error('Failed to load categories:', error)
     categories.value = [
       { id: '1', name: 'Music' },
       { id: '2', name: 'Sports' },
       { id: '3', name: 'Conference' },
       { id: '4', name: 'Festival' }
     ]
-  } catch (error) {
-    console.error('Failed to load categories:', error)
   }
 })
 </script>
@@ -422,93 +424,107 @@ onMounted(async () => {
         </div>
 
         <!-- 4 Image Uploads -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-6">
           <!-- Cover Image -->
           <div>
             <label class="label">Cover Image (Banner)</label>
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-              <div v-if="coverPreview" class="mb-3">
-                <img :src="coverPreview" class="max-h-32 mx-auto rounded-lg" />
+            <p class="text-xs text-gray-500 mb-2">Recommended: 1280x720px (16:9) | Max 5MB | PNG/JPEG/WEBP</p>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+              <div v-if="coverPreview" class="relative w-full aspect-video bg-gray-100">
+                <img :src="coverPreview" class="w-full h-full object-cover" />
               </div>
-              <PhotoIcon class="w-10 h-10 text-gray-400 mx-auto mb-2" />
-              <label class="btn-secondary btn-sm cursor-pointer">
-                Choose Image
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  @change="handleImageUpload($event, 'cover_image')"
-                  class="hidden"
-                />
-              </label>
-              <p class="text-xs text-gray-500 mt-2">1280x720px | Max 5MB | PNG/JPEG/WEBP</p>
+               <div v-else class="w-full aspect-video bg-gray-50 flex flex-col items-center justify-center">
+                <PhotoIcon class="w-12 h-12 text-gray-400 mb-2" />
+                <p class="text-sm text-gray-500 mb-3">Wide banner image (16:9 ratio)</p>
+                <label class="btn-secondary btn-sm cursor-pointer">
+                  Choose Image
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    @change="handleImageUpload($event, 'cover_image')"
+                    class="hidden"
+                  />
+                </label>
+              </div>
             </div>
             <p v-if="errors.cover_image" class="error-text">{{ errors.cover_image }}</p>
           </div>
 
-          <!-- Thumbnail Image -->
-          <div>
-            <label class="label">Thumbnail (Ticket/Slider)</label>
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-              <div v-if="thumbnailPreview" class="mb-3">
-                <img :src="thumbnailPreview" class="max-h-32 mx-auto rounded-lg" />
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Thumbnail Image - Tỷ lệ dọc 3:4 -->
+            <div>
+              <label class="label">Thumbnail (Ticket/Slider)</label>
+              <p class="text-xs text-gray-500 mb-2">720x958px (3:4)</p>
+              <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+                <div v-if="thumbnailPreview" class="relative w-full" style="aspect-ratio: 3/4;">
+                  <img :src="thumbnailPreview" class="w-full h-full object-cover" />
+                </div>
+                <div v-else class="w-full bg-gray-50 flex flex-col items-center justify-center p-4" style="aspect-ratio: 3/4;">
+                  <PhotoIcon class="w-10 h-10 text-gray-400 mb-2" />
+                  <p class="text-xs text-gray-500 text-center mb-2">Portrait image</p>
+                  <label class="btn-secondary btn-sm cursor-pointer">
+                    Choose
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      @change="handleImageUpload($event, 'thumbnail_image')"
+                      class="hidden"
+                    />
+                  </label>
+                </div>
               </div>
-              <PhotoIcon class="w-10 h-10 text-gray-400 mx-auto mb-2" />
-              <label class="btn-secondary btn-sm cursor-pointer">
-                Choose Image
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  @change="handleImageUpload($event, 'thumbnail_image')"
-                  class="hidden"
-                />
-              </label>
-              <p class="text-xs text-gray-500 mt-2">720x958px | Max 5MB | PNG/JPEG/WEBP</p>
+              <p v-if="errors.thumbnail_image" class="error-text mt-1">{{ errors.thumbnail_image }}</p>
             </div>
-            <p v-if="errors.thumbnail_image" class="error-text">{{ errors.thumbnail_image }}</p>
-          </div>
 
-          <!-- Logo Image -->
-          <div>
-            <label class="label">Logo</label>
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-              <div v-if="logoPreview" class="mb-3">
-                <img :src="logoPreview" class="max-h-32 mx-auto rounded-lg" />
+            <!-- Logo Image - Vuông 1:1 -->
+            <div>
+              <label class="label">Logo</label>
+              <p class="text-xs text-gray-500 mb-2">275x275px (1:1)</p>
+              <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+                <div v-if="logoPreview" class="relative w-full aspect-square bg-gray-100">
+                  <img :src="logoPreview" class="w-full h-full object-cover" />
+                </div>
+                <div v-else class="w-full aspect-square bg-gray-50 flex flex-col items-center justify-center p-4">
+                  <PhotoIcon class="w-10 h-10 text-gray-400 mb-2" />
+                  <p class="text-xs text-gray-500 text-center mb-2">Square logo</p>
+                  <label class="btn-secondary btn-sm cursor-pointer">
+                    Choose
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      @change="handleImageUpload($event, 'logo_image')"
+                      class="hidden"
+                    />
+                  </label>
+                </div>
               </div>
-              <PhotoIcon class="w-10 h-10 text-gray-400 mx-auto mb-2" />
-              <label class="btn-secondary btn-sm cursor-pointer">
-                Choose Image
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  @change="handleImageUpload($event, 'logo_image')"
-                  class="hidden"
-                />
-              </label>
-              <p class="text-xs text-gray-500 mt-2">275x275px | Max 5MB | PNG/JPEG/WEBP</p>
+              <p v-if="errors.logo_image" class="error-text mt-1">{{ errors.logo_image }}</p>
             </div>
-            <p v-if="errors.logo_image" class="error-text">{{ errors.logo_image }}</p>
-          </div>
 
-          <!-- Venue Map -->
-          <div>
-            <label class="label">Venue Map (Seat Diagram)</label>
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-              <div v-if="venueMapPreview" class="mb-3">
-                <img :src="venueMapPreview" class="max-h-32 mx-auto rounded-lg" />
+            <!-- Venue Map - Tỷ lệ 4:3 -->
+            <div>
+              <label class="label">Venue Map (Seat Diagram)</label>
+              <p class="text-xs text-gray-500 mb-2">Free size | Max 2MB</p>
+              <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+                <div v-if="venueMapPreview" class="relative w-full" style="aspect-ratio: 4/3;">
+                  <img :src="venueMapPreview" class="w-full h-full object-cover" />
+                </div>
+                <div v-else class="w-full bg-gray-50 flex flex-col items-center justify-center p-4" style="aspect-ratio: 4/3;">
+                  <PhotoIcon class="w-10 h-10 text-gray-400 mb-2" />
+                  <p class="text-xs text-gray-500 text-center mb-2">Seat map</p>
+                  <label class="btn-secondary btn-sm cursor-pointer">
+                    Choose
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      @change="handleImageUpload($event, 'venue_map_image')"
+                      class="hidden"
+                    />
+                  </label>
+                </div>
               </div>
-              <PhotoIcon class="w-10 h-10 text-gray-400 mx-auto mb-2" />
-              <label class="btn-secondary btn-sm cursor-pointer">
-                Choose Image
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg"
-                  @change="handleImageUpload($event, 'venue_map_image')"
-                  class="hidden"
-                />
-              </label>
-              <p class="text-xs text-gray-500 mt-2">Free size | Max 2MB | PNG/JPEG</p>
+              <p v-if="errors.venue_map_image" class="error-text mt-1">{{ errors.venue_map_image }}</p>
             </div>
-            <p v-if="errors.venue_map_image" class="error-text">{{ errors.venue_map_image }}</p>
           </div>
         </div>
       </div>
