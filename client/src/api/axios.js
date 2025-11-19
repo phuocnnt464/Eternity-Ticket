@@ -43,6 +43,9 @@ const onRefreshed = (token) => {
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
+    if (response.config.responseType === 'blob') {
+      return response  // Trả nguyên response để giữ blob
+    }
     return response.data
   },
   async (error) => {

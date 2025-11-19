@@ -160,6 +160,66 @@ const handleExport = async () => {
   }
 }
 
+// const handleExport = () => {
+//   try {
+//     if (filteredLogs.value.length === 0) {
+//       toast.error('No logs to export', {
+//         position: 'top-right',
+//         autoClose: 2000
+//       })
+//       return
+//     }
+    
+//     console.log(`📊 Exporting ${filteredLogs.value.length} logs...`)
+    
+//     // CSV headers
+//     const headers = ['Timestamp', 'Admin Name', 'Admin Email', 'Action', 'Target Type', 'Target ID', 'Description', 'IP Address']
+//     const csvRows = [headers.join(',')]
+    
+//     // Data rows
+//     filteredLogs.value.forEach(log => {
+//       const row = [
+//         `"${formatDate(log.created_at)}"`,
+//         `"${log.admin_name || log.user_name || 'System'}"`,
+//         `"${log.admin_email || log.user_email || 'N/A'}"`,
+//         `"${log.action || 'N/A'}"`,
+//         `"${log.target_type || 'N/A'}"`,
+//         `"${log.target_id || 'N/A'}"`,
+//         `"${(log.description || '').replace(/"/g, '""')}"`,
+//         `"${log.ip_address || 'N/A'}"`
+//       ]
+//       csvRows.push(row.join(','))
+//     })
+    
+//     // Create CSV
+//     const csvContent = csvRows.join('\n')
+//     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+//     const url = window.URL.createObjectURL(blob)
+    
+//     // Download
+//     const link = document.createElement('a')
+//     link.href = url
+//     link.setAttribute('download', `audit-logs-${new Date().toISOString().split('T')[0]}.csv`)
+//     document.body.appendChild(link)
+//     link.click()
+//     link.remove()
+//     window.URL.revokeObjectURL(url)
+    
+//     console.log('✅ Exported:', csvContent.length, 'bytes')
+    
+//     toast.success(`Exported ${filteredLogs.value.length} logs successfully!`, {
+//       position: 'top-right',
+//       autoClose: 2000
+//     })
+//   } catch (error) {
+//     console.error('❌ Export error:', error)
+//     toast.error('Failed to export logs', {
+//       position: 'top-right',
+//       autoClose: 3000
+//     })
+//   }
+// }
+
 const handlePageChange = (page) => {
   pagination.value.currentPage = page
   fetchLogs()
