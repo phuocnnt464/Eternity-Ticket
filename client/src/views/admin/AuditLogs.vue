@@ -12,7 +12,9 @@ import {
   ArrowDownTrayIcon,
   ClockIcon,
   UserIcon,
-  DocumentTextIcon
+  DocumentTextIcon, 
+  ShieldCheckIcon,   
+  UserGroupIcon 
 } from '@heroicons/vue/24/outline'
 
 import { toast } from 'vue3-toastify' 
