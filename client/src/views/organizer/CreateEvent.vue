@@ -37,6 +37,7 @@ const eventForm = ref({
   // Venue Info
   venue_name: '',
   venue_address: '',
+  venue_city: '',
   venue_capacity: null,
   
   // Organizer Info
@@ -101,7 +102,8 @@ const canProceed = computed(() => {
   }
   if (currentStep.value === 2) {
     return eventForm.value.venue_name && 
-           eventForm.value.venue_address
+           eventForm.value.venue_address &&
+           eventForm.value.venue_city
   }
   if (currentStep.value === 3) {
     return eventForm.value.organizer_name &&
@@ -222,6 +224,7 @@ const validateForm = () => {
   
   if (!eventForm.value.venue_name) errors.value.venue_name = 'Venue name is required'
   if (!eventForm.value.venue_address) errors.value.venue_address = 'Venue address is required'
+  if (!eventForm.value.venue_city) errors.value.venue_city = 'Venue city is required'
   if (!eventForm.value.organizer_name) errors.value.organizer_name = 'Organizer name is required'
   if (!eventForm.value.organizer_contact_email) errors.value.organizer_contact_email = 'Contact email is required'
   if (!eventForm.value.payment_account_name) errors.value.payment_account_name = 'Account name is required'
@@ -591,6 +594,15 @@ onMounted(async () => {
           ></textarea>
           <p v-if="errors.venue_address" class="error-text">{{ errors.venue_address }}</p>
         </div>
+
+         <Input
+          v-model="eventForm.venue_city"
+          label="Venue City"
+          placeholder="e.g. Ho Chi Minh City, Hanoi"
+          :error="errors.venue_city"
+          :icon="MapPinIcon"
+          required
+        />
 
         <Input
           v-model.number="eventForm.venue_capacity"
