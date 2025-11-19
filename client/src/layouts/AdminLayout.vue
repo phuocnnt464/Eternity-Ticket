@@ -14,7 +14,8 @@ import {
   Bars3Icon,
   XMarkIcon,
   UserCircleIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  ShoppingBagIcon
 } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'Refunds', href: '/admin/refunds', icon: CurrencyDollarIcon },
   { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon, adminOnly: true },
   { name: 'Audit Logs', href: '/admin/audit-logs', icon: DocumentTextIcon },
+  { name: 'Orders', href: '/admin/orders', icon: ShoppingBagIcon },
 ]
 
 const filteredNavigation = navigation.filter(item => 
