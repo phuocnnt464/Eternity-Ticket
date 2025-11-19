@@ -75,27 +75,7 @@ export const adminAPI = {
   deactivateSubAdmin: (id) => {
     return api.delete(`/admin/sub-admins/${id}`)
   },
-
-  // GET /api/admin/refunds
-  // getRefunds: (params) => {
-  //   return api.get('/admin/refunds', { params })
-  // },
-
-  // POST /api/admin/refunds/:id/approve
-  // approveRefund: (id, data) => {
-  //   return api.post(`/admin/refunds/${id}/approve`, data)
-  // },
-
-  // POST /api/admin/refunds/:id/reject
-  // rejectRefund: (id, data) => {
-  //   return api.post(`/admin/refunds/${id}/reject`, data)
-  // },
-
-  // POST /api/admin/refunds/:id/process
-  // processRefund: (id) => {
-  //   return api.post(`/admin/refunds/${id}/process`)
-  // },
-
+  
   // GET /api/admin/audit-logs
   getAuditLogs: (params) => {
     return api.get('/admin/audit-logs', { params })

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { adminAPI } from '@/api/admin.js'
 import Card from '@/components/common/Card.vue'
 import Button from '@/components/common/Button.vue'
@@ -17,6 +17,8 @@ import {
 
 import { toast } from 'vue3-toastify' 
 
+const activeTab = ref('audit') 
+
 const loading = ref(true)
 const logs = ref([])
 const searchQuery = ref('')
@@ -32,33 +34,62 @@ const pagination = ref({
   perPage: 50
 })
 
-const actionTypes = [
-  { value: 'all', label: 'All Actions' },
-  { value: 'user_login', label: 'User Login' },
-  { value: 'user_logout', label: 'User Logout' },
-  { value: 'user_created', label: 'User Created' },
-  { value: 'user_updated', label: 'User Updated' },
-  { value: 'user_deleted', label: 'User Deleted' },
-  { value: 'event_created', label: 'Event Created' },
-  { value: 'event_updated', label: 'Event Updated' },
-  { value: 'event_approved', label: 'Event Approved' },
-  { value: 'event_rejected', label: 'Event Rejected' },
-  { value: 'event_deleted', label: 'Event Deleted' },
-  { value: 'order_created', label: 'Order Created' },
-  { value: 'order_cancelled', label: 'Order Cancelled' },
-  { value: 'refund_approved', label: 'Refund Approved' },
-  { value: 'refund_rejected', label: 'Refund Rejected' },
-  { value: 'UPDATE_SETTING', label: 'Settings Updated' }
+const tabs = [
+  { id: 'audit', label: 'Admin Actions', icon: ShieldCheckIcon, description: 'Admin & sub-admin actions' },
+  { id: 'activity', label: 'User Activities', icon: UserGroupIcon, description: 'User system activities' }
 ]
 
+const auditActionTypes = [
+  { value: 'all', label: 'All Actions' },
+  { value: 'CREATE_SUB_ADMIN', label: 'Create Sub-Admin' },
+  { value: 'UPDATE_USER_ROLE', label: 'Update User Role' },
+  { value: 'DEACTIVATE_ACCOUNT', label: 'Deactivate Account' },
+  { value: 'REACTIVATE_ACCOUNT', label: 'Reactivate Account' },
+  { value: 'APPROVE_EVENT', label: 'Approve Event' },
+  { value: 'REJECT_EVENT', label: 'Reject Event' },
+  { value: 'APPROVE_REFUND', label: 'Approve Refund' },
+  { value: 'REJECT_REFUND', label: 'Reject Refund' },
+  { value: 'UPDATE_SETTING', label: 'Update Setting' },
+  { value: 'UPDATE_SETTINGS_BULK', label: 'Bulk Update Settings' }
+]
+
+const activityActionTypes = [
+  { value: 'all', label: 'All Activities' },
+  { value: 'user_login', label: 'User Login' },
+  { value: 'user_logout', label: 'User Logout' },
+  { value: 'user_register', label: 'User Register' },
+  { value: 'event_created', label: 'Event Created' },
+  { value: 'event_updated', label: 'Event Updated' },
+  { value: 'order_created', label: 'Order Created' },
+  { value: 'order_paid', label: 'Order Paid' },
+  { value: 'order_cancelled', label: 'Order Cancelled' },
+  { value: 'ticket_checked_in', label: 'Ticket Checked In' },
+  { value: 'refund_requested', label: 'Refund Requested' }
+]
+
+const actionTypes = computed(() => {
+  return activeTab.value === 'audit' ? auditActionTypes : activityActionTypes
+})
+
 const getActionBadge = (action) => {
-  if (action.includes('created')) return { variant: 'success', text: 'Created' }
-  if (action.includes('updated')) return { variant: 'info', text: 'Updated' }
-  if (action.includes('deleted')) return { variant: 'danger', text: 'Deleted' }
-  if (action.includes('approved')) return { variant: 'success', text: 'Approved' }
-  if (action.includes('rejected')) return { variant: 'danger', text: 'Rejected' }
-  if (action.includes('login')) return { variant: 'info', text: 'Login' }
-  if (action.includes('logout')) return { variant: 'warning', text: 'Logout' }
+  if (action.includes('CREATE') || action.includes('created') || action.includes('register')) 
+    return { variant: 'success', text: action }
+  if (action.includes('UPDATE') || action.includes('updated')) 
+    return { variant: 'info', text: action }
+  if (action.includes('DELETE') || action.includes('deleted') || action.includes('DEACTIVATE')) 
+    return { variant: 'danger', text: action }
+  if (action.includes('APPROVE') || action.includes('approved')) 
+    return { variant: 'success', text: action }
+  if (action.includes('REJECT') || action.includes('rejected') || action.includes('cancelled')) 
+    return { variant: 'danger', text: action }
+  if (action.includes('login')) 
+    return { variant: 'info', text: 'Login' }
+  if (action.includes('logout')) 
+    return { variant: 'warning', text: 'Logout' }
+  if (action.includes('paid')) 
+    return { variant: 'success', text: 'Paid' }
+  if (action.includes('checked_in')) 
+    return { variant: 'accent', text: 'Checked In' }
   return { variant: 'primary', text: action }
 }
 
@@ -68,6 +99,9 @@ const filteredLogs = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(log =>
+      log.admin_name?.toLowerCase().includes(query) ||
+      log.admin_email?.toLowerCase().includes(query) ||
+      log.user_name?.toLowerCase().includes(query) ||
       log.user_email?.toLowerCase().includes(query) ||
       log.action?.toLowerCase().includes(query) ||
       log.description?.toLowerCase().includes(query) ||
@@ -93,11 +127,18 @@ const filteredLogs = computed(() => {
 const fetchLogs = async () => {
   loading.value = true
   try {
-    const response = await adminAPI.getAuditLogs({
+    const params = {
       page: pagination.value.currentPage,
       limit: pagination.value.perPage
-    })
+    }
     
+    let response
+    if (activeTab.value === 'audit') {
+      response = await adminAPI.getAuditLogs(params)
+    } else {
+      response = await adminAPI.getActivityLogs(params)
+    }
+
     logs.value = response.data.logs || []
 
     // pagination.value.totalItems = response.data.pagination?.total_count || 0
@@ -114,6 +155,12 @@ const fetchLogs = async () => {
   }
 }
 
+watch(activeTab, () => {
+  selectedAction.value = 'all'
+  pagination.value.currentPage = 1
+  fetchLogs()
+})
+
 const handleExport = async () => {
   try {
     const timestamp = Date.now()
@@ -124,10 +171,6 @@ const handleExport = async () => {
       action: selectedAction.value !== 'all' ? selectedAction.value : undefined,
       _t: timestamp // Cache buster
     })
-    
-    console.log('📦 Response received:', response.data)
-    console.log('📦 Blob type:', response.data.type)
-    console.log('📦 Blob size:', response.data.size, 'bytes')
 
     // Kiểm tra response có data không
     if (!response.data || response.data.length === 0) {
@@ -141,7 +184,11 @@ const handleExport = async () => {
     const url = window.URL.createObjectURL(response.data)
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `audit-logs-eternity-${new Date().toISOString().split('T')[0]}.csv`)
+    // link.setAttribute('download', `audit-logs-eternity-${new Date().toISOString().split('T')[0]}.csv`)
+    const fileName = activeTab.value === 'audit' 
+      ? `audit-logs-eternity-${new Date().toISOString().split('T')[0]}.csv`
+      : `activity-logs-eternity-${new Date().toISOString().split('T')[0]}.csv`
+    link.setAttribute('download', fileName)
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -256,6 +303,33 @@ onMounted(() => {
         Export Logs
       </Button>
     </div>
+
+    <Card>
+      <div class="border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            @click="activeTab = tab.id"
+            :class="[
+              'flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm',
+              activeTab === tab.id
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            ]"
+          >
+            <component :is="tab.icon" class="w-5 h-5" />
+            <span>{{ tab.label }}</span>
+          </button>
+        </nav>
+      </div>
+      
+      <div class="pt-4">
+        <p class="text-sm text-gray-600">
+          {{ tabs.find(t => t.id === activeTab)?.description }}
+        </p>
+      </div>
+    </Card>
 
     <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -377,8 +451,20 @@ onMounted(() => {
                 <div class="flex items-center space-x-2">
                   <UserIcon class="w-4 h-4 text-gray-400" />
                   <div class="text-sm">
-                    <p class="font-medium text-gray-900">{{ log.user_name || 'System' }}</p>
-                    <p class="text-gray-500">{{ log.user_email }}</p>
+                    <!-- <p class="font-medium text-gray-900">{{ log.user_name || 'System' }}</p>
+                    <p class="text-gray-500">{{ log.user_email }}</p> -->
+                    <p class="font-medium text-gray-900">
+                      {{ activeTab === 'audit' 
+                        ? (log.admin_name || 'System') 
+                        : (log.user_name || 'Unknown User') 
+                      }}
+                    </p>
+                    <p class="text-gray-500">
+                      {{ activeTab === 'audit' 
+                        ? log.admin_email 
+                        : log.user_email 
+                      }}
+                    </p>
                   </div>
                 </div>
               </td>
