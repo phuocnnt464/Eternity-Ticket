@@ -891,31 +891,33 @@ class AdminController {
     try {
       const { start_date, end_date, action, admin_id } = req.query;
       
+      console.log('📊 Export request:', { start_date, end_date, action, admin_id });
+
       let whereConditions = [];
       let params = [];
       let paramIndex = 1;
       
-      if (admin_id) {
+      if (admin_id && admin_id.trim()) {
         whereConditions.push(`al.admin_id = $${paramIndex}`);
         params.push(admin_id);
         paramIndex++;
       }
       
-      if (action) {
+      if (action && action !== 'all' && action.trim()) {
         whereConditions.push(`al.action = $${paramIndex}`);
         params.push(action);
         paramIndex++;
       }
       
-      if (start_date) {
-        whereConditions.push(`al.created_at >= $${paramIndex}`);
+      if (start_date && start_date.trim()) {
+        whereConditions.push(`al.created_at >= $${paramIndex}::timestamp`);
         params.push(start_date);
         paramIndex++;
       }
       
-      if (end_date) {
-        whereConditions.push(`al.created_at <= $${paramIndex}`);
-        params.push(end_date);
+      if (end_date && end_date.trim()) {
+        whereConditions.push(`al.created_at <= $${paramIndex}::timestamp`);
+        params.push(end_date + ' 23:59:59');
         paramIndex++;
       }
       
@@ -926,6 +928,7 @@ class AdminController {
       const query = `
         SELECT 
           al.created_at,
+          al.admin_id,
           u.first_name || ' ' || u.last_name as admin_name,
           u.email as admin_email,
           al.action,
@@ -937,34 +940,44 @@ class AdminController {
         LEFT JOIN users u ON al.admin_id = u.id
         ${whereClause}
         ORDER BY al.created_at DESC
+        LIMIT 10000
       `;
       
       const result = await pool.query(query, params);
       
+      console.log(`✅ Found ${result.rows.length} logs to export`);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json(createResponse(false, 'No audit logs found'));
+      }
+
       // Create CSV
-      const headers = ['Timestamp', 'Admin Name', 'Admin Email', 'Action', 'Target Type', 'Target ID', 'Description', 'IP Address'];
+      const headers = ['Timestamp', 'Admin ID', 'Admin Name', 'Admin Email', 'Action', 'Target Type', 'Target ID', 'Description', 'IP Address'];
       const csvRows = [headers.join(',')];
 
       result.rows.forEach(row => {
         const values = [
-          row.created_at,
-          `"${row.admin_name || 'System'}"`, 
-          `"${row.admin_email || 'N/A'}"`,
-          row.action, 
-          row.target_type || 'N/A', 
-          row.target_id || 'N/A',
-          `"${row.description || ''}"`,
-          row.ip_address || 'N/A'
+          `"${row.created_at ? new Date(row.created_at).toISOString() : 'N/A'}"`,
+          `"${row.admin_id || 'N/A'}"`,
+          `"${(row.admin_name || 'System').replace(/"/g, '""')}"`,
+          `"${(row.admin_email || 'N/A').replace(/"/g, '""')}"`,
+          `"${(row.action || 'N/A').replace(/"/g, '""')}"`,
+          `"${(row.target_type || 'N/A').replace(/"/g, '""')}"`,
+          `"${(row.target_id || 'N/A').replace(/"/g, '""')}"`,
+          `"${(row.description || '').replace(/"/g, '""')}"`,
+          `"${row.ip_address || 'N/A'}"`
         ];
         csvRows.push(values.join(','));
       });
       
       const csv = csvRows.join('\n');
       
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="audit-logs-eternity-${new Date().toISOString()}.csv"`);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="audit-logs-eternity-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.setHeader('Cache-Control', 'no-cache');
       res.send(csv);
       
+      console.log('✅ CSV exported successfully');
     } catch (error) {
       console.error('❌ Export audit logs error:', error);
       res.status(500).json(createResponse(false, 'Failed to export audit logs'));
