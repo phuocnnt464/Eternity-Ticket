@@ -28,8 +28,7 @@ const showChangeRoleModal = ref(false)
 const selectedUser = ref(null)
 const newRole = ref('')  
 const actionLoading = ref(false)
-const searching = ref(false)
-const isSearchActive = ref(false) 
+const searching = ref(false) 
 
 const pagination = ref({
   currentPage: 1,
@@ -204,7 +203,7 @@ const clearSearch = () => {
 
 // Watch filters to reload - only when NOT searching
 watch([selectedRole, selectedStatus], () => {
-  if (!isSearchActive.value) {
+  if (!searchQuery.value) {
     pagination.value.currentPage = 1
     fetchUsers()
   }
