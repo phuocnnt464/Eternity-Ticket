@@ -167,14 +167,31 @@ const handleExport = async () => {
   try {
     const timestamp = Date.now()
 
-    const response = await adminAPI.exportAuditLogs({
-      start_date: dateFrom.value,
-      end_date: dateTo.value,
-      action: selectedAction.value !== 'all' ? selectedAction.value : undefined,
-      _t: timestamp // Cache buster
-    })
+    // const response = await adminAPI.exportAuditLogs({
+    //   start_date: dateFrom.value,
+    //   end_date: dateTo.value,
+    //   action: selectedAction.value !== 'all' ? selectedAction.value : undefined,
+    //   _t: timestamp // Cache buster
+    // })
 
-    // Kiểm tra response có data không
+    let response
+    if (activeTab.value === 'audit') {
+      response = await adminAPI.exportAuditLogs({
+        start_date: dateFrom.value,
+        end_date: dateTo.value,
+        action: selectedAction.value !== 'all' ? selectedAction.value : undefined,
+        _t: timestamp
+      })
+    } else {
+      // ✅ THÊM: Export activity logs
+      response = await adminAPI.exportActivityLogs({
+        start_date: dateFrom.value,
+        end_date: dateTo.value,
+        action: selectedAction.value !== 'all' ? selectedAction.value : undefined,
+        _t: timestamp
+      })
+    }
+
     if (!response.data || response.data.length === 0) {
       toast.error('No data to export', {
         position: 'top-right',

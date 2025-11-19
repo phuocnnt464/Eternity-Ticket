@@ -272,6 +272,14 @@ router.get('/audit-logs/export',
 );
 
 /**
+ * GET /api/admin/activity-logs/export
+ * Export activity logs to CSV
+ */
+router.get('/activity-logs/export',
+  AdminController.exportActivityLogs
+);
+
+/**
  * GET /api/admin/audit-logs/:targetType/:targetId
  * Get audit logs for specific target entity
  */

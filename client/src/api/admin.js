@@ -75,7 +75,7 @@ export const adminAPI = {
   deactivateSubAdmin: (id) => {
     return api.delete(`/admin/sub-admins/${id}`)
   },
-  
+
   // GET /api/admin/audit-logs
   getAuditLogs: (params) => {
     return api.get('/admin/audit-logs', { params })
@@ -86,6 +86,14 @@ export const adminAPI = {
     return api.get('/admin/audit-logs/export', { 
       params,
       responseType: 'blob'  // Important for CSV download
+    })
+  },
+
+  // GET /api/admin/activity-logs/export
+  exportActivityLogs: (params) => {
+    return api.get('/admin/activity-logs/export', { 
+      params,
+      responseType: 'blob'
     })
   },
 

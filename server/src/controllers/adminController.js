@@ -997,6 +997,117 @@ class AdminController {
   }
 
   /**
+   * Export activity logs to CSV
+   * GET /api/admin/activity-logs/export
+   */
+  static async exportActivityLogs(req, res) {
+    try {
+      const { start_date, end_date, action, user_id } = req.query;
+      
+      console.log('📊 Export activity logs request:', { start_date, end_date, action, user_id });
+      
+      let whereConditions = [];
+      let params = [];
+      let paramIndex = 1;
+      
+      // Filters
+      if (user_id && user_id.trim()) {
+        whereConditions.push(`al.user_id = $${paramIndex}`);
+        params.push(user_id);
+        paramIndex++;
+      }
+      
+      if (action && action !== 'all' && action.trim()) {
+        whereConditions.push(`al.action = $${paramIndex}`);
+        params.push(action);
+        paramIndex++;
+      }
+      
+      if (start_date && start_date.trim()) {
+        whereConditions.push(`al.created_at >= $${paramIndex}::timestamp`);
+        params.push(start_date);
+        paramIndex++;
+      }
+      
+      if (end_date && end_date.trim()) {
+        whereConditions.push(`al.created_at <= $${paramIndex}::timestamp`);
+        params.push(end_date + ' 23:59:59');
+        paramIndex++;
+      }
+      
+      const whereClause = whereConditions.length > 0 
+        ? `WHERE ${whereConditions.join(' AND ')}` 
+        : '';
+      
+      const query = `
+        SELECT 
+          al.created_at,
+          al.user_id,
+          u.first_name || ' ' || u.last_name as user_name,
+          u.email as user_email,
+          u.role as user_role,
+          al.action,
+          al.entity_type,
+          al.entity_id,
+          al.description,
+          al.ip_address
+        FROM activity_logs al
+        LEFT JOIN users u ON al.user_id = u.id
+        ${whereClause}
+        ORDER BY al.created_at DESC
+        LIMIT 10000
+      `;
+      
+      const result = await pool.query(query, params);
+      
+      console.log(`✅ Found ${result.rows.length} activity logs to export`);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json(createResponse(false, 'No activity logs found'));
+      }
+      
+      // Create CSV
+      const headers = ['Timestamp', 'User ID', 'User Name', 'User Email', 'User Role', 'Action', 'Entity Type', 'Entity ID', 'Description', 'IP Address'];
+      const csvRows = [headers.join(',')];
+
+      result.rows.forEach(row => {
+        const values = [
+          `"${row.created_at ? new Date(row.created_at).toISOString() : 'N/A'}"`,
+          `"${row.user_id || 'N/A'}"`,
+          `"${(row.user_name || 'Unknown').replace(/"/g, '""')}"`,
+          `"${(row.user_email || 'N/A').replace(/"/g, '""')}"`,
+          `"${(row.user_role || 'N/A').replace(/"/g, '""')}"`,
+          `"${(row.action || 'N/A').replace(/"/g, '""')}"`,
+          `"${(row.entity_type || 'N/A').replace(/"/g, '""')}"`,
+          `"${(row.entity_id || 'N/A').replace(/"/g, '""')}"`,
+          `"${(row.description || '').replace(/"/g, '""')}"`,
+          `"${row.ip_address || 'N/A'}"`
+        ];
+        csvRows.push(values.join(','));
+      });
+      
+      const csv = csvRows.join('\n');
+      
+      // Set headers
+      res.status(200);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="activity-logs-eternity-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.setHeader('Content-Length', Buffer.byteLength(csv, 'utf8'));
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      res.send(csv);
+      
+      console.log('✅ Activity logs CSV exported successfully:', csv.length, 'bytes');
+      
+    } catch (error) {
+      console.error('❌ Export activity logs error:', error);
+      res.status(500).json(createResponse(false, 'Failed to export activity logs'));
+    }
+  }
+
+  /**
    * Create sub-admin account
    * POST /api/admin/sub-admins
    * @access Private (Admin only - NOT sub_admin)
