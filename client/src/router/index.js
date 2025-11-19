@@ -349,7 +349,17 @@ const routes = [
         name: 'AuditLogs',
         component: AuditLogs,
         meta: { title: 'Audit Logs - Admin' }
-      }
+      },
+      {
+        path: 'orders',
+        name: 'AdminOrders',
+        component: () => import('@/views/admin/OrderManagement.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresAdmin: true,
+          title: 'Order Management'
+        }
+      },
     ]
   },
 
