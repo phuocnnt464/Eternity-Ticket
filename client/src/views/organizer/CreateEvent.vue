@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
 import { sessionsAPI } from '@/api/sessions.js'
@@ -11,7 +11,12 @@ import {
   MapPinIcon,
   PhotoIcon,
   PlusIcon,
-  TrashIcon
+  TrashIcon,
+  BuildingOfficeIcon,
+  BanknotesIcon,
+  GlobeAltIcon,
+  LockClosedIcon,
+  InformationCircleIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -22,30 +27,57 @@ const categories = ref([])
 
 // Event Form
 const eventForm = ref({
+  // Basic Info
   title: '',
   description: '',
   category_id: '',
   start_date: '',
   end_date: '',
+  
+  // Venue Info
   venue_name: '',
   venue_address: '',
   venue_capacity: null,
+  
+  // Organizer Info
+  organizer_name: '',
+  organizer_description: '',
+  organizer_contact_email: '',
+  organizer_contact_phone: '',
+  
+  // Privacy
+  is_public: true,
+  
+  // Payment Info
+  payment_account_name: '',
+  payment_account_number: '',
+  payment_bank_name: '',
+  payment_bank_branch: '',
+  
+  // Images
   cover_image: null,
-  thumbnail_image: null
+  thumbnail_image: null,
+  logo_image: null,
+  venue_map_image: null
 })
 
-// Sessions
+// ✅ ĐÚNG: Sessions với min/max tickets per order CỦA SESSION
 const sessions = ref([
   {
     name: 'Main Session',
     start_time: '',
     end_time: '',
+    min_tickets_per_order: 1,    // ✅ Min tổng vé cho mỗi đơn hàng
+    max_tickets_per_order: 10,   // ✅ Max tổng vé cho mỗi đơn hàng
     ticket_types: [
       {
         name: 'General Admission',
         price: 0,
         quantity: 0,
-        max_quantity_per_order: 10
+        min_quantity_per_order: 1,          // ✅ Min của LOẠI VÉ này
+        max_quantity_per_order: 10,         // ✅ Max của LOẠI VÉ này (phải <= session max)
+        sale_start_time: '',
+        sale_end_time: ''
       }
     ]
   }
@@ -54,8 +86,10 @@ const sessions = ref([
 const errors = ref({})
 const coverPreview = ref(null)
 const thumbnailPreview = ref(null)
+const logoPreview = ref(null)
+const venueMapPreview = ref(null)
 
-const totalSteps = 3
+const totalSteps = 5
 
 const canProceed = computed(() => {
   if (currentStep.value === 1) {
@@ -69,6 +103,15 @@ const canProceed = computed(() => {
     return eventForm.value.venue_name && 
            eventForm.value.venue_address
   }
+  if (currentStep.value === 3) {
+    return eventForm.value.organizer_name &&
+           eventForm.value.organizer_contact_email
+  }
+  if (currentStep.value === 4) {
+    return eventForm.value.payment_account_name &&
+           eventForm.value.payment_account_number &&
+           eventForm.value.payment_bank_name
+  }
   return true
 })
 
@@ -81,8 +124,9 @@ const handleImageUpload = (event, type) => {
     return
   }
 
-  if (file.size > 5 * 1024 * 1024) {
-    errors.value[type] = 'Image size must be less than 5MB'
+  const maxSize = type === 'venue_map_image' ? 2 * 1024 * 1024 : 5 * 1024 * 1024
+  if (file.size > maxSize) {
+    errors.value[type] = `Image size must be less than ${maxSize / 1024 / 1024}MB`
     return
   }
 
@@ -93,8 +137,12 @@ const handleImageUpload = (event, type) => {
   reader.onload = (e) => {
     if (type === 'cover_image') {
       coverPreview.value = e.target.result
-    } else {
+    } else if (type === 'thumbnail_image') {
       thumbnailPreview.value = e.target.result
+    } else if (type === 'logo_image') {
+      logoPreview.value = e.target.result
+    } else if (type === 'venue_map_image') {
+      venueMapPreview.value = e.target.result
     }
   }
   reader.readAsDataURL(file)
@@ -105,12 +153,17 @@ const addSession = () => {
     name: `Session ${sessions.value.length + 1}`,
     start_time: '',
     end_time: '',
+    min_tickets_per_order: 1,
+    max_tickets_per_order: 10,
     ticket_types: [
       {
         name: 'General Admission',
         price: 0,
         quantity: 0,
-        max_quantity_per_order: 10
+        min_per_order: 1,
+        max_per_order: 10,
+        sale_start_time: '',
+        sale_end_time: ''
       }
     ]
   })
@@ -127,7 +180,10 @@ const addTicketType = (sessionIndex) => {
     name: '',
     price: 0,
     quantity: 0,
-    max_quantity_per_order: 10
+    min_quantity_per_order: 1,
+    max_quantity_per_order: sessions.value[sessionIndex].max_tickets_per_order,
+    sale_start_time: '',
+    sale_end_time: ''
   })
 }
 
@@ -154,12 +210,9 @@ const prevStep = () => {
 const validateForm = () => {
   errors.value = {}
   
-  // Validate event info
   if (!eventForm.value.title) errors.value.title = 'Title is required'
   if (!eventForm.value.description) errors.value.description = 'Description is required'
   if (!eventForm.value.category_id) errors.value.category_id = 'Category is required'
-  
-  // Validate dates
   if (!eventForm.value.start_date) errors.value.start_date = 'Start date is required'
   if (!eventForm.value.end_date) errors.value.end_date = 'End date is required'
   
@@ -167,9 +220,13 @@ const validateForm = () => {
     errors.value.end_date = 'End date must be after start date'
   }
   
-  // Validate venue
   if (!eventForm.value.venue_name) errors.value.venue_name = 'Venue name is required'
   if (!eventForm.value.venue_address) errors.value.venue_address = 'Venue address is required'
+  if (!eventForm.value.organizer_name) errors.value.organizer_name = 'Organizer name is required'
+  if (!eventForm.value.organizer_contact_email) errors.value.organizer_contact_email = 'Contact email is required'
+  if (!eventForm.value.payment_account_name) errors.value.payment_account_name = 'Account name is required'
+  if (!eventForm.value.payment_account_number) errors.value.payment_account_number = 'Account number is required'
+  if (!eventForm.value.payment_bank_name) errors.value.payment_bank_name = 'Bank name is required'
   
   return Object.keys(errors.value).length === 0
 }
@@ -182,29 +239,28 @@ const handleSubmit = async (status = 'draft') => {
 
   loading.value = true
   try {
-    // Create event
     const formData = new FormData()
     Object.keys(eventForm.value).forEach(key => {
-      if (eventForm.value[key]) {
+      if (eventForm.value[key] !== null && eventForm.value[key] !== '') {
         formData.append(key, eventForm.value[key])
       }
     })
     formData.append('status', status)
 
     const eventResponse = await eventsAPI.createEvent(formData)
-    const eventId = eventResponse.data.data.event_id
+    const eventId = eventResponse.data.event_id
 
-    // Create sessions
     for (const session of sessions.value) {
       const sessionResponse = await sessionsAPI.createSession(eventId, {
         name: session.name,
         start_time: session.start_time,
-        end_time: session.end_time
+        end_time: session.end_time,
+        min_tickets_per_order: session.min_tickets_per_order,
+        max_tickets_per_order: session.max_tickets_per_order
       })
 
       const sessionId = sessionResponse.data.data.session_id
 
-      // Create ticket types
       for (const ticket of session.ticket_types) {
         await sessionsAPI.createTicketType(sessionId, ticket)
       }
@@ -213,11 +269,25 @@ const handleSubmit = async (status = 'draft') => {
     alert(status === 'draft' ? 'Event saved as draft!' : 'Event submitted for approval!')
     router.push('/organizer/events')
   } catch (error) {
+    console.error('Create event error:', error)
     alert(error.response?.data?.error?.message || 'Failed to create event')
   } finally {
     loading.value = false
   }
 }
+
+onMounted(async () => {
+  try {
+    categories.value = [
+      { id: '1', name: 'Music' },
+      { id: '2', name: 'Sports' },
+      { id: '3', name: 'Conference' },
+      { id: '4', name: 'Festival' }
+    ]
+  } catch (error) {
+    console.error('Failed to load categories:', error)
+  }
+})
 </script>
 
 <template>
@@ -238,7 +308,7 @@ const handleSubmit = async (status = 'draft') => {
         >
           <div class="flex items-center">
             <div :class="[
-              'w-10 h-10 rounded-full flex items-center justify-center font-semibold',
+              'w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm',
               currentStep >= step 
                 ? 'bg-primary-600 text-white' 
                 : 'bg-gray-200 text-gray-600'
@@ -246,12 +316,18 @@ const handleSubmit = async (status = 'draft') => {
               {{ step }}
             </div>
             <div v-if="step < totalSteps" :class="[
-              'flex-1 h-1 mx-4',
+              'flex-1 h-1 mx-2',
               currentStep > step ? 'bg-primary-600' : 'bg-gray-200'
             ]"></div>
           </div>
-          <p class="text-sm mt-2 font-medium">
-            {{ step === 1 ? 'Event Info' : step === 2 ? 'Venue Details' : 'Sessions & Tickets' }}
+          <p class="text-xs mt-2 font-medium">
+            {{ 
+              step === 1 ? 'Event Info' : 
+              step === 2 ? 'Venue' : 
+              step === 3 ? 'Organizer' :
+              step === 4 ? 'Payment' :
+              'Sessions & Tickets'
+            }}
           </p>
         </div>
       </div>
@@ -288,10 +364,9 @@ const handleSubmit = async (status = 'draft') => {
             :class="['select', errors.category_id && 'input-error']"
           >
             <option value="">Select category</option>
-            <option value="1">Music</option>
-            <option value="2">Sports</option>
-            <option value="3">Conference</option>
-            <option value="4">Festival</option>
+            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+              {{ cat.name }}
+            </option>
           </select>
           <p v-if="errors.category_id" class="error-text">{{ errors.category_id }}</p>
         </div>
@@ -316,26 +391,125 @@ const handleSubmit = async (status = 'draft') => {
           />
         </div>
 
-        <!-- Cover Image -->
+        <!-- Privacy Setting -->
         <div>
-          <label class="label">Cover Image</label>
-          <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-            <div v-if="coverPreview" class="mb-4">
-              <img :src="coverPreview" class="max-h-48 mx-auto rounded-lg" />
-            </div>
-            <PhotoIcon class="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <label class="btn-secondary btn-sm cursor-pointer">
-              Choose Image
+          <label class="label label-required">Privacy</label>
+          <div class="flex items-center space-x-4">
+            <label class="flex items-center space-x-2 cursor-pointer">
               <input
-                type="file"
-                accept="image/*"
-                @change="handleImageUpload($event, 'cover_image')"
-                class="hidden"
+                type="radio"
+                v-model="eventForm.is_public"
+                :value="true"
+                class="radio"
               />
+              <GlobeAltIcon class="w-5 h-5 text-green-600" />
+              <span class="font-medium">Public - Everyone can see</span>
             </label>
-            <p class="text-xs text-gray-500 mt-2">Max 5MB. Recommended: 1920x1080px</p>
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="radio"
+                v-model="eventForm.is_public"
+                :value="false"
+                class="radio"
+              />
+              <LockClosedIcon class="w-5 h-5 text-gray-600" />
+              <span class="font-medium">Private - Only with link</span>
+            </label>
           </div>
-          <p v-if="errors.cover_image" class="error-text">{{ errors.cover_image }}</p>
+          <p class="text-sm text-gray-500 mt-2">
+            {{ eventForm.is_public ? 'This event will be visible to everyone' : 'Only people with the direct link can access this event' }}
+          </p>
+        </div>
+
+        <!-- 4 Image Uploads -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Cover Image -->
+          <div>
+            <label class="label">Cover Image (Banner)</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+              <div v-if="coverPreview" class="mb-3">
+                <img :src="coverPreview" class="max-h-32 mx-auto rounded-lg" />
+              </div>
+              <PhotoIcon class="w-10 h-10 text-gray-400 mx-auto mb-2" />
+              <label class="btn-secondary btn-sm cursor-pointer">
+                Choose Image
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  @change="handleImageUpload($event, 'cover_image')"
+                  class="hidden"
+                />
+              </label>
+              <p class="text-xs text-gray-500 mt-2">1280x720px | Max 5MB | PNG/JPEG/WEBP</p>
+            </div>
+            <p v-if="errors.cover_image" class="error-text">{{ errors.cover_image }}</p>
+          </div>
+
+          <!-- Thumbnail Image -->
+          <div>
+            <label class="label">Thumbnail (Ticket/Slider)</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+              <div v-if="thumbnailPreview" class="mb-3">
+                <img :src="thumbnailPreview" class="max-h-32 mx-auto rounded-lg" />
+              </div>
+              <PhotoIcon class="w-10 h-10 text-gray-400 mx-auto mb-2" />
+              <label class="btn-secondary btn-sm cursor-pointer">
+                Choose Image
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  @change="handleImageUpload($event, 'thumbnail_image')"
+                  class="hidden"
+                />
+              </label>
+              <p class="text-xs text-gray-500 mt-2">720x958px | Max 5MB | PNG/JPEG/WEBP</p>
+            </div>
+            <p v-if="errors.thumbnail_image" class="error-text">{{ errors.thumbnail_image }}</p>
+          </div>
+
+          <!-- Logo Image -->
+          <div>
+            <label class="label">Logo</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+              <div v-if="logoPreview" class="mb-3">
+                <img :src="logoPreview" class="max-h-32 mx-auto rounded-lg" />
+              </div>
+              <PhotoIcon class="w-10 h-10 text-gray-400 mx-auto mb-2" />
+              <label class="btn-secondary btn-sm cursor-pointer">
+                Choose Image
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  @change="handleImageUpload($event, 'logo_image')"
+                  class="hidden"
+                />
+              </label>
+              <p class="text-xs text-gray-500 mt-2">275x275px | Max 5MB | PNG/JPEG/WEBP</p>
+            </div>
+            <p v-if="errors.logo_image" class="error-text">{{ errors.logo_image }}</p>
+          </div>
+
+          <!-- Venue Map -->
+          <div>
+            <label class="label">Venue Map (Seat Diagram)</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+              <div v-if="venueMapPreview" class="mb-3">
+                <img :src="venueMapPreview" class="max-h-32 mx-auto rounded-lg" />
+              </div>
+              <PhotoIcon class="w-10 h-10 text-gray-400 mx-auto mb-2" />
+              <label class="btn-secondary btn-sm cursor-pointer">
+                Choose Image
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  @change="handleImageUpload($event, 'venue_map_image')"
+                  class="hidden"
+                />
+              </label>
+              <p class="text-xs text-gray-500 mt-2">Free size | Max 2MB | PNG/JPEG</p>
+            </div>
+            <p v-if="errors.venue_map_image" class="error-text">{{ errors.venue_map_image }}</p>
+          </div>
         </div>
       </div>
     </Card>
@@ -374,8 +548,98 @@ const handleSubmit = async (status = 'draft') => {
       </div>
     </Card>
 
-    <!-- Step 3: Sessions & Tickets -->
-    <div v-show="currentStep === 3" class="space-y-4">
+    <!-- Step 3: Organizer Info -->
+    <Card v-show="currentStep === 3">
+      <h2 class="text-xl font-semibold mb-6 flex items-center space-x-2">
+        <BuildingOfficeIcon class="w-6 h-6" />
+        <span>Organizer Information</span>
+      </h2>
+      
+      <div class="space-y-4">
+        <Input
+          v-model="eventForm.organizer_name"
+          label="Organizer Name"
+          placeholder="e.g. ABC Entertainment Company"
+          :error="errors.organizer_name"
+          required
+        />
+
+        <div>
+          <label class="label">Organizer Description</label>
+          <textarea
+            v-model="eventForm.organizer_description"
+            rows="4"
+            placeholder="Brief description about the organizer..."
+            class="textarea"
+          ></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            v-model="eventForm.organizer_contact_email"
+            type="email"
+            label="Contact Email"
+            placeholder="contact@example.com"
+            :error="errors.organizer_contact_email"
+            required
+          />
+
+          <Input
+            v-model="eventForm.organizer_contact_phone"
+            type="tel"
+            label="Contact Phone"
+            placeholder="+84 xxx xxx xxx"
+          />
+        </div>
+      </div>
+    </Card>
+
+    <!-- Step 4: Payment Info -->
+    <Card v-show="currentStep === 4">
+      <h2 class="text-xl font-semibold mb-6 flex items-center space-x-2">
+        <BanknotesIcon class="w-6 h-6" />
+        <span>Payment Information</span>
+      </h2>
+      
+      <p class="text-sm text-gray-600 mb-4">
+        This account will receive payments from ticket sales
+      </p>
+
+      <div class="space-y-4">
+        <Input
+          v-model="eventForm.payment_account_name"
+          label="Account Holder Name"
+          placeholder="e.g. NGUYEN VAN A"
+          :error="errors.payment_account_name"
+          required
+        />
+
+        <Input
+          v-model="eventForm.payment_account_number"
+          label="Account Number"
+          placeholder="e.g. 1234567890"
+          :error="errors.payment_account_number"
+          required
+        />
+
+        <Input
+          v-model="eventForm.payment_bank_name"
+          label="Bank Name"
+          placeholder="e.g. Vietcombank, BIDV, Techcombank"
+          :error="errors.payment_bank_name"
+          required
+        />
+
+        <Input
+          v-model="eventForm.payment_bank_branch"
+          label="Bank Branch (Optional)"
+          placeholder="e.g. Ho Chi Minh Branch"
+        />
+      </div>
+    </Card>
+
+    <!-- Step 5: Sessions & Tickets -->
+    <div v-show="currentStep === 5" class="space-y-4">
       <Card
         v-for="(session, sessionIndex) in sessions"
         :key="sessionIndex"
@@ -396,7 +660,7 @@ const handleSubmit = async (status = 'draft') => {
           <Input
             v-model="session.name"
             label="Session Name"
-            placeholder="e.g. Main Session, Day 1, etc."
+            placeholder="e.g. Main Session, Day 1, Session 1"
           />
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -412,6 +676,35 @@ const handleSubmit = async (status = 'draft') => {
               label="Session End"
               required
             />
+          </div>
+
+          <!-- ✅ SESSION LEVEL: Min/Max tickets per order -->
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-start space-x-2 mb-3">
+              <InformationCircleIcon class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p class="font-medium text-blue-900">Order Limits for This Session</p>
+                <p class="text-sm text-blue-700 mt-1">
+                  Set the minimum and maximum TOTAL tickets a customer can buy in one order for this session (across all ticket types)
+                </p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <Input
+                v-model.number="session.min_tickets_per_order"
+                type="number"
+                label="Min Tickets Per Order"
+                placeholder="1"
+                required
+              />
+              <Input
+                v-model.number="session.max_tickets_per_order"
+                type="number"
+                label="Max Tickets Per Order"
+                placeholder="10"
+                required
+              />
+            </div>
           </div>
         </div>
 
@@ -429,7 +722,7 @@ const handleSubmit = async (status = 'draft') => {
             </Button>
           </div>
 
-          <div class="space-y-3">
+          <div class="space-y-4">
             <div
               v-for="(ticket, ticketIndex) in session.ticket_types"
               :key="ticketIndex"
@@ -447,20 +740,25 @@ const handleSubmit = async (status = 'draft') => {
                 </Button>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Input
-                  v-model="ticket.name"
-                  label="Name"
-                  placeholder="e.g. VIP, General"
-                  required
-                />
-                <Input
-                  v-model.number="ticket.price"
-                  type="number"
-                  label="Price (VND)"
-                  placeholder="0"
-                  required
-                />
+              <div class="space-y-3">
+                <!-- Row 1: Name & Price -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    v-model="ticket.name"
+                    label="Ticket Name"
+                    placeholder="e.g. VIP, General, Early Bird"
+                    required
+                  />
+                  <Input
+                    v-model.number="ticket.price"
+                    type="number"
+                    label="Price (VND)"
+                    placeholder="0"
+                    required
+                  />
+                </div>
+
+                <!-- Row 2: Quantity -->
                 <Input
                   v-model.number="ticket.quantity"
                   type="number"
@@ -468,13 +766,49 @@ const handleSubmit = async (status = 'draft') => {
                   placeholder="0"
                   required
                 />
-                <Input
-                  v-model.number="ticket.max_quantity_per_order"
-                  type="number"
-                  label="Max Per Order"
-                  placeholder="10"
-                  required
-                />
+
+                <!-- ✅ TICKET TYPE LEVEL: Min/Max per order CHO LOẠI VÉ NÀY -->
+                <div class="bg-gray-50 border border-gray-200 rounded p-3">
+                  <p class="text-sm font-medium text-gray-700 mb-2">
+                    Limits for This Ticket Type
+                  </p>
+                  <p class="text-xs text-gray-600 mb-3">
+                    Min/max quantity customer can buy of THIS ticket type (must not exceed session max: {{ session.max_tickets_per_order }})
+                  </p>
+                  <div class="grid grid-cols-2 gap-3">
+                    <Input
+                      v-model.number="ticket.min_per_order"
+                      type="number"
+                      label="Min Per Order"
+                      placeholder="1"
+                      required
+                    />
+                    <Input
+                      v-model.number="ticket.max_per_order"
+                      type="number"
+                      label="Max Per Order"
+                      placeholder="10"
+                      :max="session.max_tickets_per_order"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <!-- Sale Time -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    v-model="ticket.sale_start_time"
+                    type="datetime-local"
+                    label="Sale Start Time (Optional)"
+                    placeholder="When tickets go on sale"
+                  />
+                  <Input
+                    v-model="ticket.sale_end_time"
+                    type="datetime-local"
+                    label="Sale End Time (Optional)"
+                    placeholder="When tickets stop selling"
+                  />
+                </div>
               </div>
             </div>
           </div>
