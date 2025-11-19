@@ -264,6 +264,14 @@ router.get('/audit-logs',
 );
 
 /**
+ * GET /api/admin/audit-logs/export
+ * Export audit logs to CSV
+ */
+router.get('/audit-logs/export',
+  AdminController.exportAuditLogs
+);
+
+/**
  * GET /api/admin/audit-logs/:targetType/:targetId
  * Get audit logs for specific target entity
  */
@@ -329,14 +337,6 @@ router.delete('/sub-admins/:userId',
   validateUUIDParam('userId'),
   logAdminAudit('DEACTIVATE_SUB_ADMIN', 'USER'),
   AdminController.deactivateSubAdmin
-);
-
-/**
- * GET /api/admin/audit-logs/export
- * Export audit logs to CSV
- */
-router.get('/audit-logs/export',
-  AdminController.exportAuditLogs
 );
 
 module.exports = router;
