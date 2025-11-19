@@ -358,113 +358,75 @@ onMounted(async () => {
           ></textarea>
           <p v-if="errors.description" class="error-text">{{ errors.description }}</p>
         </div>
-
-        <div>
-          <label class="label label-required">Category</label>
-          <select
-            v-model="eventForm.category_id"
-            :class="['select', errors.category_id && 'input-error']"
-          >
-            <option value="">Select category</option>
-            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-              {{ cat.name }}
-            </option>
-          </select>
-          <p v-if="errors.category_id" class="error-text">{{ errors.category_id }}</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            v-model="eventForm.start_date"
-            type="datetime-local"
-            label="Start Date & Time"
-            :error="errors.start_date"
-            :icon="CalendarIcon"
-            required
-          />
-
-          <Input
-            v-model="eventForm.end_date"
-            type="datetime-local"
-            label="End Date & Time"
-            :error="errors.end_date"
-            :icon="CalendarIcon"
-            required
-          />
-        </div>
         
-        <!-- Logo (2 hàng) + Category (hàng 1) + Start/End Dates (hàng 2) -->
-<div class="grid grid-cols-1 md:grid-cols-6 gap-4">
-  <!-- Logo - 1 cột, chiếm 2 hàng (nhỏ hơn) -->
-  <div class="md:col-span-1 md:row-span-2">
-    <label class="label text-sm">Logo</label>
-    <p class="text-xs text-gray-500 mb-2">275x275px</p>
-    <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
-      <div v-if="logoPreview" class="relative w-full aspect-square bg-gray-100 group">
-        <img :src="logoPreview" class="w-full h-full object-cover" />
-        <button
-          @click.prevent="logoPreview = null; eventForm.logo_image = null"
-          class="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-          title="Remove image"
-        >
-          <TrashIcon class="w-3 h-3" />
-        </button>
-      </div>
-      <div v-else class="w-full aspect-square bg-gray-50 flex flex-col items-center justify-center p-2">
-        <PhotoIcon class="w-6 h-6 text-gray-400 mb-1" />
-        <label class="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer">
-          Upload
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            @change="handleImageUpload($event, 'logo_image')"
-            class="hidden"
-          />
-        </label>
-      </div>
-    </div>
-    <p v-if="errors.logo_image" class="error-text mt-1 text-xs">{{ errors.logo_image }}</p>
-  </div>
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div class="md:col-span-1 md:row-span-2">
+            <label class="label text-sm">Logo</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+              <div v-if="logoPreview" class="relative w-full aspect-square bg-gray-100 group">
+                <img :src="logoPreview" class="w-full h-full object-cover" />
+                <button
+                  @click.prevent="logoPreview = null; eventForm.logo_image = null"
+                  class="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove image"
+                >
+                  <TrashIcon class="w-3 h-3" />
+                </button>
+              </div>
+              <div v-else class="w-full aspect-square bg-gray-50 flex flex-col items-center justify-center p-2">
+                <PhotoIcon class="w-6 h-6 text-gray-400 mb-1" />
+                <p class="text-xs text-gray-500 text-center mb-2">275x275px</p>
+                <label class="btn-secondary btn-sm text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer">
+                  Upload
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    @change="handleImageUpload($event, 'logo_image')"
+                    class="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+            <p v-if="errors.logo_image" class="error-text mt-1 text-xs">{{ errors.logo_image }}</p>
+          </div>
 
-  <!-- Category - 5 cột, hàng 1 -->
-  <div class="md:col-span-5">
-    <label class="label label-required">Category</label>
-    <select
-      v-model="eventForm.category_id"
-      :class="['select', errors.category_id && 'input-error']"
-    >
-      <option value="">Select category</option>
-      <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-        {{ cat.name }}
-      </option>
-    </select>
-    <p v-if="errors.category_id" class="error-text">{{ errors.category_id }}</p>
-  </div>
+          <!-- Category  -->
+          <div class="md:col-span-5">
+            <label class="label label-required">Category</label>
+            <select
+              v-model="eventForm.category_id"
+              :class="['select', errors.category_id && 'input-error']"
+            >
+              <option value="">Select category</option>
+              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                {{ cat.name }}
+              </option>
+            </select>
+            <p v-if="errors.category_id" class="error-text">{{ errors.category_id }}</p>
+          </div>
 
-  <!-- Start Date - 2.5 cột, hàng 2 -->
-  <div class="md:col-span-2">
-    <Input
-      v-model="eventForm.start_date"
-      type="datetime-local"
-      label="Start Date & Time"
-      :error="errors.start_date"
-      :icon="CalendarIcon"
-      required
-    />
-  </div>
+          <div class="md:col-span-2">
+            <Input
+              v-model="eventForm.start_date"
+              type="datetime-local"
+              label="Start Date & Time"
+              :error="errors.start_date"
+              :icon="CalendarIcon"
+              required
+            />
+          </div>
 
-  <!-- End Date - 2.5 cột, hàng 2 -->
-  <div class="md:col-span-2">
-    <Input
-      v-model="eventForm.end_date"
-      type="datetime-local"
-      label="End Date & Time"
-      :error="errors.end_date"
-      :icon="CalendarIcon"
-      required
-    />
-  </div>
-</div>
+          <div class="md:col-span-2">
+            <Input
+              v-model="eventForm.end_date"
+              type="datetime-local"
+              label="End Date & Time"
+              :error="errors.end_date"
+              :icon="CalendarIcon"
+              required
+            />
+          </div>
+        </div>
 
         <!-- Privacy Setting -->
         <div>
@@ -502,7 +464,7 @@ onMounted(async () => {
             <!-- Thumbnail  -->
             <div class="md:w-1/4 flex-shrink-0">
               <label class="label text-sm">Thumbnail (Ticket/Slider)</label>
-              <p class="text-xs text-gray-500 mb-2">720x958px | Max 5MB | PNG, JPEG</p>
+              <p class="text-xs text-gray-500 mb-2">720x958px | Max 5MB</p>
               <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-full">
                 <div v-if="thumbnailPreview" class="relative w-full h-full min-h-[300px] bg-gray-100 group">
                   <img :src="thumbnailPreview" class="w-full h-full object-cover" />
@@ -516,9 +478,9 @@ onMounted(async () => {
                 </div>
                 <div v-else class="w-full h-full min-h-[300px] bg-gray-50 flex flex-col items-center justify-center p-4">
                   <PhotoIcon class="w-10 h-10 text-gray-400 mb-2" />
-                  <p class="text-xs text-gray-500 text-center mb-2">Portrait (3:4)</p>
-                  <label class="btn-secondary btn-sm cursor-pointer">
-                    Choose
+                  <p class="text-xs text-gray-500 text-center mb-2">Portrait (3:4) |  PNG, JPEG, WEBP</p>
+                  <label class="btn-secondary btn-sm text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer">
+                    Upload
                     <input
                       type="file"
                       accept="image/png,image/jpeg,image/webp"
@@ -549,8 +511,8 @@ onMounted(async () => {
                 <div v-else class="w-full h-full min-h-[300px] bg-gray-50 flex flex-col items-center justify-center p-4">
                   <PhotoIcon class="w-12 h-12 text-gray-400 mb-2" />
                   <p class="text-xs text-gray-500 mb-2">Seat map or venue layout</p>
-                  <label class="btn-secondary btn-sm cursor-pointer">
-                    Choose Image
+                  <label class="btn-secondary btn-sm text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer">
+                    Upload
                     <input
                       type="file"
                       accept="image/png,image/jpeg"
@@ -582,8 +544,8 @@ onMounted(async () => {
               <div v-else class="w-full aspect-video bg-gray-50 flex flex-col items-center justify-center p-6">
                 <PhotoIcon class="w-12 h-12 text-gray-400 mb-2" />
                 <p class="text-xs text-gray-500 mb-2">Wide banner (16:9 ratio)</p>
-                <label class="btn-secondary btn-sm cursor-pointer">
-                  Choose Image
+                <label class="btn-secondary btn-sm text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer">
+                  Upload
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
