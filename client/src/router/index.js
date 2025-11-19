@@ -61,6 +61,7 @@ const SubAdminManagement = () => import('@/views/admin/SubAdminManagement.vue')
 const SystemSettings = () => import('@/views/admin/SystemSettings.vue')
 const AuditLogs = () => import('@/views/admin/AuditLogs.vue')
 const RefundManagement = () => import('@/views/admin/RefundManagement.vue')
+const AdminOrderManagement = () => import('@/views/admin/OrderManagement.vue')
 
 // ==========================================
 // ERROR PAGES
@@ -353,7 +354,7 @@ const routes = [
       {
         path: 'orders',
         name: 'Admin Orders',
-        component: OrderManagement,
+        component: AdminOrderManagement,
         meta: { 
           title: 'Order Management'
         }

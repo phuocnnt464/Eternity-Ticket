@@ -26,11 +26,11 @@ const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: HomeIcon },
   { name: 'Users', href: '/admin/users', icon: UsersIcon },
   { name: 'Events', href: '/admin/events', icon: CalendarIcon },
+  { name: 'Orders', href: '/admin/orders', icon: ShoppingBagIcon },
   { name: 'Sub-Admins', href: '/admin/sub-admins', icon: ShieldCheckIcon, adminOnly: true },
   { name: 'Refunds', href: '/admin/refunds', icon: CurrencyDollarIcon },
   { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon, adminOnly: true },
   { name: 'Audit Logs', href: '/admin/audit-logs', icon: DocumentTextIcon },
-  { name: 'Orders', href: '/admin/orders', icon: ShoppingBagIcon },
 ]
 
 const filteredNavigation = navigation.filter(item => 
