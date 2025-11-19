@@ -102,15 +102,16 @@ const getMembershipBadge = (tier) => {
 // Search handler with debounce
 let searchTimeout = null
 const handleSearchInput = (event) => {
-  const query = event.target.value.trim()
+  const query = event.target.value
   searchQuery.value = query
   
   if (searchTimeout) {
     clearTimeout(searchTimeout)
   }
 
-  if (!query) {
+  if (!query || query.trim() === '') {
     searching.value = false
+    users.value = []
     fetchUsers()
     return
   }
@@ -121,7 +122,8 @@ const handleSearchInput = (event) => {
   //   users.value = []
   // }
 
-  if (query.length < 2) {
+  if (query.trim().length < 2) {
+    searching.value = false
     users.value = []
     return
   }
@@ -129,7 +131,7 @@ const handleSearchInput = (event) => {
   // ✅ Debounce 400ms
   searching.value = true // Show loading
   searchTimeout = setTimeout(() => {
-    searchUsers(query)
+    searchUsers(query.trim())
   }, 400)
 }
 
