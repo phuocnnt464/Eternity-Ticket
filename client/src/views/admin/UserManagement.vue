@@ -55,28 +55,28 @@ const statusOptions = [
   { value: 'inactive', label: 'Inactive' }
 ]
 
-const filteredUsers = computed(() => {
-  let result = users.value
+// const filteredUsers = computed(() => {
+//   let result = users.value
 
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(user =>
-      user.first_name?.toLowerCase().includes(query) ||
-      user.last_name?.toLowerCase().includes(query) ||
-      user.email?.toLowerCase().includes(query)
-    )
-  }
+//   if (searchQuery.value) {
+//     const query = searchQuery.value.toLowerCase()
+//     result = result.filter(user =>
+//       user.first_name?.toLowerCase().includes(query) ||
+//       user.last_name?.toLowerCase().includes(query) ||
+//       user.email?.toLowerCase().includes(query)
+//     )
+//   }
 
-  if (selectedRole.value !== 'all') {
-    result = result.filter(user => user.role === selectedRole.value)
-  }
+//   if (selectedRole.value !== 'all') {
+//     result = result.filter(user => user.role === selectedRole.value)
+//   }
 
-  if (selectedStatus.value !== 'all') {
-    result = result.filter(user => user.is_active === (selectedStatus.value === 'active'))
-  }
+//   if (selectedStatus.value !== 'all') {
+//     result = result.filter(user => user.is_active === (selectedStatus.value === 'active'))
+//   }
 
-  return result
-})
+//   return result
+// })
 
 const getRoleBadge = (role) => {
   const badges = {
@@ -97,6 +97,45 @@ const getMembershipBadge = (tier) => {
   return badges[tier] || badges.basic
 }
 
+// Server-side search function
+let searchTimeout = null
+watch(searchQuery, (newQuery) => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  
+  searchTimeout = setTimeout(() => {
+    if (newQuery && newQuery.length >= 2) {
+      performSearch(newQuery)
+    } else if (!newQuery) {
+      fetchUsers() // Load all users nếu search empty
+    }
+  }, 500) // Debounce 500ms
+})
+
+// Server-side search function
+const performSearch = async (query) => {
+  searching.value = true
+  try {
+    const response = await adminAPI.searchUsers({ 
+      q: query,
+      limit: 50 // Search results limit
+    })
+    
+    users.value = response.users || []
+    
+    // Reset pagination cho search results
+    pagination.value.currentPage = 1
+    pagination.value.totalItems = users.value.length
+    pagination.value.totalPages = 1
+    
+    console.log(`✅ Found ${users.value.length} users matching "${query}"`)
+  } catch (error) {
+    console.error('Search error:', error)
+    users.value = []
+  } finally {
+    searching.value = false
+  }
+}
+
 const fetchUsers = async () => {
   loading.value = true
   try {
@@ -115,6 +154,20 @@ const fetchUsers = async () => {
     loading.value = false
   }
 }
+
+// Clear search function
+const clearSearch = () => {
+  searchQuery.value = ''
+  fetchUsers()
+}
+
+//Watch filters để reload
+watch([selectedRole, selectedStatus], () => {
+  if (!searchQuery.value) {
+    pagination.value.currentPage = 1
+    fetchUsers()
+  }
+})
 
 const handleViewDetails = (user) => {
   selectedUser.value = user
@@ -272,10 +325,10 @@ onMounted(() => {
     </div>
 
     <!-- Search & Filters -->
-    <Card>
-      <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+    <!-- <Card>
+      <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4"> -->
         <!-- Search -->
-        <div class="flex-1 max-w-md">
+        <!-- <div class="flex-1 max-w-md">
           <div class="relative">
             <input
               v-model="searchQuery"
@@ -285,10 +338,10 @@ onMounted(() => {
             />
             <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           </div>
-        </div>
+        </div> -->
 
         <!-- Filters -->
-        <div class="flex items-center space-x-2">
+        <!-- <div class="flex items-center space-x-2">
           <FunnelIcon class="w-5 h-5 text-gray-400" />
           <select v-model="selectedRole" class="select">
             <option
@@ -310,6 +363,79 @@ onMounted(() => {
           </select>
         </div>
       </div>
+    </Card> -->
+
+    <Card>
+      <div class="space-y-4">
+        <!-- Search Bar -->
+        <div class="relative">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search by name or email (min 2 characters)..."
+            class="input pl-10 pr-10"
+            :disabled="searching"
+          />
+          <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          
+          <!-- Loading spinner khi search -->
+          <svg 
+            v-if="searching" 
+            class="animate-spin h-5 w-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" 
+            xmlns="http://www.w3.org/2000/svg" 
+            fill="none" 
+            viewBox="0 0 24 24"
+          >
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          
+          <!-- Clear button -->
+          <button
+            v-else-if="searchQuery"
+            @click="clearSearch"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Search hint -->
+        <p v-if="searchQuery && searchQuery.length < 2" class="text-sm text-amber-600">
+          ⚠️ Please enter at least 2 characters to search
+        </p>
+        
+        <p v-if="searchQuery && users.length > 0" class="text-sm text-green-600">
+          ✅ Found {{ users.length }} users matching "{{ searchQuery }}"
+        </p>
+
+        <!-- Filters Row -->
+        <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+          <div class="flex items-center space-x-2">
+            <FunnelIcon class="w-5 h-5 text-gray-400" />
+            <select v-model="selectedRole" class="select" :disabled="!!searchQuery">
+              <option v-for="option in roleOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <select v-model="selectedStatus" class="select" :disabled="!!searchQuery">
+              <option v-for="option in statusOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Filter hint khi đang search -->
+          <p v-if="searchQuery" class="text-sm text-gray-500 italic">
+            (Filters disabled during search)
+          </p>
+        </div>
+      </div>
     </Card>
 
     <!-- Loading -->
@@ -318,7 +444,8 @@ onMounted(() => {
     </div>
 
     <!-- Users Table -->
-    <Card v-else-if="filteredUsers.length > 0" no-padding>
+    <!-- <Card v-else-if="filteredUsers.length > 0" no-padding> -->
+     <Card v-else-if="users.length > 0" no-padding>
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50 border-b">
@@ -333,11 +460,12 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr
+            <!-- <tr
               v-for="user in filteredUsers"
               :key="user.id"
               class="hover:bg-gray-50"
-            >
+            > -->
+            <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50">
               <td class="px-6 py-4">
                 <div class="flex items-center space-x-3">
                   <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
@@ -388,7 +516,8 @@ onMounted(() => {
       </div>
 
       <!-- Pagination -->
-      <div v-if="pagination.totalPages > 1" class="p-6 border-t">
+      <!-- <div v-if="pagination.totalPages > 1" class="p-6 border-t"> -->
+      <div v-if="!searchQuery && pagination.totalPages > 1" class="p-6 border-t">
         <Pagination
           v-model:current-page="pagination.currentPage"
           :total-pages="pagination.totalPages"
@@ -400,7 +529,19 @@ onMounted(() => {
     <!-- Empty State -->
     <Card v-else class="text-center py-12">
       <UserIcon class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-      <p class="text-gray-500">No users found</p>
+      <!-- <p class="text-gray-500">No users found</p> -->
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">
+        {{ searchQuery ? 'No users found' : 'No users yet' }}
+      </h3>
+      <p class="text-gray-600">
+        {{ searchQuery 
+          ? `No users match "${searchQuery}". Try a different search.` 
+          : 'Users will appear here once they register.' 
+        }}
+      </p>
+      <Button v-if="searchQuery" variant="secondary" @click="clearSearch" class="mt-4">
+        Clear Search
+      </Button>
     </Card>
 
     <!-- User Detail Modal -->
