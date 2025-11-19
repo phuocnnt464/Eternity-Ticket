@@ -116,14 +116,29 @@ const fetchLogs = async () => {
 
 const handleExport = async () => {
   try {
+     const timestamp = Date.now()
+
     const response = await adminAPI.exportAuditLogs({
       start_date: dateFrom.value,
       end_date: dateTo.value,
-      action: selectedAction.value !== 'all' ? selectedAction.value : undefined
+      action: selectedAction.value !== 'all' ? selectedAction.value : undefined,
+      _t: timestamp // Cache buster
     })
+
+    console.log('📦 Response received:', response.data?.length, 'bytes')
+    
+    // Kiểm tra response có data không
+    if (!response.data || response.data.length === 0) {
+      toast.error('No data to export', {
+        position: 'top-right',
+        autoClose: 3000
+      })
+      return
+    }
     
     // Create blob and download
-    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
+    const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.setAttribute('download', `audit-logs-eternity-${new Date().toISOString().split('T')[0]}.csv`)

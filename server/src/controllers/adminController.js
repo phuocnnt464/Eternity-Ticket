@@ -892,11 +892,12 @@ class AdminController {
       const { start_date, end_date, action, admin_id } = req.query;
       
       console.log('📊 Export request:', { start_date, end_date, action, admin_id });
-
+      
       let whereConditions = [];
       let params = [];
       let paramIndex = 1;
       
+      // Chỉ add filter khi có giá trị
       if (admin_id && admin_id.trim()) {
         whereConditions.push(`al.admin_id = $${paramIndex}`);
         params.push(admin_id);
@@ -946,12 +947,12 @@ class AdminController {
       const result = await pool.query(query, params);
       
       console.log(`✅ Found ${result.rows.length} logs to export`);
-
+      
       if (result.rows.length === 0) {
         return res.status(404).json(createResponse(false, 'No audit logs found'));
       }
-
-      // Create CSV
+      
+      // Create CSV with proper escaping
       const headers = ['Timestamp', 'Admin ID', 'Admin Name', 'Admin Email', 'Action', 'Target Type', 'Target ID', 'Description', 'IP Address'];
       const csvRows = [headers.join(',')];
 
@@ -972,12 +973,23 @@ class AdminController {
       
       const csv = csvRows.join('\n');
       
+      // ✅ SỬA: Đặt headers ĐÚNG THỨ TỰ và tránh cache
+      res.status(200); // Force 200 status
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="audit-logs-eternity-${new Date().toISOString().split('T')[0]}.csv"`);
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Content-Disposition', `attachment; filename="audit-logs-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.setHeader('Content-Length', Buffer.byteLength(csv, 'utf8'));
+      
+      // ✅ QUAN TRỌNG: Tắt cache hoàn toàn
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('ETag', ''); // Remove ETag
+      res.setHeader('Last-Modified', new Date().toUTCString()); // Always new
+      
       res.send(csv);
       
-      console.log('✅ CSV exported successfully');
+      console.log('✅ CSV exported successfully:', csv.length, 'bytes');
+      
     } catch (error) {
       console.error('❌ Export audit logs error:', error);
       res.status(500).json(createResponse(false, 'Failed to export audit logs'));
