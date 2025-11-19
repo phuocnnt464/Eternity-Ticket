@@ -103,7 +103,7 @@ const getMembershipBadge = (tier) => {
 let searchTimeout = null
 
 const handleSearchInput = (event) => {
-  const query = event.target.value
+  const query = event.target.value.trim()
   searchQuery.value = query // Update reactive value
   
   // Clear existing timeout
@@ -115,15 +115,19 @@ const handleSearchInput = (event) => {
   if (!query || query.trim() === '') {
     console.log('🔄 Search cleared')
     isSearchActive.value = false
-    users.value = [] // Clear users để tránh hiển thị kết quả cũ
-    fetchUsers()
+    searching.value = false
+    // users.value = [] // Clear users để tránh hiển thị kết quả cũ
+    if (!loading.value) {
+      pagination.value.currentPage = 1
+      fetchUsers()
+    }
     return
   }
   
   // Case 2: Query too short → wait
   if (query.length < 2) {
     console.log('⏳ Query too short:', query)
-    users.value = [] // Clear users
+    // users.value = [] // Clear users
     return
   }
   
@@ -225,13 +229,17 @@ const clearSearch = () => {
   console.log('🧹 Clearing search')
   searchQuery.value = ''
   isSearchActive.value = false
+  searching.value = false 
   
   // Clear timeout if exists
   if (searchTimeout) {
     clearTimeout(searchTimeout)
   }
   
-  fetchUsers()
+  if (!loading.value) {
+    pagination.value.currentPage = 1
+    fetchUsers()
+  }
 }
 
 // Watch filters to reload - only when NOT searching
@@ -355,6 +363,10 @@ const handlePageChange = (page) => {
 }
 
 onMounted(() => {
+  loading.value = false
+  searching.value = false
+  isSearchActive.value = false
+  searchQuery.value = ''
   fetchUsers()
 })
 </script>
