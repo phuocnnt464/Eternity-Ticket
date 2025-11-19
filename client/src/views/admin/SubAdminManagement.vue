@@ -13,7 +13,8 @@ import {
   UserPlusIcon,
   TrashIcon,
   ShieldCheckIcon,
-  EnvelopeIcon
+  EnvelopeIcon,
+  LockClosedIcon 
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()  
@@ -237,19 +238,19 @@ const generatePassword = () => {
   return password.split('').sort(() => Math.random() - 0.5).join('')
 }
 
-const handleRemove = async (subAdminId, name) => {
-  if (!confirm(`Remove ${name} as sub-admin? They will lose all admin privileges.`)) return
+const handleDeactivate = async (subAdminId, name) => {
+  if (!confirm(`Deactivate ${name} as sub-admin? They will lose all admin privileges.`)) return
   
   try {
-    await adminAPI.deleteSubAdmin(subAdminId)
-    toast.success('Sub-admin removed successfully', {
+    await adminAPI.deactivateSubAdmin(subAdminId)
+    toast.success('Sub-admin deactivated successfully', {
       position: 'top-right',
       autoClose: 3000
     })
     await fetchSubAdmins()
   } catch (error) {
     // alert(error.response?.data?.error?.message || 'Failed to remove sub-admin')
-    toast.error(error.response?.data?.error?.message || 'Failed to remove sub-admin', {
+    toast.error(error.response?.data?.error?.message || 'Failed to deactivate sub-admin', {
       position: 'top-right',
       autoClose: 3000
     })
@@ -336,11 +337,11 @@ onMounted(() => {
         <Button
           variant="danger"
           size="sm"
-          @click="handleRemove(admin.id, `${admin.first_name} ${admin.last_name}`)"
+          @click="handleDeactivate(admin.id, `${admin.first_name} ${admin.last_name}`)"
           full-width
         >
-          <TrashIcon class="w-4 h-4" />
-          Remove Access
+          <LockClosedIcon  class="w-4 h-4" />
+          Deactivate
         </Button>
       </Card>
     </div>
@@ -438,7 +439,7 @@ onMounted(() => {
                 @click="router.push('/admin/users'); showInviteModal = false"
                 class="mt-2 text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
               >
-                Go to User Management to change their role →
+                Change the role in User Management →
               </button>
             </div>
           </div>

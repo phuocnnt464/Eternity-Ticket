@@ -72,7 +72,7 @@ export const adminAPI = {
   // },
 
   // DELETE /api/admin/sub-admins/:id
-  deleteSubAdmin: (id) => {
+  deactivateSubAdmin: (id) => {
     return api.delete(`/admin/sub-admins/${id}`)
   },
 

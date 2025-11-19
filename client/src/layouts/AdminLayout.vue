@@ -13,6 +13,7 @@ import {
   DocumentTextIcon,
   Bars3Icon,
   XMarkIcon,
+  UserCircleIcon,
   ArrowRightOnRectangleIcon
 } from '@heroicons/vue/24/outline'
 
@@ -63,7 +64,7 @@ const isActive = (href) => route.path.startsWith(href)
       >
         <div class="hidden md:flex items-center space-x-3 p-6 border-b border-red-500">
           <RouterLink to="/" class="flex items-center space-x-2">
-            <ShieldCheckIcon class="w-10 h-10" />
+            <UserCircleIcon class="w-10 h-10" />
             <span class="text-xl font-bold">Admin Panel</span>
           </RouterLink> 
         </div>
