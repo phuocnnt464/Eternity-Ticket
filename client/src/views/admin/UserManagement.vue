@@ -99,58 +99,61 @@ const getMembershipBadge = (tier) => {
   return badges[tier] || badges.basic
 }
 
-// Server-side search function
+// Search handler with debounce
 let searchTimeout = null
 
-watch(searchQuery, (newQuery, oldQuery) => {
+const handleSearchInput = (event) => {
+  const query = event.target.value
+  searchQuery.value = query // Update reactive value
+  
   // Clear existing timeout
   if (searchTimeout) {
     clearTimeout(searchTimeout)
   }
   
-  // Case 1: Search cleared → reset to normal fetch
-  if (!newQuery && isSearchActive.value) {
-    console.log('🔄 Search cleared, resetting to normal view')
+  // Case 1: Empty search → reset
+  if (!query || query.trim() === '') {
+    console.log('🔄 Search cleared')
     isSearchActive.value = false
-    pagination.value.currentPage = 1
+    users.value = [] // Clear users để tránh hiển thị kết quả cũ
     fetchUsers()
     return
   }
   
-  // Case 2: Query too short → do nothing
-  if (newQuery && newQuery.length < 2) {
-    console.log('⏳ Query too short, waiting...')
+  // Case 2: Query too short → wait
+  if (query.length < 2) {
+    console.log('⏳ Query too short:', query)
+    users.value = [] // Clear users
     return
   }
   
-  // Case 3: Valid search query → debounce and search
-  if (newQuery && newQuery.length >= 2) {
-    console.log('⏰ Search debounce started for:', newQuery)
-    searchTimeout = setTimeout(() => {
-      isSearchActive.value = true
-      performSearch(newQuery)
-    }, 500)
-  }
-})
+  // Case 3: Valid query → debounce search
+  console.log('⏰ Debouncing search for:', query)
+  searchTimeout = setTimeout(() => {
+    console.log('🔍 Executing search for:', query)
+    isSearchActive.value = true
+    performSearch(query)
+  }, 600) // Increase to 600ms for safer debounce
+}
 
 // Server-side search function
-// Server-side search function
 const performSearch = async (query) => {
+  // Prevent concurrent searches
   if (searching.value) {
-    console.log('⚠️ Already searching, skipping...')
+    console.log('⚠️ Already searching, aborting...')
     return
   }
   
   searching.value = true
+  console.log('🔍 API call: searchUsers with query:', query)
+  
   try {
-    console.log('🔍 Searching for:', query)
-    
     const response = await adminAPI.searchUsers({ 
       q: query,
       limit: 50
     })
     
-    console.log('📦 Search response:', response)
+    console.log('📦 API response:', response)
     
     users.value = response.data.users || []
     
@@ -159,7 +162,7 @@ const performSearch = async (query) => {
     pagination.value.totalItems = users.value.length
     pagination.value.totalPages = 1
     
-    console.log(`✅ Found ${users.value.length} users matching "${query}"`)
+    console.log(`✅ Search complete: ${users.value.length} users found`)
   } catch (error) {
     console.error('❌ Search error:', error)
     console.error('Error details:', error.response?.data)
@@ -170,15 +173,20 @@ const performSearch = async (query) => {
 }
 
 const fetchUsers = async () => {
-  if (loading.value && users.value.length > 0) {
-    console.log('⚠️ Already loading, skipping...')
+  // Prevent concurrent fetches
+  if (loading.value) {
+    console.log('⚠️ Already loading, aborting...')
     return
   }
   
   loading.value = true
+  console.log('📥 Fetching users with filters:', {
+    page: pagination.value.currentPage,
+    role: selectedRole.value,
+    status: selectedStatus.value
+  })
+  
   try {
-    console.log('📥 Fetching users...')
-    
     const params = {
       page: pagination.value.currentPage,
       limit: pagination.value.perPage
@@ -203,10 +211,9 @@ const fetchUsers = async () => {
     pagination.value.totalPages = paginationData.pages || Math.ceil(paginationData.total / pagination.value.perPage)
     pagination.value.currentPage = paginationData.page || 1
     
-    console.log(`✅ Loaded ${users.value.length} users`)
+    console.log(`✅ Fetch complete: ${users.value.length} users loaded`)
   } catch (error) {
-    console.error('❌ Failed to fetch users:', error)
-    console.error('Error response:', error.response)
+    console.error('❌ Fetch error:', error)
     users.value = []
   } finally {
     loading.value = false
@@ -215,14 +222,25 @@ const fetchUsers = async () => {
 
 // Clear search function
 const clearSearch = () => {
+  console.log('🧹 Clearing search')
   searchQuery.value = ''
   isSearchActive.value = false
+  
+  // Clear timeout if exists
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+  }
+  
+  fetchUsers()
 }
 
 // Watch filters to reload - only when NOT searching
 watch([selectedRole, selectedStatus], () => {
-  if (!isSearchActive.value && !searchQuery.value) {
-    console.log('🔄 Filter changed, reloading...')
+  if (!isSearchActive.value) {
+    console.log('🔄 Filter changed:', {
+      role: selectedRole.value,
+      status: selectedStatus.value
+    })
     pagination.value.currentPage = 1
     fetchUsers()
   }
@@ -428,8 +446,9 @@ onMounted(() => {
       <div class="space-y-4">
         <!-- Search Bar -->
         <div class="relative">
-          <input
-            v-model="searchQuery"
+         <input
+            :value="searchQuery"
+            @input="handleSearchInput"
             type="text"
             placeholder="Search by name or email (min 2 characters)..."
             class="input pl-10 pr-10"
@@ -437,7 +456,7 @@ onMounted(() => {
           />
           <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           
-          <!-- Loading spinner khi search -->
+          <!-- Loading spinner -->
           <svg 
             v-if="searching" 
             class="animate-spin h-5 w-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" 
@@ -453,6 +472,7 @@ onMounted(() => {
           <button
             v-else-if="searchQuery"
             @click="clearSearch"
+            type="button"
             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
