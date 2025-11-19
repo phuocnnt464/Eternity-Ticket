@@ -279,7 +279,7 @@ const handleSubmit = async (status = 'draft') => {
 onMounted(async () => {
   try {
     const response = await eventsAPI.getCategories() 
-    categories.value = response.data
+    categories.value = response.data.categories || []
   } catch (error) {
     console.error('Failed to load categories:', error)
     categories.value = [
@@ -424,18 +424,18 @@ onMounted(async () => {
         </div>
 
         <!-- 4 Image Uploads -->
-        <div class="space-y-6">
-          <!-- Cover Image -->
+        <div class="space-y-4">
+          <!-- Cover Image - Full Width nhưng nhỏ hơn, Tỷ lệ 16:9 -->
           <div>
             <label class="label">Cover Image (Banner)</label>
-            <p class="text-xs text-gray-500 mb-2">Recommended: 1280x720px (16:9) | Max 5MB | PNG/JPEG/WEBP</p>
-            <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+            <p class="text-xs text-gray-500 mb-2">1280x720px (16:9) | Max 5MB | PNG/JPEG/WEBP</p>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden max-w-2xl">
               <div v-if="coverPreview" class="relative w-full aspect-video bg-gray-100">
                 <img :src="coverPreview" class="w-full h-full object-cover" />
               </div>
-               <div v-else class="w-full aspect-video bg-gray-50 flex flex-col items-center justify-center">
-                <PhotoIcon class="w-12 h-12 text-gray-400 mb-2" />
-                <p class="text-sm text-gray-500 mb-3">Wide banner image (16:9 ratio)</p>
+              <div v-else class="w-full aspect-video bg-gray-50 flex flex-col items-center justify-center p-4">
+                <PhotoIcon class="w-8 h-8 text-gray-400 mb-2" />
+                <p class="text-xs text-gray-500 mb-2">Wide banner (16:9)</p>
                 <label class="btn-secondary btn-sm cursor-pointer">
                   Choose Image
                   <input
@@ -447,22 +447,23 @@ onMounted(async () => {
                 </label>
               </div>
             </div>
-            <p v-if="errors.cover_image" class="error-text">{{ errors.cover_image }}</p>
+            <p v-if="errors.cover_image" class="error-text mt-1">{{ errors.cover_image }}</p>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Grid 3 ảnh còn lại - Nhỏ hơn -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <!-- Thumbnail Image - Tỷ lệ dọc 3:4 -->
             <div>
-              <label class="label">Thumbnail (Ticket/Slider)</label>
-              <p class="text-xs text-gray-500 mb-2">720x958px (3:4)</p>
+              <label class="label text-sm">Thumbnail</label>
+              <p class="text-xs text-gray-500 mb-2">720x958px (3:4) | Max 5MB | PNG/JPEG/WEBP</p>
               <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
                 <div v-if="thumbnailPreview" class="relative w-full" style="aspect-ratio: 3/4;">
                   <img :src="thumbnailPreview" class="w-full h-full object-cover" />
                 </div>
-                <div v-else class="w-full bg-gray-50 flex flex-col items-center justify-center p-4" style="aspect-ratio: 3/4;">
-                  <PhotoIcon class="w-10 h-10 text-gray-400 mb-2" />
-                  <p class="text-xs text-gray-500 text-center mb-2">Portrait image</p>
-                  <label class="btn-secondary btn-sm cursor-pointer">
+                <div v-else class="w-full bg-gray-50 flex flex-col items-center justify-center p-3" style="aspect-ratio: 3/4;">
+                  <PhotoIcon class="w-8 h-8 text-gray-400 mb-1" />
+                  <p class="text-xs text-gray-500 text-center mb-2">Portrait</p>
+                  <label class="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer">
                     Choose
                     <input
                       type="file"
@@ -473,21 +474,21 @@ onMounted(async () => {
                   </label>
                 </div>
               </div>
-              <p v-if="errors.thumbnail_image" class="error-text mt-1">{{ errors.thumbnail_image }}</p>
+              <p v-if="errors.thumbnail_image" class="error-text mt-1 text-xs">{{ errors.thumbnail_image }}</p>
             </div>
 
-            <!-- Logo Image - Vuông 1:1 -->
+            <!-- Logo Image -->
             <div>
-              <label class="label">Logo</label>
-              <p class="text-xs text-gray-500 mb-2">275x275px (1:1)</p>
+              <label class="label text-sm">Logo</label>
+              <p class="text-xs text-gray-500 mb-2">275x275px (1:1) | Max 5MB | PNG/JPEG/WEBP</p>
               <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
                 <div v-if="logoPreview" class="relative w-full aspect-square bg-gray-100">
                   <img :src="logoPreview" class="w-full h-full object-cover" />
                 </div>
-                <div v-else class="w-full aspect-square bg-gray-50 flex flex-col items-center justify-center p-4">
-                  <PhotoIcon class="w-10 h-10 text-gray-400 mb-2" />
-                  <p class="text-xs text-gray-500 text-center mb-2">Square logo</p>
-                  <label class="btn-secondary btn-sm cursor-pointer">
+                <div v-else class="w-full aspect-square bg-gray-50 flex flex-col items-center justify-center p-3">
+                  <PhotoIcon class="w-8 h-8 text-gray-400 mb-1" />
+                  <p class="text-xs text-gray-500 text-center mb-2">Square</p>
+                  <label class="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer">
                     Choose
                     <input
                       type="file"
@@ -498,21 +499,21 @@ onMounted(async () => {
                   </label>
                 </div>
               </div>
-              <p v-if="errors.logo_image" class="error-text mt-1">{{ errors.logo_image }}</p>
+              <p v-if="errors.logo_image" class="error-text mt-1 text-xs">{{ errors.logo_image }}</p>
             </div>
 
-            <!-- Venue Map - Tỷ lệ 4:3 -->
+            <!-- Venue Map -->
             <div>
-              <label class="label">Venue Map (Seat Diagram)</label>
-              <p class="text-xs text-gray-500 mb-2">Free size | Max 2MB</p>
+              <label class="label text-sm">Venue Map</label>
+              <p class="text-xs text-gray-500 mb-2">Free size | Max 2MB | PNG/JPEG</p>
               <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
                 <div v-if="venueMapPreview" class="relative w-full" style="aspect-ratio: 4/3;">
                   <img :src="venueMapPreview" class="w-full h-full object-cover" />
                 </div>
-                <div v-else class="w-full bg-gray-50 flex flex-col items-center justify-center p-4" style="aspect-ratio: 4/3;">
-                  <PhotoIcon class="w-10 h-10 text-gray-400 mb-2" />
+                <div v-else class="w-full bg-gray-50 flex flex-col items-center justify-center p-3" style="aspect-ratio: 4/3;">
+                  <PhotoIcon class="w-8 h-8 text-gray-400 mb-1" />
                   <p class="text-xs text-gray-500 text-center mb-2">Seat map</p>
-                  <label class="btn-secondary btn-sm cursor-pointer">
+                  <label class="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer">
                     Choose
                     <input
                       type="file"
@@ -523,7 +524,7 @@ onMounted(async () => {
                   </label>
                 </div>
               </div>
-              <p v-if="errors.venue_map_image" class="error-text mt-1">{{ errors.venue_map_image }}</p>
+              <p v-if="errors.venue_map_image" class="error-text mt-1 text-xs">{{ errors.venue_map_image }}</p>
             </div>
           </div>
         </div>
