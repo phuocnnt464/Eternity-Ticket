@@ -502,7 +502,7 @@ onMounted(async () => {
             <!-- Thumbnail  -->
             <div class="md:w-1/4 flex-shrink-0">
               <label class="label text-sm">Thumbnail (Ticket/Slider)</label>
-              <p class="text-xs text-gray-500 mb-2">720x958px (3:4)</p>
+              <p class="text-xs text-gray-500 mb-2">720x958px | Max 5MB | PNG, JPEG</p>
               <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-full">
                 <div v-if="thumbnailPreview" class="relative w-full h-full min-h-[300px] bg-gray-100 group">
                   <img :src="thumbnailPreview" class="w-full h-full object-cover" />
@@ -534,7 +534,7 @@ onMounted(async () => {
             <!-- Venue Map  -->
             <div class="md:w-3/4 flex-grow">
               <label class="label text-sm">Venue Map (Seat Diagram)</label>
-              <p class="text-xs text-gray-500 mb-2">Flexible size | Max 2MB</p>
+              <p class="text-xs text-gray-500 mb-2">Flexible size | Max 2MB | PNG, JPEG</p>
               <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-full">
                 <div v-if="venueMapPreview" class="relative w-full h-full min-h-[300px] bg-gray-100 group">
                   <img :src="venueMapPreview" class="w-full h-full object-contain bg-gray-100" />
@@ -567,7 +567,7 @@ onMounted(async () => {
           <!-- Cover Image -->
           <div class="mt-14">
             <label class="label text-sm">Cover Image (Banner)</label>
-            <p class="text-xs text-gray-500 mb-2">1280x720px (16:9) | Max 5MB</p>
+            <p class="text-xs text-gray-500 mb-2">1280x720px (16:9) | Max 5MB | PNG, JPEG, WEBP</p>
             <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
               <div v-if="coverPreview" class="relative w-full aspect-video bg-gray-100 group">
                 <img :src="coverPreview" class="w-full h-full object-cover" />
