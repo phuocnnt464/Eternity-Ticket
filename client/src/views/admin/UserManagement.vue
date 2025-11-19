@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { adminAPI } from '@/api/admin.js'
 import Card from '@/components/common/Card.vue'
 import Button from '@/components/common/Button.vue'
@@ -28,6 +28,7 @@ const showChangeRoleModal = ref(false)
 const selectedUser = ref(null)
 const newRole = ref('')  
 const actionLoading = ref(false)
+const searching = ref(false)
 
 const pagination = ref({
   currentPage: 1,
@@ -139,14 +140,37 @@ const performSearch = async (query) => {
 const fetchUsers = async () => {
   loading.value = true
   try {
-    const response = await adminAPI.getAllUsers({
+    // const response = await adminAPI.getAllUsers({
+    //   page: pagination.value.currentPage,
+    //   limit: pagination.value.perPage
+    // })
+
+    const params = {
       page: pagination.value.currentPage,
       limit: pagination.value.perPage
-    })
+    }
     
+    // Apply role filter
+    if (selectedRole.value !== 'all') {
+      params.role = selectedRole.value
+    }
+    
+    // Apply status filter
+    if (selectedStatus.value !== 'all') {
+      params.is_active = selectedStatus.value === 'active'
+    }
+    
+    const response = await adminAPI.getAllUsers(params)
+    
+    // users.value = response.data.users || []
+    // pagination.value.totalItems = response.data.pagination?.total || 0
+    // pagination.value.totalPages = response.data.pagination?.totalPages ||Math.ceil(pagination.value.totalItems / pagination.value.perPage)
     users.value = response.data.users || []
-    pagination.value.totalItems = response.data.pagination?.total || 0
-    pagination.value.totalPages = response.data.pagination?.totalPages ||Math.ceil(pagination.value.totalItems / pagination.value.perPage)
+    
+    const paginationData = response.data.pagination || {}
+    pagination.value.totalItems = paginationData.total || 0
+    pagination.value.totalPages = paginationData.pages || Math.ceil(paginationData.total / pagination.value.perPage)
+    pagination.value.currentPage = paginationData.page || 1
   } catch (error) {
     console.error('Failed to fetch users:', error)
     console.error('Error response:', error.response)
