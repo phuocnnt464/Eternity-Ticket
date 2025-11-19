@@ -29,6 +29,7 @@ const selectedUser = ref(null)
 const newRole = ref('')  
 const actionLoading = ref(false)
 const searching = ref(false)
+const isSearchActive = ref(false) 
 
 const pagination = ref({
   currentPage: 1,
@@ -100,37 +101,68 @@ const getMembershipBadge = (tier) => {
 
 // Server-side search function
 let searchTimeout = null
-watch(searchQuery, (newQuery) => {
-  if (searchTimeout) clearTimeout(searchTimeout)
+
+watch(searchQuery, (newQuery, oldQuery) => {
+  // Clear existing timeout
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+  }
   
-  searchTimeout = setTimeout(() => {
-    if (newQuery && newQuery.length >= 2) {
+  // Case 1: Search cleared → reset to normal fetch
+  if (!newQuery && isSearchActive.value) {
+    console.log('🔄 Search cleared, resetting to normal view')
+    isSearchActive.value = false
+    pagination.value.currentPage = 1
+    fetchUsers()
+    return
+  }
+  
+  // Case 2: Query too short → do nothing
+  if (newQuery && newQuery.length < 2) {
+    console.log('⏳ Query too short, waiting...')
+    return
+  }
+  
+  // Case 3: Valid search query → debounce and search
+  if (newQuery && newQuery.length >= 2) {
+    console.log('⏰ Search debounce started for:', newQuery)
+    searchTimeout = setTimeout(() => {
+      isSearchActive.value = true
       performSearch(newQuery)
-    } else if (!newQuery) {
-      fetchUsers() // Load all users nếu search empty
-    }
-  }, 500) // Debounce 500ms
+    }, 500)
+  }
 })
 
 // Server-side search function
+// Server-side search function
 const performSearch = async (query) => {
+  if (searching.value) {
+    console.log('⚠️ Already searching, skipping...')
+    return
+  }
+  
   searching.value = true
   try {
+    console.log('🔍 Searching for:', query)
+    
     const response = await adminAPI.searchUsers({ 
       q: query,
-      limit: 50 // Search results limit
+      limit: 50
     })
     
-    users.value = response.users || []
+    console.log('📦 Search response:', response)
     
-    // Reset pagination cho search results
+    users.value = response.data.users || []
+    
+    // Reset pagination for search results
     pagination.value.currentPage = 1
     pagination.value.totalItems = users.value.length
     pagination.value.totalPages = 1
     
     console.log(`✅ Found ${users.value.length} users matching "${query}"`)
   } catch (error) {
-    console.error('Search error:', error)
+    console.error('❌ Search error:', error)
+    console.error('Error details:', error.response?.data)
     users.value = []
   } finally {
     searching.value = false
@@ -138,13 +170,15 @@ const performSearch = async (query) => {
 }
 
 const fetchUsers = async () => {
+  if (loading.value && users.value.length > 0) {
+    console.log('⚠️ Already loading, skipping...')
+    return
+  }
+  
   loading.value = true
   try {
-    // const response = await adminAPI.getAllUsers({
-    //   page: pagination.value.currentPage,
-    //   limit: pagination.value.perPage
-    // })
-
+    console.log('📥 Fetching users...')
+    
     const params = {
       page: pagination.value.currentPage,
       limit: pagination.value.perPage
@@ -162,18 +196,18 @@ const fetchUsers = async () => {
     
     const response = await adminAPI.getAllUsers(params)
     
-    // users.value = response.data.users || []
-    // pagination.value.totalItems = response.data.pagination?.total || 0
-    // pagination.value.totalPages = response.data.pagination?.totalPages ||Math.ceil(pagination.value.totalItems / pagination.value.perPage)
     users.value = response.data.users || []
     
     const paginationData = response.data.pagination || {}
     pagination.value.totalItems = paginationData.total || 0
     pagination.value.totalPages = paginationData.pages || Math.ceil(paginationData.total / pagination.value.perPage)
     pagination.value.currentPage = paginationData.page || 1
+    
+    console.log(`✅ Loaded ${users.value.length} users`)
   } catch (error) {
-    console.error('Failed to fetch users:', error)
+    console.error('❌ Failed to fetch users:', error)
     console.error('Error response:', error.response)
+    users.value = []
   } finally {
     loading.value = false
   }
@@ -182,12 +216,13 @@ const fetchUsers = async () => {
 // Clear search function
 const clearSearch = () => {
   searchQuery.value = ''
-  fetchUsers()
+  isSearchActive.value = false
 }
 
-//Watch filters để reload
+// Watch filters to reload - only when NOT searching
 watch([selectedRole, selectedStatus], () => {
-  if (!searchQuery.value) {
+  if (!isSearchActive.value && !searchQuery.value) {
+    console.log('🔄 Filter changed, reloading...')
     pagination.value.currentPage = 1
     fetchUsers()
   }
