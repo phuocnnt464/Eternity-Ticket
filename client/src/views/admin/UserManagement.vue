@@ -101,75 +101,30 @@ const getMembershipBadge = (tier) => {
 
 // Search handler with debounce
 let searchTimeout = null
-
 const handleSearchInput = (event) => {
   const query = event.target.value.trim()
-  searchQuery.value = query // Update reactive value
+  searchQuery.value = query
   
-  // Clear existing timeout
-  if (searchTimeout) {
-    clearTimeout(searchTimeout)
-  }
-  
-  // Case 1: Empty search → reset
-  if (!query || query.trim() === '') {
-    console.log('🔄 Search cleared')
-    isSearchActive.value = false
-    searching.value = false
-    // users.value = [] // Clear users để tránh hiển thị kết quả cũ
-    if (!loading.value) {
-      pagination.value.currentPage = 1
-      fetchUsers()
-    }
+  if (!query) {
+    fetchUsers()
     return
   }
   
-  // Case 2: Query too short → wait
-  if (query.length < 2) {
-    console.log('⏳ Query too short:', query)
-    // users.value = [] // Clear users
-    return
+  if (query.length >= 2) {
+    searchUsers(query)
+  } else {
+    users.value = []
   }
-  
-  // Case 3: Valid query → debounce search
-  console.log('⏰ Debouncing search for:', query)
-  searchTimeout = setTimeout(() => {
-    console.log('🔍 Executing search for:', query)
-    isSearchActive.value = true
-    performSearch(query)
-  }, 600) // Increase to 600ms for safer debounce
 }
 
-// Server-side search function
-const performSearch = async (query) => {
-  // Prevent concurrent searches
-  if (searching.value) {
-    console.log('⚠️ Already searching, aborting...')
-    return
-  }
-  
+const searchUsers = async (query) => {
   searching.value = true
-  console.log('🔍 API call: searchUsers with query:', query)
-  
   try {
-    const response = await adminAPI.searchUsers({ 
-      q: query,
-      limit: 50
-    })
-    
-    console.log('📦 API response:', response)
-    
-    users.value = response.data.users || []
-    
-    // Reset pagination for search results
-    pagination.value.currentPage = 1
-    pagination.value.totalItems = users.value.length
-    pagination.value.totalPages = 1
-    
-    console.log(`✅ Search complete: ${users.value.length} users found`)
+    const response = await adminAPI.searchUsers({ q: query, limit: 50 })
+    users.value = response?.users || []
+    pagination.value = { currentPage: 1, totalPages: 1, totalItems: users.value.length, perPage: 20 }
   } catch (error) {
-    console.error('❌ Search error:', error)
-    console.error('Error details:', error.response?.data)
+    console.error('Search error:', error)
     users.value = []
   } finally {
     searching.value = false
@@ -177,12 +132,6 @@ const performSearch = async (query) => {
 }
 
 const fetchUsers = async () => {
-  // Prevent concurrent fetches
-  if (loading.value) {
-    console.log('⚠️ Already loading, aborting...')
-    return
-  }
-  
   loading.value = true
   console.log('📥 Fetching users with filters:', {
     page: pagination.value.currentPage,
@@ -228,27 +177,12 @@ const fetchUsers = async () => {
 const clearSearch = () => {
   console.log('🧹 Clearing search')
   searchQuery.value = ''
-  isSearchActive.value = false
-  searching.value = false 
-  
-  // Clear timeout if exists
-  if (searchTimeout) {
-    clearTimeout(searchTimeout)
-  }
-  
-  if (!loading.value) {
-    pagination.value.currentPage = 1
-    fetchUsers()
-  }
+  fetchUsers()
 }
 
 // Watch filters to reload - only when NOT searching
 watch([selectedRole, selectedStatus], () => {
   if (!isSearchActive.value) {
-    console.log('🔄 Filter changed:', {
-      role: selectedRole.value,
-      status: selectedStatus.value
-    })
     pagination.value.currentPage = 1
     fetchUsers()
   }
@@ -305,39 +239,6 @@ const handleReactivateAccount = async (userId, userName) => {
   }
 }
 
-// const handleToggleStatus = async (userId, currentStatus) => {
-//   const action = currentStatus ? 'deactivate' : 'activate'
-//   if (!confirm(`Are you sure you want to ${action} this user?`)) return
-
-//   actionLoading.value = true
-//   try {
-//     await adminAPI.toggleUserStatus(userId, { is_active: !currentStatus })
-//     alert(`User ${action}d successfully!`)
-//     showDetailModal.value = false
-//     await fetchUsers()
-//   } catch (error) {
-//     alert(error.response?.data?.error?.message || `Failed to ${action} user`)
-//   } finally {
-//     actionLoading.value = false
-//   }
-// }
-
-// const handleDeleteUser = async (userId, userName) => {
-//   if (!confirm(`Delete user "${userName}"? This action cannot be undone.`)) return
-
-//   actionLoading.value = true
-//   try {
-//     await adminAPI.deleteUser(userId)
-//     alert('User deleted successfully')
-//     showDetailModal.value = false
-//     await fetchUsers()
-//   } catch (error) {
-//     alert(error.response?.data?.error?.message || 'Failed to delete user')
-//   } finally {
-//     actionLoading.value = false
-//   }
-// }
-
 const handleDeactivateAccount = async (userId, userName) => {
   if (!confirm(`Deactivate account for "${userName}"? They will lose access to the system.`)) {
     return
@@ -363,10 +264,6 @@ const handlePageChange = (page) => {
 }
 
 onMounted(() => {
-  loading.value = false
-  searching.value = false
-  isSearchActive.value = false
-  searchQuery.value = ''
   fetchUsers()
 })
 </script>
