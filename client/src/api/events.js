@@ -41,8 +41,8 @@ export const eventsAPI = {
   
   // POST /api/events
   createEvent: (data) => {
-    if (formData instanceof FormData) {
-      return api.post('/events', formData, {
+    if (data instanceof FormData) {
+      return api.post('/events', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
     }
@@ -50,15 +50,21 @@ export const eventsAPI = {
     // Nếu không, tạo FormData mới (backward compatibility)
     const formData = new FormData()
     
-    Object.keys(formData).forEach(key => {
-      const value = formData[key]
+    Object.keys(data).forEach(key => {
+      const value = data[key]
+      
+      
+      // Skip null/undefined
+      if (value === null || value === undefined) {
+        return
+      }
       
       // Append files
       if (value instanceof File) {
         formData.append(key, value)
       }
-      // Append other values
-      else if (value !== null && value !== undefined && value !== '') {
+      // Append other values (strings, numbers, booleans)
+      else if (typeof value !== 'object') {
         formData.append(key, value)
       }
     })
