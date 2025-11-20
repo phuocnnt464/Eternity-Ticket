@@ -376,8 +376,8 @@ const handleSubmit = async (status = 'draft') => {
       bank_name: eventForm.value.payment_bank_name || '',
       bank_branch: eventForm.value.payment_bank_branch || ''
     }
-    
-    formData.append('payment_account_info', JSON.stringify(paymentInfo))
+
+    // formData.append('payment_account_info', JSON.stringify(paymentInfo))
 
     if (status === 'pending' || 
         (eventForm.value.payment_account_name && 

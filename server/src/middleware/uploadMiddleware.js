@@ -358,10 +358,11 @@ const processEventImages = async (req, res, next) => {
     }
 
     // Add processed image to request object
-    req.body = {
-      ...req.body,
-      ...processedImages
-    };
+    // req.body = {
+    //   ...req.body,
+    //   ...processedImages
+    // };
+    Object.assign(req.body, processedImages);
 
     //Store for potential cleanup
     req.processedImages = processedImages;

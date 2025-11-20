@@ -70,6 +70,7 @@ const privateEventLimiter = rateLimit({
 });
 
 const parseJSONFields = (req, res, next) => {
+  console.log('📦 req.body before parsing:', req.body);
   if (req.body.payment_account_info && typeof req.body.payment_account_info === 'string') {
     try {
       req.body.payment_account_info = JSON.parse(req.body.payment_account_info);
