@@ -140,78 +140,70 @@ const createEventSchema = Joi.object({
   // venue_map_image: imageField
 });
 
+// ============================================
+// DRAFT EVENT VALIDATION - RELAXED
+// ============================================
 const createDraftEventSchema = Joi.object({
+  // Basic Info
   title: Joi.string()
     .max(200)
     .optional()
     .allow('')
-    .messages({
-      'string.max': 'Event title cannot exceed 200 characters'
-    }),
+    .messages({ 'string.max': 'Event title cannot exceed 200 characters' }),
 
   description: Joi.string()
     .max(5000)
     .optional()
     .allow('')
-    .messages({
-      'string.max': 'Event description cannot exceed 5000 characters'
-    }),
+    .messages({ 'string.max': 'Event description cannot exceed 5000 characters' }),
 
   short_description: Joi.string()
     .max(500)
     .optional()
     .allow('')
-    .messages({
-      'string.max': 'Short description cannot exceed 500 characters'
-    }),
+    .messages({ 'string.max': 'Short description cannot exceed 500 characters' }),
 
   category_id: Joi.string()
     .uuid()
     .optional()
     .allow('')
-    .messages({
-      'string.uuid': 'Invalid category ID format'
-    }),
+    .messages({ 'string.uuid': 'Invalid category ID format' }),
 
+  // Venue Info
   venue_name: Joi.string()
     .max(200)
     .optional()
     .allow('')
-    .messages({
-      'string.max': 'Venue name cannot exceed 200 characters'
-    }),
+    .messages({ 'string.max': 'Venue name cannot exceed 200 characters' }),
 
   venue_address: Joi.string()
     .max(500)
     .optional()
     .allow('')
-    .messages({
-      'string.max': 'Venue address cannot exceed 500 characters'
-    }),
+    .messages({ 'string.max': 'Venue address cannot exceed 500 characters' }),
 
   venue_city: Joi.string()
     .max(100)
     .optional()
     .allow('')
-    .messages({
-      'string.max': 'Venue city cannot exceed 100 characters'
-    }),
+    .messages({ 'string.max': 'Venue city cannot exceed 100 characters' }),
 
+  venue_coordinates: Joi.string()
+    .optional()
+    .allow(''),
+
+  // Organizer Info
   organizer_name: Joi.string()
     .max(200)
     .optional()
     .allow('')
-    .messages({
-      'string.max': 'Organizer name cannot exceed 200 characters'
-    }),
+    .messages({ 'string.max': 'Organizer name cannot exceed 200 characters' }),
 
   organizer_description: Joi.string()
     .max(1000)
     .optional()
     .allow('')
-    .messages({
-      'string.max': 'Organizer description cannot exceed 1000 characters'
-    }),
+    .messages({ 'string.max': 'Organizer description cannot exceed 1000 characters' }),
 
   organizer_contact_email: Joi.string()
     .optional()
@@ -223,23 +215,45 @@ const createDraftEventSchema = Joi.object({
     .allow('')
     .messages({}),
 
+  // Privacy
   privacy_type: Joi.string()
     .valid('public', 'private')
+    .optional()
     .default('public')
-    .messages({
-      'any.only': 'Privacy type must be either public or private'
-    }),
+    .messages({ 'any.only': 'Privacy type must be either public or private' }),
+
+  private_access_code: Joi.string()
+    .optional()
+    .allow(''),
+
+  // Payment Info (JSONB)
+  payment_account_info: Joi.object()
+    .optional()
+    .messages({}),
+
+  // Additional
+  booking_confirmation_content: Joi.string()
+    .optional()
+    .allow('')
+    .messages({}),
 
   terms_and_conditions: Joi.string()
     .max(3000)
     .optional()
     .allow('')
-    .messages({
-      'string.max': 'Terms and conditions cannot exceed 3000 characters'
-    }),
+    .messages({ 'string.max': 'Terms and conditions cannot exceed 3000 characters' }),
 
-  additional_info: Joi.object().optional(),
+  additional_info: Joi.object()
+    .optional(),
 
+  // Status
+  status: Joi.string()
+    .valid('draft', 'pending')
+    .optional()
+    .default('draft')
+    .messages({ 'any.only': 'Status must be either draft or pending' }),
+
+  // Images
   cover_image: Joi.string().optional().allow(''),
   thumbnail_image: Joi.string().optional().allow(''),
   logo_image: Joi.string().optional().allow(''),
