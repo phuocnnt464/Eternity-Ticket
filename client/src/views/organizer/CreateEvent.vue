@@ -302,7 +302,7 @@ const handleSubmit = async (status = 'draft') => {
     }
     console.log('=== END DEBUG ===')
 
-    const eventId = eventResponse.data.data?.id || eventResponse.data.data?.event_id  || eventResponse.data.id 
+    const eventId = eventResponse.data.event?.id || eventResponse.data.data?.id  || eventResponse.data.id 
 
     if (!eventId) {
       // console.error('Full response:', eventResponse)
