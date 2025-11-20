@@ -140,6 +140,112 @@ const createEventSchema = Joi.object({
   // venue_map_image: imageField
 });
 
+const createDraftEventSchema = Joi.object({
+  title: Joi.string()
+    .max(200)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Event title cannot exceed 200 characters'
+    }),
+
+  description: Joi.string()
+    .max(5000)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Event description cannot exceed 5000 characters'
+    }),
+
+  short_description: Joi.string()
+    .max(500)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Short description cannot exceed 500 characters'
+    }),
+
+  category_id: Joi.string()
+    .uuid()
+    .optional()
+    .allow('')
+    .messages({
+      'string.uuid': 'Invalid category ID format'
+    }),
+
+  venue_name: Joi.string()
+    .max(200)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Venue name cannot exceed 200 characters'
+    }),
+
+  venue_address: Joi.string()
+    .max(500)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Venue address cannot exceed 500 characters'
+    }),
+
+  venue_city: Joi.string()
+    .max(100)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Venue city cannot exceed 100 characters'
+    }),
+
+  organizer_name: Joi.string()
+    .max(200)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Organizer name cannot exceed 200 characters'
+    }),
+
+  organizer_description: Joi.string()
+    .max(1000)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Organizer description cannot exceed 1000 characters'
+    }),
+
+  organizer_contact_email: Joi.string()
+    .optional()
+    .allow('')
+    .messages({}),
+
+  organizer_contact_phone: Joi.string()
+    .optional()
+    .allow('')
+    .messages({}),
+
+  privacy_type: Joi.string()
+    .valid('public', 'private')
+    .default('public')
+    .messages({
+      'any.only': 'Privacy type must be either public or private'
+    }),
+
+  terms_and_conditions: Joi.string()
+    .max(3000)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Terms and conditions cannot exceed 3000 characters'
+    }),
+
+  additional_info: Joi.object().optional(),
+
+  cover_image: Joi.string().optional().allow(''),
+  thumbnail_image: Joi.string().optional().allow(''),
+  logo_image: Joi.string().optional().allow(''),
+  venue_map_image: Joi.string().optional().allow('')
+});
+
 // Update event validation schema
 const updateEventSchema = Joi.object({
   title: Joi.string()
@@ -483,6 +589,7 @@ const updateMemberRoleSchema = Joi.object({
 
 module.exports = {
   createEventSchema,
+  createDraftEventSchema,
   updateEventSchema,
   eventQuerySchema,
   searchQuerySchema,

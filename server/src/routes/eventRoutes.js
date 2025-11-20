@@ -21,6 +21,7 @@ const {
 } = require('../middleware/activityLogger');
 const {
   createEventSchema,
+  createDraftEventSchema,
   updateEventSchema,
   eventQuerySchema,
   searchQuerySchema,
@@ -67,6 +68,31 @@ const privateEventLimiter = rateLimit({
   },
   skipSuccessfulRequests: true // Chỉ count failed attempts
 });
+
+const validateEventCreation = (req, res, next) => {
+  const isDraft = req.body.status === 'draft';
+  const schema = isDraft ? createDraftEventSchema : createEventSchema;
+  
+  const { error } = schema.validate(req.body, { abortEarly: false });
+  
+  if (error) {
+    const errors = {};
+    error.details.forEach(detail => {
+      errors[detail.path[0]] = detail.message;
+    });
+    
+    console.log('⚠️ Validation error:', errors);
+    
+    return res.status(400).json({
+      success: false,
+      timestamp: new Date().toISOString(),
+      message: 'Validation failed. Please check your input and try again.',
+      meta: { errors }
+    });
+  }
+  
+  next();
+};
 
 // Public routes (no authentication required)
 
@@ -258,7 +284,8 @@ router.post('/',
   authorizeRoles('organizer'),
   uploadEventImages,
   processEventImages,
-  validate(createEventSchema),
+  // validate(createEventSchema),
+  validateEventCreation, 
   logActivity('CREATE_EVENT', 'EVENT'),
   EventController.createEvent
 );
