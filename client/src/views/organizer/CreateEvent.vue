@@ -297,6 +297,8 @@ const handleSubmit = async (status = 'draft') => {
       throw new Error('Event ID not found in response')
     }
 
+    console.log('✅ Creating sessions for event ID:', eventId)
+
     for (const session of sessions.value) {
       const sessionResponse = await sessionsAPI.createSession(eventId, {
         name: session.name,
