@@ -1077,19 +1077,19 @@ onMounted(async () => {
                 <!-- Row 2: Quantity -->
                 <div>
                   <Input
-                    v-model.number="ticket.quantity"
+                    v-model.number="ticket.total_quantity"
                     type="number"
                     label="Total Quantity"
                     placeholder="100"
                     min="1"
                     max="100000"
                     required
-                    :class="ticket.quantity > 100000 ? 'border-red-500' : ''"
+                    :class="ticket.total_quantity > 100000 ? 'border-red-500' : ''"
                   />
                   <p class="text-xs text-gray-500 mt-1">
                     Max: 100,000 tickets
                   </p>
-                  <p v-if="ticket.quantity > 100000" class="text-xs text-red-600 mt-1 font-semibold">
+                  <p v-if="ticket.total_quantity > 100000" class="text-xs text-red-600 mt-1 font-semibold">
                     ⚠️ Exceeds maximum limit!
                   </p>
                 </div>
