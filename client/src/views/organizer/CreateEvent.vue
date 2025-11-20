@@ -290,7 +290,12 @@ const handleSubmit = async (status = 'draft') => {
     }
 
     const eventResponse = await eventsAPI.createEvent(formData)
-    const eventId = eventResponse.data.id 
+    const eventId = eventResponse.data.data?.id || eventResponse.data.id 
+
+    if (!eventId) {
+      console.error('Full response:', eventResponse)
+      throw new Error('Event ID not found in response')
+    }
 
     for (const session of sessions.value) {
       const sessionResponse = await sessionsAPI.createSession(eventId, {
