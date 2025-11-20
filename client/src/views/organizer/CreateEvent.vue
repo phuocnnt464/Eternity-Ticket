@@ -296,6 +296,14 @@ const sessionValidationErrors = computed(() => {
         errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Quantity must be greater than 0`)
       }
       
+      if (ticket.total_quantity > 100000) {
+        errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Quantity cannot exceed 100,000`)
+      }
+
+      if (!ticket.price || ticket.price < 0) {
+        errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Price must be 0 or greater`)
+      }
+
       // ✅ Kiểm tra ticket sale time (nếu có nhập)
       if (ticket.sale_start_time && ticket.sale_end_time) {
         const saleStart = new Date(ticket.sale_start_time).getTime()
@@ -1000,13 +1008,24 @@ onMounted(async () => {
                 </div>
 
                 <!-- Row 2: Quantity -->
-                <Input
-                  v-model.number="ticket.total_quantity"
-                  type="number"
-                  label="Available Quantity"
-                  placeholder="0"
-                  required
-                />
+                <div>
+                  <Input
+                    v-model.number="ticket.quantity"
+                    type="number"
+                    label="Total Quantity"
+                    placeholder="100"
+                    min="1"
+                    max="100000"
+                    required
+                    :class="ticket.quantity > 100000 ? 'border-red-500' : ''"
+                  />
+                  <p class="text-xs text-gray-500 mt-1">
+                    Max: 100,000 tickets
+                  </p>
+                  <p v-if="ticket.quantity > 100000" class="text-xs text-red-600 mt-1 font-semibold">
+                    ⚠️ Exceeds maximum limit!
+                  </p>
+                </div>
 
                 <!-- ✅ TICKET TYPE LEVEL: Min/Max per order CHO LOẠI VÉ NÀY -->
                 <div class="bg-gray-50 border border-gray-200 rounded p-3">
