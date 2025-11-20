@@ -227,6 +227,11 @@ const validateForm = () => {
   if (!eventForm.value.venue_city) errors.value.venue_city = 'Venue city is required'
   if (!eventForm.value.organizer_name) errors.value.organizer_name = 'Organizer name is required'
   if (!eventForm.value.organizer_contact_email) errors.value.organizer_contact_email = 'Contact email is required'
+  
+  if (eventForm.value.organizer_description && eventForm.value.organizer_description.length > 1000) {
+    errors.value.organizer_description = 'Organizer description cannot exceed 1000 characters'
+  }
+  
   if (!eventForm.value.payment_account_name) errors.value.payment_account_name = 'Account name is required'
   if (!eventForm.value.payment_account_number) errors.value.payment_account_number = 'Account number is required'
   if (!eventForm.value.payment_bank_name) errors.value.payment_bank_name = 'Bank name is required'
@@ -397,10 +402,12 @@ onMounted(async () => {
           <textarea
             v-model="eventForm.description"
             rows="6"
+            maxlength="5000"
             placeholder="Describe your event..."
             :class="['textarea', errors.description && 'input-error']"
           ></textarea>
           <p v-if="errors.description" class="error-text">{{ errors.description }}</p>
+          <p v-else class="text-xs text-gray-500 mt-1">{{ eventForm.description?.length || 0 }}/5000 characters</p>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
@@ -669,9 +676,11 @@ onMounted(async () => {
           <textarea
             v-model="eventForm.organizer_description"
             rows="4"
+            maxlength="1000"
             placeholder="Brief description about the organizer..."
             class="textarea"
           ></textarea>
+          <p class="text-xs text-gray-500 mt-1">{{ eventForm.organizer_description?.length || 0 }}/1000 characters</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
