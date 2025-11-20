@@ -229,6 +229,7 @@ const createDraftEventSchema = Joi.object({
   // Payment Info (JSONB)
   payment_account_info: Joi.object()
     .optional()
+    .allow(null, {}) 
     .messages({}),
 
   // Additional

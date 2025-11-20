@@ -69,6 +69,31 @@ const privateEventLimiter = rateLimit({
   skipSuccessfulRequests: true // Chỉ count failed attempts
 });
 
+const parseJSONFields = (req, res, next) => {
+  if (req.body.payment_account_info && typeof req.body.payment_account_info === 'string') {
+    try {
+      req.body.payment_account_info = JSON.parse(req.body.payment_account_info);
+      console.log('✅ Parsed payment_account_info:', req.body.payment_account_info);
+    } catch (error) {
+      console.error('❌ Failed to parse payment_account_info:', error);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid payment_account_info format'
+      });
+    }
+  }
+  
+  if (req.body.additional_info && typeof req.body.additional_info === 'string') {
+    try {
+      req.body.additional_info = JSON.parse(req.body.additional_info);
+    } catch (error) {
+      console.error('❌ Failed to parse additional_info:', error);
+    }
+  }
+  
+  next();
+};
+
 const validateEventCreation = (req, res, next) => {
   const isDraft = req.body.status === 'draft';
   const schema = isDraft ? createDraftEventSchema : createEventSchema;
@@ -284,6 +309,7 @@ router.post('/',
   authorizeRoles('organizer'),
   uploadEventImages,
   processEventImages,
+  parseJSONFields,
   // validate(createEventSchema),
   validateEventCreation, 
   logActivity('CREATE_EVENT', 'EVENT'),

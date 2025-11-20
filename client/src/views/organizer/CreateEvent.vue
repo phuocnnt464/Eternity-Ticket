@@ -248,10 +248,6 @@ const validateForm = () => {
     errors.value.organizer_description = 'Organizer description cannot exceed 1000 characters'
   }
   
-  if (!eventForm.value.payment_account_name) errors.value.payment_account_name = 'Account name is required'
-  if (!eventForm.value.payment_account_number) errors.value.payment_account_number = 'Account number is required'
-  if (!eventForm.value.payment_bank_name) errors.value.payment_bank_name = 'Bank name is required'
-  
   return Object.keys(errors.value).length === 0
 }
 
@@ -322,6 +318,25 @@ const sessionValidationErrors = computed(() => {
 })
 
 const handleSubmit = async (status = 'draft') => {
+  if (status === 'pending') {
+    // Validate payment info khi submit for approval
+    if (!eventForm.value.payment_account_name) {
+      alert('Please enter payment account name before submitting for approval')
+      currentStep.value = 4 // Chuyển về step Payment Info
+      return
+    }
+    if (!eventForm.value.payment_account_number) {
+      alert('Please enter payment account number before submitting for approval')
+      currentStep.value = 4
+      return
+    }
+    if (!eventForm.value.payment_bank_name) {
+      alert('Please enter bank name before submitting for approval')
+      currentStep.value = 4
+      return
+    }
+  }
+
   if (!validateForm()) {
     alert('Please fill in all required fields')
     return
@@ -361,8 +376,22 @@ const handleSubmit = async (status = 'draft') => {
       bank_name: eventForm.value.payment_bank_name || '',
       bank_branch: eventForm.value.payment_bank_branch || ''
     }
-    formData.append('payment_account_info', JSON.stringify(paymentInfo))
     
+    formData.append('payment_account_info', JSON.stringify(paymentInfo))
+
+    if (status === 'pending' || 
+        (eventForm.value.payment_account_name && 
+         eventForm.value.payment_account_number && 
+         eventForm.value.payment_bank_name)) {
+      const paymentInfo = {
+        account_name: eventForm.value.payment_account_name || '',
+        account_number: eventForm.value.payment_account_number || '',
+        bank_name: eventForm.value.payment_bank_name || '',
+        bank_branch: eventForm.value.payment_bank_branch || ''
+      }
+      formData.append('payment_account_info', JSON.stringify(paymentInfo))
+    }
+
     // Images
     if (eventForm.value.cover_image instanceof File) {
       formData.append('cover_image', eventForm.value.cover_image)
