@@ -398,7 +398,10 @@ const handleSubmit = async (status = 'draft') => {
         max_tickets_per_order: session.max_tickets_per_order
       })
 
-      const sessionId = sessionResponse.data.data.session_id
+      const sessionId = sessionResponse.data.data?.session?.session_id || 
+                        sessionResponse.data.data?.session?.id ||
+                        sessionResponse.data.session.session_id || 
+                        sessionResponse.data.session.id
 
       for (const ticket of session.ticket_types) {
         await sessionsAPI.createTicketType(sessionId, ticket)
