@@ -47,7 +47,7 @@ const eventForm = ref({
   organizer_contact_phone: '',
   
   // Privacy
-  is_public: true,
+  privacy_type: true,
   
   // Payment Info
   payment_account_name: '',
@@ -330,64 +330,81 @@ const handleSubmit = async (status = 'draft') => {
   loading.value = true
   try {
     const formData = new FormData()
-    // Object.keys(eventForm.value).forEach(key => {
-    //   if (eventForm.value[key] !== null && eventForm.value[key] !== '') {
-    //     formData.append(key, eventForm.value[key])
-    //   }
-    // })
-    Object.keys(eventForm.value).forEach(key => {
-      const value = eventForm.value[key]
-      
-      // Bỏ qua các file images (xử lý riêng sau)
-      if (key === 'cover_image' || key === 'thumbnail_image' || 
-          key === 'logo_image' || key === 'venue_map_image') {
-        return
-      }
-      
-      // Append tất cả các trường khác (kể cả rỗng)
-      if (value !== null && value !== undefined) {
-        formData.append(key, value)
-      }
-    })
     
-    // Thêm images nếu có
-    if (eventForm.value.cover_image) {
+    // ✅ CHỈ GỬI CÁC FIELDS CÓ TRONG EVENTS TABLE
+    
+    // Basic Info
+    if (eventForm.value.title) formData.append('title', eventForm.value.title)
+    if (eventForm.value.description) formData.append('description', eventForm.value.description)
+    if (eventForm.value.category_id) formData.append('category_id', eventForm.value.category_id)
+    
+    // ❌ KHÔNG GỬI: start_date, end_date (sẽ lưu trong sessions)
+    
+    // Venue Info
+    if (eventForm.value.venue_name) formData.append('venue_name', eventForm.value.venue_name)
+    if (eventForm.value.venue_address) formData.append('venue_address', eventForm.value.venue_address)
+    if (eventForm.value.venue_city) formData.append('venue_city', eventForm.value.venue_city)
+    
+    // Organizer Info
+    if (eventForm.value.organizer_name) formData.append('organizer_name', eventForm.value.organizer_name)
+    if (eventForm.value.organizer_description) formData.append('organizer_description', eventForm.value.organizer_description)
+    if (eventForm.value.organizer_contact_email) formData.append('organizer_contact_email', eventForm.value.organizer_contact_email)
+    if (eventForm.value.organizer_contact_phone) formData.append('organizer_contact_phone', eventForm.value.organizer_contact_phone)
+    
+    // ✅ Privacy: Chuyển is_public thành privacy_type
+    formData.append('privacy_type', eventForm.value.privacy_type ? 'public' : 'private')
+    
+    // ✅ Payment Info: Gộp thành JSONB object
+    const paymentInfo = {
+      account_name: eventForm.value.payment_account_name || '',
+      account_number: eventForm.value.payment_account_number || '',
+      bank_name: eventForm.value.payment_bank_name || '',
+      bank_branch: eventForm.value.payment_bank_branch || ''
+    }
+    formData.append('payment_account_info', JSON.stringify(paymentInfo))
+    
+    // Images
+    if (eventForm.value.cover_image instanceof File) {
       formData.append('cover_image', eventForm.value.cover_image)
     }
-    if (eventForm.value.thumbnail_image) {
+    if (eventForm.value.thumbnail_image instanceof File) {
       formData.append('thumbnail_image', eventForm.value.thumbnail_image)
     }
-    if (eventForm.value.logo_image) {
+    if (eventForm.value.logo_image instanceof File) {
       formData.append('logo_image', eventForm.value.logo_image)
     }
-    if (eventForm.value.venue_map_image) {
+    if (eventForm.value.venue_map_image instanceof File) {
       formData.append('venue_map_image', eventForm.value.venue_map_image)
     }
-
+    
+    // Status
     formData.append('status', status)
 
-    console.log('FormData contents:')
+    console.log('📤 FormData contents:')
     for (let [key, value] of formData.entries()) {
-      console.log(key, ':', value instanceof File ? `File: ${value.name}` : value)
+      console.log(`  ${key}:`, value instanceof File ? `File: ${value.name}` : value)
     }
 
     const eventResponse = await eventsAPI.createEvent(formData)
 
-    const eventId = eventResponse.data.event?.id || eventResponse.data.data?.id  || eventResponse.data.id 
+    const eventId = eventResponse.data.event?.id || 
+                    eventResponse.data.data?.id || 
+                    eventResponse.data.id 
 
     if (!eventId) {
-      // console.error('Full response:', eventResponse)
-      console.error('Cannot find event ID in:', {
-        'data.data': eventResponse.data.data,
-        'data': eventResponse.data
-      })
+      console.error('❌ Cannot find event ID in response:', eventResponse.data)
       throw new Error('Event ID not found in response')
     }
 
+    console.log('✅ Event created with ID:', eventId)
+
+    // ✅ CHỈ TẠO SESSIONS KHI KHÔNG PHẢI DRAFT
     if (status !== 'draft') {
-      console.log('✅ Creating sessions for event ID:', eventId)
+      console.log('✅ Creating sessions and tickets...')
 
       for (const session of sessions.value) {
+        console.log(`  Creating session: ${session.title}`)
+        
         const sessionResponse = await sessionsAPI.createSession(eventId, {
           title: session.title,
           start_time: session.start_time,
@@ -398,13 +415,33 @@ const handleSubmit = async (status = 'draft') => {
 
         const sessionId = sessionResponse.data.data?.session?.session_id || 
                           sessionResponse.data.data?.session?.id ||
-                          sessionResponse.data.session.session_id || 
-                          sessionResponse.data.session.id
+                          sessionResponse.data.session?.session_id || 
+                          sessionResponse.data.session?.id
 
+        if (!sessionId) {
+          console.error('❌ Session ID not found:', sessionResponse.data)
+          throw new Error('Session ID not found in response')
+        }
+
+        console.log(`  ✅ Session created with ID: ${sessionId}`)
+
+        // Create tickets for this session
         for (const ticket of session.ticket_types) {
-          await sessionsAPI.createTicketType(sessionId, ticket)
+          const ticketData = {
+            name: ticket.name,
+            price: ticket.price,
+            total_quantity: ticket.total_quantity,
+            min_quantity_per_order: ticket.min_quantity_per_order,
+            max_quantity_per_order: ticket.max_quantity_per_order,
+            sale_start_time: ticket.sale_start_time || null,
+            sale_end_time: ticket.sale_end_time || null
+          }
+          
+          await sessionsAPI.createTicketType(sessionId, ticketData)
+          console.log(`    ✅ Ticket created: ${ticket.name}`)
         }
       }
+      
       console.log('✅ All sessions and tickets created!')
     } else {
       console.log('ℹ️ Draft mode: Skipping sessions and tickets creation')
@@ -412,10 +449,17 @@ const handleSubmit = async (status = 'draft') => {
 
     alert(status === 'draft' ? 'Event saved as draft!' : 'Event submitted for approval!')
     router.push('/organizer/events')
+    
   } catch (error) {
-    console.error('Create event error:', error)
-    console.error('Error response:', error.response?.data)  
-    alert(error.response?.data?.error?.message || 'Failed to create event')
+    console.error('❌ Create event error:', error)
+    console.error('❌ Error response:', error.response?.data)
+    
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.meta?.errors ||
+                        error.message ||
+                        'Failed to create event'
+    
+    alert(typeof errorMessage === 'object' ? JSON.stringify(errorMessage) : errorMessage)
   } finally {
     loading.value = false
   }
@@ -588,7 +632,7 @@ onMounted(async () => {
             <label class="flex items-center space-x-2 cursor-pointer">
               <input
                 type="radio"
-                v-model="eventForm.is_public"
+                v-model="eventForm.privacy_type"
                 :value="true"
                 class="radio"
               />
@@ -598,7 +642,7 @@ onMounted(async () => {
             <label class="flex items-center space-x-2 cursor-pointer">
               <input
                 type="radio"
-                v-model="eventForm.is_public"
+                v-model="eventForm.privacy_type"
                 :value="false"
                 class="radio"
               />
@@ -607,7 +651,7 @@ onMounted(async () => {
             </label>
           </div>
           <p class="text-sm text-gray-500 mt-2">
-            {{ eventForm.is_public ? 'This event will be visible to everyone' : 'Only people with the direct link can access this event' }}
+            {{ eventForm.privacy_type ? 'This event will be visible to everyone' : 'Only people with the direct link can access this event' }}
           </p>
         </div>
 
