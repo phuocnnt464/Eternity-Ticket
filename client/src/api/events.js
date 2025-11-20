@@ -48,22 +48,22 @@ export const eventsAPI = {
     }
     
     // Nếu không, tạo FormData mới (backward compatibility)
-    const form = new FormData()
+    const formData = new FormData()
     
     Object.keys(formData).forEach(key => {
       const value = formData[key]
       
       // Append files
       if (value instanceof File) {
-        form.append(key, value)
+        formData.append(key, value)
       }
       // Append other values
       else if (value !== null && value !== undefined && value !== '') {
-        form.append(key, value)
+        formData.append(key, value)
       }
     })
     
-    return api.post('/events', form, {
+    return api.post('/events', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
   },
