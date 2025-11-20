@@ -384,25 +384,30 @@ const handleSubmit = async (status = 'draft') => {
       throw new Error('Event ID not found in response')
     }
 
-    console.log('✅ Creating sessions for event ID:', eventId)
+    if (status !== 'draft') {
+      console.log('✅ Creating sessions for event ID:', eventId)
 
-    for (const session of sessions.value) {
-      const sessionResponse = await sessionsAPI.createSession(eventId, {
-        title: session.title,
-        start_time: session.start_time,
-        end_time: session.end_time,
-        min_tickets_per_order: session.min_tickets_per_order,
-        max_tickets_per_order: session.max_tickets_per_order
-      })
+      for (const session of sessions.value) {
+        const sessionResponse = await sessionsAPI.createSession(eventId, {
+          title: session.title,
+          start_time: session.start_time,
+          end_time: session.end_time,
+          min_tickets_per_order: session.min_tickets_per_order,
+          max_tickets_per_order: session.max_tickets_per_order
+        })
 
-      const sessionId = sessionResponse.data.data?.session?.session_id || 
-                        sessionResponse.data.data?.session?.id ||
-                        sessionResponse.data.session.session_id || 
-                        sessionResponse.data.session.id
+        const sessionId = sessionResponse.data.data?.session?.session_id || 
+                          sessionResponse.data.data?.session?.id ||
+                          sessionResponse.data.session.session_id || 
+                          sessionResponse.data.session.id
 
-      for (const ticket of session.ticket_types) {
-        await sessionsAPI.createTicketType(sessionId, ticket)
+        for (const ticket of session.ticket_types) {
+          await sessionsAPI.createTicketType(sessionId, ticket)
+        }
       }
+      console.log('✅ All sessions and tickets created!')
+    } else {
+      console.log('ℹ️ Draft mode: Skipping sessions and tickets creation')
     }
 
     alert(status === 'draft' ? 'Event saved as draft!' : 'Event submitted for approval!')
