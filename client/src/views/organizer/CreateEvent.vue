@@ -626,16 +626,18 @@ onMounted(async () => {
           required
         />
 
-        <div>
-          <label class="label label-required">Venue Address</label>
-          <textarea
-            v-model="eventForm.venue_address"
-            rows="3"
-            placeholder="Full address..."
-            :class="['textarea', errors.venue_address && 'input-error']"
-          ></textarea>
-          <p v-if="errors.venue_address" class="error-text">{{ errors.venue_address }}</p>
-        </div>
+       <div>
+        <label class="label label-required">Venue Address</label>
+        <textarea
+          v-model="eventForm.venue_address"
+          rows="3"
+          maxlength="500"
+          placeholder="Full address..."
+          :class="['textarea', errors.venue_address && 'input-error']"
+        ></textarea>
+        <p v-if="errors.venue_address" class="error-text">{{ errors.venue_address }}</p>
+        <p v-else class="text-xs text-gray-500 mt-1">{{ eventForm.venue_address?.length || 0 }}/500 characters</p>
+      </div>
 
          <Input
           v-model="eventForm.venue_city"
