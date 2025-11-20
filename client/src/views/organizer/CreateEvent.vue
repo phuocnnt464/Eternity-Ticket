@@ -1114,7 +1114,7 @@ onMounted(async () => {
             v-else
             variant="primary"
             :loading="loading"
-            @click="handleSubmit('pending_approval')"
+            @click="handleSubmit('pending')"
           >
             Submit for Approval
           </Button>

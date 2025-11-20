@@ -39,7 +39,10 @@ const statusOptions = [
   { value: 'all', label: 'All Events' },
   { value: 'pending', label: 'Pending Approval' },
   { value: 'approved', label: 'Approved' },
-  { value: 'rejected', label: 'Rejected' }
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'active', label: 'Active' },
+  { value: 'cancelled', label: 'Cancelled' }
 ]
 
 const filteredEvents = computed(() => {
@@ -64,9 +67,17 @@ const getStatusBadge = (status) => {
   const badges = {
     approved: { variant: 'success', text: 'Approved', icon: CheckCircleIcon },
     pending: { variant: 'warning', text: 'Pending', icon: ClockIcon },
-    rejected: { variant: 'danger', text: 'Rejected', icon: XCircleIcon }
+    rejected: { variant: 'danger', text: 'Rejected', icon: XCircleIcon },
+    draft: { variant: 'secondary', text: 'Draft', icon: NoSymbolIcon },
+    active: { variant: 'success', text: 'Active', icon: CheckCircleIcon },
+    completed: { variant: 'secondary', text: 'Completed', icon: CheckCircleIcon },
+    cancelled: { variant: 'danger', text: 'Cancelled', icon: XCircleIcon }
   }
-  return badges[status] || badges.pending
+  return badges[status] || { 
+    variant: 'secondary', 
+    text: status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown', 
+    icon: NoSymbolIcon 
+  }
 }
 
 const fetchEvents = async () => {

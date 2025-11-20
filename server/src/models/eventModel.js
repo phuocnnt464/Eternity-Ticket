@@ -33,7 +33,8 @@ class EventModel {
         cover_image,
         thumbnail_image,
         logo_image,
-        venue_map_image
+        venue_map_image,
+        status = 'draft'
       } = eventData;
 
       // Generate unique slug
@@ -68,7 +69,7 @@ class EventModel {
         organizerId, category_id, title, slug, description, short_description,
         venue_name, venue_address, venue_city, organizer_name, organizer_description,
         organizer_contact_email, organizer_contact_phone, privacy_type,
-        terms_and_conditions, JSON.stringify(additional_info), 'draft',
+        terms_and_conditions, JSON.stringify(additional_info), status,
         cover_image || null,
         thumbnail_image || null,
         logo_image || null,

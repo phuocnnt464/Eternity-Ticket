@@ -13,10 +13,12 @@ export const USER_ROLES = {
 // ==========================================
 export const EVENT_STATUS = {
   DRAFT: 'draft',
-  PENDING_APPROVAL: 'pending_approval',
+  PENDING: 'pending',  // ✅ THAY ĐỔI: từ 'pending_approval' → 'pending'
   APPROVED: 'approved',
   REJECTED: 'rejected',
-  CANCELLED: 'cancelled'
+  CANCELLED: 'cancelled',
+  ACTIVE: 'active',
+  COMPLETED: 'completed'
 }
 
 // ==========================================
