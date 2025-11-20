@@ -74,7 +74,7 @@ const sessions = ref([
       {
         name: 'General Admission',
         price: 0,
-        quantity: 0,
+        total_quantity: 0,
         min_quantity_per_order: 1,          // ✅ Min của LOẠI VÉ này
         max_quantity_per_order: 10,         // ✅ Max của LOẠI VÉ này (phải <= session max)
         sale_start_time: '',
@@ -170,9 +170,9 @@ const addSession = () => {
       {
         title: 'General Admission',
         price: 0,
-        quantity: 0,
-        min_per_order: 1,
-        max_per_order: 10,
+        total_quantity: 0,
+        min_quantity_per_order: 1,
+        max_quantity_per_order: 10,
         sale_start_time: '',
         sale_end_time: ''
       }
@@ -190,7 +190,7 @@ const addTicketType = (sessionIndex) => {
   sessions.value[sessionIndex].ticket_types.push({
     name: '',
     price: 0,
-    quantity: 0,
+    total_quantity: 0,
     min_quantity_per_order: 1,
     max_quantity_per_order: sessions.value[sessionIndex].max_tickets_per_order,
     sale_start_time: '',
@@ -292,7 +292,7 @@ const sessionValidationErrors = computed(() => {
       if (!ticket.name) {
         errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Name is required`)
       }
-      if (!ticket.quantity || ticket.quantity <= 0) {
+      if (!ticket.total_quantity || ticket.total_quantity <= 0) {
         errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Quantity must be greater than 0`)
       }
       
@@ -1001,7 +1001,7 @@ onMounted(async () => {
 
                 <!-- Row 2: Quantity -->
                 <Input
-                  v-model.number="ticket.quantity"
+                  v-model.number="ticket.total_quantity"
                   type="number"
                   label="Available Quantity"
                   placeholder="0"
@@ -1018,14 +1018,14 @@ onMounted(async () => {
                   </p>
                   <div class="grid grid-cols-2 gap-3">
                     <Input
-                      v-model.number="ticket.min_per_order"
+                      v-model.number="ticket.min_quantity_per_order"
                       type="number"
                       label="Min Per Order"
                       placeholder="1"
                       required
                     />
                     <Input
-                      v-model.number="ticket.max_per_order"
+                      v-model.number="ticket.max_quantity_per_order"
                       type="number"
                       label="Max Per Order"
                       placeholder="10"
