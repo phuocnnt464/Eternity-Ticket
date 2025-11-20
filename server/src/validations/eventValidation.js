@@ -114,6 +114,21 @@ const createEventSchema = Joi.object({
       'any.only': 'Privacy type must be either public or private'
     }),
 
+  payment_account_info: Joi.object()
+    .required()
+    .messages({
+      'any.required': 'Payment account information is required'
+    }),
+
+  // Status field
+  status: Joi.string()
+    .valid('draft', 'pending')
+    .optional()
+    .default('draft')
+    .messages({ 
+      'any.only': 'Status must be either draft or pending' 
+    }),
+
   terms_and_conditions: Joi.string()
     .max(3000)
     .optional()
