@@ -373,17 +373,6 @@ const handleSubmit = async (status = 'draft') => {
 
     const eventResponse = await eventsAPI.createEvent(formData)
 
-    console.log('response.data:', eventResponse.data)
-    console.log('response.data.data:', eventResponse.data.data)
-
-    console.log('=== FULL EVENT RESPONSE ===')
-    console.log('Full response object:', JSON.stringify(eventResponse.data, null, 2))
-    console.log('Keys at response.data:', Object.keys(eventResponse.data))
-    if (eventResponse.data.data) {
-      console.log('Keys at response.data.data:', Object.keys(eventResponse.data.data))
-    }
-    console.log('=== END DEBUG ===')
-
     const eventId = eventResponse.data.event?.id || eventResponse.data.data?.id  || eventResponse.data.id 
 
     if (!eventId) {
