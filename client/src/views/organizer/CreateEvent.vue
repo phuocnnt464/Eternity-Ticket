@@ -65,7 +65,7 @@ const eventForm = ref({
 // ✅ ĐÚNG: Sessions với min/max tickets per order CỦA SESSION
 const sessions = ref([
   {
-    name: 'Main Session',
+    title: 'Main Session',
     start_time: '',
     end_time: '',
     min_tickets_per_order: 1,    // ✅ Min tổng vé cho mỗi đơn hàng
@@ -94,11 +94,16 @@ const totalSteps = 5
 
 const canProceed = computed(() => {
   if (currentStep.value === 1) {
-    return eventForm.value.title && 
-           eventForm.value.description && 
-           eventForm.value.category_id &&
-           eventForm.value.start_date &&
-           eventForm.value.end_date
+    if (!eventForm.value.title || !eventForm.value.description || 
+        !eventForm.value.category_id || !eventForm.value.start_date || 
+        !eventForm.value.end_date) {
+      return false
+    }
+    
+    const start = new Date(eventForm.value.start_date).getTime()
+    const end = new Date(eventForm.value.end_date).getTime()
+    
+    return end > start 
   }
   if (currentStep.value === 2) {
     return eventForm.value.venue_name && 
@@ -113,6 +118,10 @@ const canProceed = computed(() => {
     return eventForm.value.payment_account_name &&
            eventForm.value.payment_account_number &&
            eventForm.value.payment_bank_name
+  }
+   if (currentStep.value === 5) {
+    // ✅ Check not have validation errors
+    return sessions.value.length > 0 && sessionValidationErrors.value.length === 0
   }
   return true
 })
@@ -152,14 +161,14 @@ const handleImageUpload = (event, type) => {
 
 const addSession = () => {
   sessions.value.push({
-    name: `Session ${sessions.value.length + 1}`,
+    title: `Session ${sessions.value.length + 1}`,
     start_time: '',
     end_time: '',
     min_tickets_per_order: 1,
     max_tickets_per_order: 10,
     ticket_types: [
       {
-        name: 'General Admission',
+        title: 'General Admission',
         price: 0,
         quantity: 0,
         min_per_order: 1,
@@ -218,8 +227,15 @@ const validateForm = () => {
   if (!eventForm.value.start_date) errors.value.start_date = 'Start date is required'
   if (!eventForm.value.end_date) errors.value.end_date = 'End date is required'
   
-  if (new Date(eventForm.value.end_date) < new Date(eventForm.value.start_date)) {
-    errors.value.end_date = 'End date must be after start date'
+  if (eventForm.value.start_date && eventForm.value.end_date) {
+    const start = new Date(eventForm.value.start_date).getTime()
+    const end = new Date(eventForm.value.end_date).getTime()
+    
+    if (end < start) {
+      errors.value.end_date = 'End time cannot be before start time'
+    } else if (end === start) {
+      errors.value.end_date = 'End time cannot be the same as start time'
+    }
   }
   
   if (!eventForm.value.venue_name) errors.value.venue_name = 'Venue name is required'
@@ -238,6 +254,64 @@ const validateForm = () => {
   
   return Object.keys(errors.value).length === 0
 }
+
+// Computed để validate sessions
+const sessionValidationErrors = computed(() => {
+  const errors = []
+  
+  sessions.value.forEach((session, index) => {
+    // ✅ Kiểm tra session time
+    if (session.start_time && session.end_time) {
+      const start = new Date(session.start_time).getTime()
+      const end = new Date(session.end_time).getTime()
+      
+      if (end < start) {
+        errors.push(`Session ${index + 1}: End time cannot be before start time`)
+      } else if (end === start) {
+        errors.push(`Session ${index + 1}: End time cannot be the same as start time`)
+      }
+      
+      // Kiểm tra session nằm trong event time
+      if (eventForm.value.start_date && eventForm.value.end_date) {
+        const eventStart = new Date(eventForm.value.start_date).getTime()
+        const eventEnd = new Date(eventForm.value.end_date).getTime()
+        
+        if (start < eventStart) {
+          errors.push(`Session ${index + 1}: Start time must be after event start time`)
+        }
+        if (end > eventEnd) {
+          errors.push(`Session ${index + 1}: End time must be before event end time`)
+        }
+      }
+    } else {
+      errors.push(`Session ${index + 1}: Start and end times are required`)
+    }
+    
+    // ✅ Kiểm tra ticket types
+    session.ticket_types.forEach((ticket, ticketIndex) => {
+      if (!ticket.name) {
+        errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Name is required`)
+      }
+      if (!ticket.quantity || ticket.quantity <= 0) {
+        errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Quantity must be greater than 0`)
+      }
+      
+      // ✅ Kiểm tra ticket sale time (nếu có nhập)
+      if (ticket.sale_start_time && ticket.sale_end_time) {
+        const saleStart = new Date(ticket.sale_start_time).getTime()
+        const saleEnd = new Date(ticket.sale_end_time).getTime()
+        
+        if (saleEnd < saleStart) {
+          errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Sale end time cannot be before start time`)
+        } else if (saleEnd === saleStart) {
+          errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Sale end time cannot be the same as start time`)
+        }
+      }
+    })
+  })
+  
+  return errors
+})
 
 const handleSubmit = async (status = 'draft') => {
   if (!validateForm()) {
@@ -317,7 +391,7 @@ const handleSubmit = async (status = 'draft') => {
 
     for (const session of sessions.value) {
       const sessionResponse = await sessionsAPI.createSession(eventId, {
-        name: session.name,
+        title: session.title,
         start_time: session.start_time,
         end_time: session.end_time,
         min_tickets_per_order: session.min_tickets_per_order,
@@ -774,12 +848,42 @@ onMounted(async () => {
 
     <!-- Step 5: Sessions & Tickets -->
     <div v-show="currentStep === 5" class="space-y-4">
+       <!-- Validation errors -->
+      <div v-if="sessionValidationErrors.length > 0" class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="flex items-start space-x-2">
+          <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+          </svg>
+          <div class="flex-1">
+            <h4 class="font-semibold text-red-900">Please fix the following issues:</h4>
+            <ul class="mt-2 space-y-1 text-sm text-red-700">
+              <li v-for="(error, idx) in sessionValidationErrors" :key="idx">• {{ error }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info box -->
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-start space-x-2">
+          <InformationCircleIcon class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div class="text-sm text-blue-700">
+            <p class="font-medium text-blue-900 mb-1">Time Requirements:</p>
+            <ul class="space-y-1">
+              <li>Start and end times cannot be the same</li>
+              <li>End time must be after start time</li>
+              <li>Sessions must be within event time range</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <Card
         v-for="(session, sessionIndex) in sessions"
         :key="sessionIndex"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold">{{ session.name }}</h3>
+          <h3 class="text-lg font-semibold">{{ session.title }}</h3>
           <Button
             v-if="sessions.length > 1"
             variant="danger"
@@ -792,7 +896,7 @@ onMounted(async () => {
 
         <div class="space-y-4 mb-6">
           <Input
-            v-model="session.name"
+            v-model="session.title"
             label="Session Name"
             placeholder="e.g. Main Session, Day 1, Session 1"
           />
