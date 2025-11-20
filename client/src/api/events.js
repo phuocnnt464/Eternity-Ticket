@@ -41,23 +41,29 @@ export const eventsAPI = {
   
   // POST /api/events
   createEvent: (data) => {
-    const formData = new FormData()
+    if (formData instanceof FormData) {
+      return api.post('/events', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+    }
     
-    // Text fields
-    Object.keys(data).forEach(key => {
-      if (data[key] !== null && data[key] !== undefined && 
-          typeof data[key] !== 'object') {
-        formData.append(key, data[key])
+    // Nếu không, tạo FormData mới (backward compatibility)
+    const form = new FormData()
+    
+    Object.keys(formData).forEach(key => {
+      const value = formData[key]
+      
+      // Append files
+      if (value instanceof File) {
+        form.append(key, value)
+      }
+      // Append other values
+      else if (value !== null && value !== undefined && value !== '') {
+        form.append(key, value)
       }
     })
     
-    // File uploads
-    if (data.cover_image) formData.append('cover_image', data.cover_image)
-    if (data.thumbnail_image) formData.append('thumbnail_image', data.thumbnail_image)
-    if (data.logo) formData.append('logo', data.logo)
-    if (data.venue_map) formData.append('venue_map', data.venue_map)
-    
-    return api.post('/events', formData, {
+    return api.post('/events', form, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
   },
