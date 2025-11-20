@@ -290,7 +290,7 @@ const handleSubmit = async (status = 'draft') => {
     }
 
     const eventResponse = await eventsAPI.createEvent(formData)
-    const eventId = eventResponse.data.event_id
+    const eventId = eventResponse.data.id 
 
     for (const session of sessions.value) {
       const sessionResponse = await sessionsAPI.createSession(eventId, {
