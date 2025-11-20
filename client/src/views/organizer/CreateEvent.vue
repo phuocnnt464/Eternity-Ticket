@@ -243,12 +243,46 @@ const handleSubmit = async (status = 'draft') => {
   loading.value = true
   try {
     const formData = new FormData()
+    // Object.keys(eventForm.value).forEach(key => {
+    //   if (eventForm.value[key] !== null && eventForm.value[key] !== '') {
+    //     formData.append(key, eventForm.value[key])
+    //   }
+    // })
     Object.keys(eventForm.value).forEach(key => {
-      if (eventForm.value[key] !== null && eventForm.value[key] !== '') {
-        formData.append(key, eventForm.value[key])
+      const value = eventForm.value[key]
+      
+      // Bỏ qua các file images (xử lý riêng sau)
+      if (key === 'cover_image' || key === 'thumbnail_image' || 
+          key === 'logo_image' || key === 'venue_map_image') {
+        return
+      }
+      
+      // Append tất cả các trường khác (kể cả rỗng)
+      if (value !== null && value !== undefined) {
+        formData.append(key, value)
       }
     })
+    
+    // Thêm images nếu có
+    if (eventForm.value.cover_image) {
+      formData.append('cover_image', eventForm.value.cover_image)
+    }
+    if (eventForm.value.thumbnail_image) {
+      formData.append('thumbnail_image', eventForm.value.thumbnail_image)
+    }
+    if (eventForm.value.logo_image) {
+      formData.append('logo_image', eventForm.value.logo_image)
+    }
+    if (eventForm.value.venue_map_image) {
+      formData.append('venue_map_image', eventForm.value.venue_map_image)
+    }
+
     formData.append('status', status)
+
+    console.log('FormData contents:')
+    for (let [key, value] of formData.entries()) {
+      console.log(key, ':', value instanceof File ? `File: ${value.name}` : value)
+    }
 
     const eventResponse = await eventsAPI.createEvent(formData)
     const eventId = eventResponse.data.event_id
@@ -273,6 +307,7 @@ const handleSubmit = async (status = 'draft') => {
     router.push('/organizer/events')
   } catch (error) {
     console.error('Create event error:', error)
+    console.error('Error response:', error.response?.data)  
     alert(error.response?.data?.error?.message || 'Failed to create event')
   } finally {
     loading.value = false
