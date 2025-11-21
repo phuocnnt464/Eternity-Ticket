@@ -252,7 +252,7 @@ onMounted(() => {
           <tbody class="bg-white divide-y divide-gray-200">
             <tr
               v-for="event in filteredEvents"
-              :key="event.event_id"
+              :key="event.id"
               class="hover:bg-gray-50"
             >
               <td class="px-6 py-4">
@@ -388,7 +388,7 @@ onMounted(() => {
           <Button
             variant="danger"
             :loading="processingAction"
-            @click="handleReject(selectedEvent.event_id)"
+            @click="handleReject(selectedEvent.id)"
             full-width
           >
             <XCircleIcon class="w-5 h-5" />
@@ -397,7 +397,7 @@ onMounted(() => {
           <Button
             variant="success"
             :loading="processingAction"
-            @click="handleApprove(selectedEvent.event_id)"
+            @click="handleApprove(selectedEvent.id)"
             full-width
           >
             <CheckCircleIcon class="w-5 h-5" />
@@ -491,7 +491,7 @@ onMounted(() => {
           <Button
             variant="danger"
             :loading="processingAction"
-            @click="handleCancelEvent(selectedEvent.event_id)"
+            @click="handleCancelEvent(selectedEvent.id)"
             full-width
           >
             Confirm Cancellation
