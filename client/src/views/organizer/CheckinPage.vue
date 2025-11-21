@@ -49,13 +49,13 @@ const fetchEventData = async () => {
   try {
     const [eventRes, statsRes, checkinsRes] = await Promise.all([
       eventsAPI.getEventById(eventId.value),
-      checkinAPI.getCheckinStats(eventId.value),
+      checkinAPI.getCheckInStats(eventId.value),
       checkinAPI.getRecentCheckins(eventId.value, { limit: 10 })
     ])
     
-    event.value = eventRes.data.data
-    stats.value = statsRes.data.data
-    recentCheckIns.value = checkinsRes.data.data || []
+    event.value = eventRes.data.event
+    stats.value = statsRes.data.stats
+    recentCheckIns.value = checkinsRes.data.checkIns || []
   } catch (error) {
     console.error('Failed to fetch event data:', error)
   } finally {
@@ -82,7 +82,7 @@ const handleCheckIn = async (ticketCode) => {
   checkingIn.value = true
 
   try {
-    const response = await checkinAPI.checkInTicket(eventId.value, {
+    const response = await checkinAPI.checkIn(eventId.value, {
       ticket_code: ticketCode
     })
     

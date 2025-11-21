@@ -29,13 +29,13 @@ const inviting = ref(false)
 
 const inviteForm = ref({
   email: '',
-  role: 'staff'
+  role: 'checkin_staff'
 })
 
 const inviteErrors = ref({})
 
 const roleOptions = [
-  { value: 'staff', label: 'Staff', description: 'Can check-in attendees' },
+  { value: 'checkin_staff', label: 'Staff', description: 'Can check-in attendees' },
   { value: 'manager', label: 'Manager', description: 'Can manage event and team' }
 ]
 
