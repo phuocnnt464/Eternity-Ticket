@@ -7,6 +7,7 @@ import Badge from '@/components/common/Badge.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import Spinner from '@/components/common/Spinner.vue'
 import Modal from '@/components/common/Modal.vue'
+// import { useImageUrl } from '@/composables/useImageUrl' 
 import {
   CheckCircleIcon,
   XCircleIcon,
@@ -27,6 +28,8 @@ const processingAction = ref(false)
 const rejectionReason = ref('')
 const showCancelModal = ref(false) 
 const cancellationReason = ref('')
+
+// const { getImageUrl } = useImageUrl() // ✅ Use composable
 
 const pagination = ref({
   currentPage: 1,
