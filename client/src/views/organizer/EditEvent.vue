@@ -120,7 +120,7 @@ const loadEvent = async () => {
     
     // Load ticket types for each session
     for (const session of sessions.value) {
-      const ticketsResponse = await sessionsAPI.getSessionTicketTypes(session.session_id)
+      const ticketsResponse = await sessionsAPI.getSessionTicketTypes(session.id)
       session.ticket_types = ticketsResponse.data.ticket_types || []
     }
   } catch (error) {
