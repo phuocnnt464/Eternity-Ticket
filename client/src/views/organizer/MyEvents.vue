@@ -12,7 +12,9 @@ import {
   MagnifyingGlassIcon,
   FunnelIcon,
   PencilSquareIcon,
-  EyeIcon,
+  Cog6ToothIcon,          
+  ChartPieIcon,           
+  TrashIcon,              
   CalendarIcon,
   MapPinIcon,
   TicketIcon
@@ -24,12 +26,13 @@ const events = ref([])
 const loading = ref(true)
 const searchQuery = ref('')
 const selectedStatus = ref('all')
+const deletingEventId = ref(null) // ✅ THÊM
 
 const pagination = ref({
   currentPage: 1,
   totalPages: 1,
   totalItems: 0,
-  perPage: 20 // Tăng lên 20 cho table
+  perPage: 20
 })
 
 const statusOptions = [
@@ -37,6 +40,7 @@ const statusOptions = [
   { value: 'draft', label: 'Draft' },
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved' },
+  { value: 'completed', label: 'Completed' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'cancelled', label: 'Cancelled' }
 ]
@@ -46,6 +50,7 @@ const getStatusBadge = (status) => {
     draft: { variant: 'secondary', text: 'Draft' },
     pending: { variant: 'warning', text: 'Pending' },
     approved: { variant: 'success', text: 'Approved' },
+    completed: { variant: 'info', text: 'Completed' },
     rejected: { variant: 'danger', text: 'Rejected' },
     cancelled: { variant: 'danger', text: 'Cancelled' }
   }
@@ -97,14 +102,38 @@ const handlePageChange = (page) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// Navigate to edit page
+// ✅ Navigate to edit page
 const handleEdit = (eventId) => {
   router.push(`/organizer/events/${eventId}/edit`)
 }
 
-// Navigate to management overview (statistics)
-const handleViewManagement = (eventId) => {
+// ✅ Navigate to statistics page
+const handleViewStatistics = (eventId) => {
+  router.push(`/organizer/events/${eventId}/statistics`)
+}
+
+// ✅ Navigate to settings/overview page
+const handleSettings = (eventId) => {
   router.push(`/organizer/events/${eventId}/overview`)
+}
+
+// ✅ THÊM: Delete event
+const handleDelete = async (event) => {
+  if (!confirm(`Are you sure you want to delete "${event.title}"?\n\nThis action cannot be undone.`)) {
+    return
+  }
+  
+  deletingEventId.value = event.id
+  try {
+    await eventsAPI.deleteEvent(event.id)
+    alert('Event deleted successfully!')
+    await fetchEvents() // Refresh list
+  } catch (error) {
+    console.error('Delete error:', error)
+    alert(error.response?.data?.message || 'Failed to delete event')
+  } finally {
+    deletingEventId.value = null
+  }
 }
 
 const formatDate = (dateString) => {
@@ -281,10 +310,10 @@ onMounted(() => {
                 </div>
               </td>
 
-              <!-- Actions -->
+              <!-- ✅ Actions - SỬA LẠI -->
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center space-x-2">
-                  <!-- Edit Button -->
+                  <!-- Edit Button - Luôn hiện -->
                   <button
                     @click="handleEdit(event.id)"
                     class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -293,13 +322,37 @@ onMounted(() => {
                     <PencilSquareIcon class="w-5 h-5" />
                   </button>
 
-                  <!-- View Management Button -->
+                  <!-- Statistics Button - CHỈ HIỆN CHO APPROVED -->
                   <button
-                    @click="handleViewManagement(event.id)"
-                    class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="View Management"
+                    v-if="event.status === 'approved'"
+                    @click="handleViewStatistics(event.id)"
+                    class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                    title="View Statistics"
                   >
-                    <EyeIcon class="w-5 h-5" />
+                    <ChartPieIcon class="w-5 h-5" />
+                  </button>
+
+                  <!-- Settings Button - CHỈ HIỆN CHO APPROVED -->
+                  <button
+                    v-if="event.status === 'approved'"
+                    @click="handleSettings(event.id)"
+                    class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Event Settings"
+                  >
+                    <Cog6ToothIcon class="w-5 h-5" />
+                  </button>
+
+                  <!-- Delete Button - Luôn hiện -->
+                  <button
+                    @click="handleDelete(event)"
+                    :disabled="deletingEventId === event.id"
+                    class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Delete Event"
+                  >
+                    <TrashIcon 
+                      class="w-5 h-5"
+                      :class="{ 'animate-pulse': deletingEventId === event.id }"
+                    />
                   </button>
                 </div>
               </td>

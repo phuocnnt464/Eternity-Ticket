@@ -11,6 +11,11 @@ export const ordersAPI = {
     return api.get('/orders', { params })
   },
 
+  // GET /api/events/:eventId/orders (for organizer)
+  getEventOrders: (eventId, params) => {
+    return api.get(`/events/${eventId}/orders`, { params })
+  },
+
   // GET /api/orders/:orderId
   getOrder: (orderId) => {
     return api.get(`/orders/${orderId}`)

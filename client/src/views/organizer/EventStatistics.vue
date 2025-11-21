@@ -40,7 +40,7 @@ const salesPercentage = computed(() => {
 const statCards = computed(() => [
   {
     title: 'Total Revenue',
-    value: formatPrice(statistics.value.total_revenue),
+    value: formatPrice(statistics.value.total_revenue || 0),
     icon: CurrencyDollarIcon,
     color: 'purple',
     description: `${statistics.value.total_orders} orders`
@@ -76,18 +76,30 @@ const fetchStatistics = async () => {
       eventsAPI.getEventStatistics(eventId.value)
     ])
     
-    event.value = eventRes.data.data
-    statistics.value = statsRes.data.data
+    event.value = eventRes.data.event
+    statistics.value = statsRes.data.statistics
+    statistics.value = {
+      total_tickets: statsData.total_tickets || 0,
+      tickets_sold: statsData.tickets_sold || 0,
+      tickets_available: statsData.tickets_available || 0,
+      total_revenue: statsData.total_revenue || 0,
+      total_orders: statsData.total_orders || 0,
+      average_order_value: statsData.average_order_value || 0,
+      sales_by_ticket_type: statsData.sales_by_ticket_type || [],
+      sales_trend: statsData.sales_trend || []
+    }
   } catch (error) {
     console.error('Failed to fetch statistics:', error)
-    alert('Failed to load statistics')
-    router.push('/organizer/events')
+    console.error('Error details:', error.response?.data)
+    // alert('Failed to load statistics')
+    // router.push('/organizer/events')
   } finally {
     loading.value = false
   }
 }
 
 const formatPrice = (price) => {
+  if (!price || isNaN(price)) return '₫0'
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND'
