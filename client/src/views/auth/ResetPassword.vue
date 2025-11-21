@@ -20,7 +20,7 @@ const loading = ref(false)
 const tokenValid = ref(true)
 
 onMounted(() => {
-  form.value.token = route.query.token || route.params.token
+  form.value.token = route.params.token
   
   if (!form.value.token) {
     tokenValid.value = false
