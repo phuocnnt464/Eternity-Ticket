@@ -77,7 +77,7 @@ const fetchStatistics = async () => {
     ])
     
     event.value = eventRes.data.event
-    statistics.value = statsRes.data.statistics
+    const statsData = statsRes.data.statistics
     statistics.value = {
       total_tickets: statsData.total_tickets || 0,
       tickets_sold: statsData.tickets_sold || 0,

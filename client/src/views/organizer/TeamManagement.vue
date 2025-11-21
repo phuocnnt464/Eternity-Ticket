@@ -44,7 +44,7 @@ const getRoleBadge = (role) => {
   const badges = {
     owner: { variant: 'success', text: 'Owner' },  
     manager: { variant: 'primary', text: 'Manager' },
-    staff: { variant: 'info', text: 'Staff' }
+    staff: { variant: 'accent', text: 'Staff' }
   }
   return badges[role] || badges.staff
 }
@@ -109,7 +109,7 @@ const handleRemoveMember = async (memberId, memberName) => {
 }
 
 const handleChangeRole = async (memberId, currentRole) => {
-  const newRole = currentRole === 'manager' ? 'staff' : 'manager'
+  const newRole = currentRole === 'manager' ? 'checkin_staff' : 'manager'
   
   if (!confirm(`Change role to ${newRole}?`)) return
   
@@ -144,7 +144,7 @@ onMounted(() => {
       </div>
       <Button variant="primary" @click="showInviteModal = true">
         <UserPlusIcon class="w-5 h-5" />
-        Invite Team Member
+        Invite Members
       </Button>
     </div>
 
