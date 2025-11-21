@@ -699,15 +699,6 @@ static async update(eventId, updateData, userId) {
     
       await client.query('COMMIT');
 
-      const NotificationModel = require('./notificationModel');
-      await NotificationModel.create({
-        user_id: updateResult.rows[0].organizer_id,
-        type: 'system',
-        title: 'Event Approved ✅',
-        content: `Your event "${updateResult.rows[0].title}" has been approved and is now live!`,
-        event_id: eventId
-      });
-
       console.log(`✅ Event approved: ${updateResult.rows[0].title}`);
       return updateResult.rows[0];
       

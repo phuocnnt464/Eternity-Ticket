@@ -750,6 +750,19 @@ class EventController {
         }
       }
 
+      try {
+        const NotificationModel = require('../models/notificationModel');
+        await NotificationModel.create({
+          user_id: event.organizer_id,
+          type: 'system',
+          title: 'Event Approved',
+          content: `Your event "${event.title}" has been approved and is now live!`,
+          event_id: event.id
+        });
+      } catch (notifError) {
+        console.error('⚠️ Failed to create notification:', notifError);
+      }
+
       res.json(
         createResponse(
           true,
@@ -819,6 +832,20 @@ class EventController {
           console.error('❌ Failed to send rejection email:', emailError);
         }
       }
+
+      try {
+        const NotificationModel = require('../models/notificationModel');
+        await NotificationModel.create({
+          user_id: event.organizer_id,
+          type: 'system',
+          title: 'Event Rejected ❌',
+          content: `Your event "${event.title}" was not approved. Reason: ${reason}`,
+          event_id: event.id
+        });
+      } catch (notifError) {
+        console.error('⚠️ Failed to create notification:', notifError);
+      }
+
 
       res.json(
         createResponse(
