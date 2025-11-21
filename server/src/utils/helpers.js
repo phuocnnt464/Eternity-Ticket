@@ -505,6 +505,40 @@ const getMinutesDifference = (date1, date2) => {
   return Math.floor((new Date(date2) - new Date(date1)) / 60000);
 };
 
+/**
+ * Auto-complete events that have passed their end_date
+ * Should be called by cron job or manually
+ */
+async function autoCompleteEvents() {
+  try {
+    console.log('🔄 Auto-completing past events...');
+    
+    const query = `
+      UPDATE events
+      SET status = 'completed', updated_at = NOW()
+      WHERE status = 'approved'
+        AND end_date < NOW()
+      RETURNING id, title, end_date
+    `;
+    
+    const result = await pool.query(query);
+    
+    if (result.rows.length > 0) {
+      console.log(`✅ Auto-completed ${result.rows.length} events:`);
+      result.rows.forEach(event => {
+        console.log(`   - ${event.title} (ID: ${event.id}) ended at ${event.end_date}`);
+      });
+    } else {
+      console.log('ℹ️  No events to complete');
+    }
+    
+    return result.rows;
+  } catch (error) {
+    console.error('❌ Auto-complete events error:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   //jwt
   generateAccessToken,
@@ -530,6 +564,7 @@ module.exports = {
   generateSlug,
   formatDate,
   truncateText,
+  autoCompleteEvents,
   
   // Order & Tickets
   generateOrderNumber,

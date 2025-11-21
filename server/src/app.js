@@ -7,6 +7,8 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
+const { autoCompleteEvents } = require('./utils/helpers');
+
 const app = express();
 
 // Trust proxy for rate limiting behind reverse proxy
@@ -241,6 +243,25 @@ app.use(`${API_PREFIX}/membership`, require('./routes/membershipRoutes'));
 app.use(`${API_PREFIX}/notifications`, require('./routes/notificationRoutes'));
 app.use(`${API_PREFIX}/coupons`, require('./routes/couponRoutes'));
 app.use(`${API_PREFIX}/refunds`, require('./routes/refundRoutes'));
+
+
+// ✅ Initialize Cron Jobs
+console.log('📅 Initializing cron jobs...');
+
+// Run auto-complete events every day at 00:05 UTC (5 minutes past midnight)
+cron.schedule('5 0 * * *', async () => {
+  console.log('⏰ [CRON] Running auto-complete events job...');
+  try {
+    await autoCompleteEvents();
+  } catch (error) {
+    console.error('❌ [CRON] Auto-complete failed:', error);
+  }
+}, {
+  timezone: 'UTC',
+  scheduled: true
+});
+
+console.log('✅ Cron jobs initialized (runs daily at 00:05 UTC)');
 
 // =============================================
 // ROOT ENDPOINT

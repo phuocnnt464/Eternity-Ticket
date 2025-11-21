@@ -12,6 +12,8 @@ const {
 const {  validate, validateUUIDParam, validatePagination } = require('../middleware/validationMiddleware');
 const { logAdminAudit } = require('../middleware/activityLogger');
 
+const { autoCompleteEvents } = require('../utils/helpers');
+
 const {
   rejectEventSchema,
 } = require('../validations/eventValidation');
@@ -345,6 +347,39 @@ router.delete('/sub-admins/:userId',
   validateUUIDParam('userId'),
   logAdminAudit('DEACTIVATE_SUB_ADMIN', 'USER'),
   AdminController.deactivateSubAdmin
+);
+
+/**
+ * Manual trigger to complete events
+ * POST /api/admin/events/complete-past
+ * @access Private (Admin only)
+ */
+router.post('/events/complete-past', 
+  auth, 
+  authorize(['admin', 'sub_admin']), 
+  async (req, res) => {
+    try {
+      console.log(`🔧 Admin ${req.user.id} manually triggering auto-complete events`);
+      
+      const completedEvents = await autoCompleteEvents();
+      
+      res.json({
+        success: true,
+        message: `Successfully completed ${completedEvents.length} events`,
+        data: {
+          completed_count: completedEvents.length,
+          events: completedEvents
+        }
+      });
+    } catch (error) {
+      console.error('❌ Manual complete events error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to complete events',
+        error: error.message
+      });
+    }
+  }
 );
 
 module.exports = router;
