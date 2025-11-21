@@ -184,6 +184,11 @@ const handlePageChange = (page) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+const handleImageError = (e) => {
+  console.error('Image failed to load:', e.target.src)
+  e.target.style.display = 'none'
+}
+
 onMounted(() => {
   fetchEvents()
 })
@@ -262,9 +267,10 @@ onMounted(() => {
                     :src="event.logo_image"
                     :alt="event.title"
                     class="w-12 h-12 object-cover rounded"
+                    @error="handleImageError"
                   />
-                  <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center" v-else>
-                    <span class="text-gray-400 text-xs">No img</span>
+                  <div v-else class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                    <span class="text-gray-400 text-xs">No logo</span>
                   </div>
                   <div>
                     <p class="font-medium text-gray-900">{{ event.title }}</p>
@@ -335,8 +341,11 @@ onMounted(() => {
           :src="selectedEvent.cover_image"
           :alt="selectedEvent.title"
           class="w-full h-64 object-cover rounded-lg"
+          @error="handleImageError"
         />
-
+        <div v-else class="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+          <span class="text-gray-500">No cover image</span>
+        </div>
         <!-- Event Info -->
         <div>
           <h3 class="text-xl font-bold mb-2">{{ selectedEvent.title }}</h3>
