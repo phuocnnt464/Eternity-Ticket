@@ -727,7 +727,28 @@ class EventController {
 
       const event = await EventModel.approve(id, adminId);
 
-      await emailService.sendEventApproved(event);
+      const organizerQuery = `
+        SELECT u.email, u.first_name || ' ' || u.last_name as organizer_name
+        FROM users u
+        WHERE u.id = $1
+      `;
+
+      const organizerResult = await pool.query(organizerQuery, [event.organizer_id]);
+      
+      if (organizerResult.rows.length > 0) {
+        const organizer = organizerResult.rows[0];
+        
+        try {
+          await emailService.sendEventApproved({
+            organizer_email: organizer.email,
+            organizer_name: organizer.organizer_name,
+            event_title: event.title,
+            event_id: event.id
+          });
+        } catch (emailError) {
+          console.error('❌ Failed to send approval email:', emailError);
+        }
+      }
 
       res.json(
         createResponse(
@@ -776,7 +797,28 @@ class EventController {
 
       const event = await EventModel.reject(id, adminId, reason);
 
-      await emailService.sendEventRejected(event, reason);
+      const organizerQuery = `
+        SELECT u.email, u.first_name || ' ' || u.last_name as organizer_name
+        FROM users u
+        WHERE u.id = $1
+      `;
+
+      const organizerResult = await pool.query(organizerQuery, [event.organizer_id]);
+
+      if (organizerResult.rows.length > 0) {
+        const organizer = organizerResult.rows[0];
+        
+        try {
+          await emailService.sendEventRejected({
+            organizer_email: organizer.email,
+            organizer_name: organizer.organizer_name,
+            event_title: event.title,
+            rejection_reason: reason
+          });
+        } catch (emailError) {
+          console.error('❌ Failed to send rejection email:', emailError);
+        }
+      }
 
       res.json(
         createResponse(
