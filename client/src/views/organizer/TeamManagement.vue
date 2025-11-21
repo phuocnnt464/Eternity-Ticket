@@ -52,11 +52,11 @@ const fetchTeamMembers = async () => {
   try {
     const [eventRes, teamRes] = await Promise.all([
       eventsAPI.getEventById(eventId.value),
-      eventsAPI.getEventTeam(eventId.value)
+      eventsAPI.getTeamMembers(eventId.value) 
     ])
     
-    event.value = eventRes.data.data
-    teamMembers.value = teamRes.data.data || []
+    event.value = eventRes.data.event
+    teamMembers.value = teamRes.data.teamMembers || []
   } catch (error) {
     console.error('Failed to fetch team members:', error)
   } finally {
@@ -81,7 +81,7 @@ const handleInvite = async () => {
   
   inviting.value = true
   try {
-    await eventsAPI.inviteTeamMember(eventId.value, inviteForm.value)
+    await eventsAPI.addTeamMember(eventId.value, inviteForm.value)
     
     alert('Invitation sent successfully!')
     showInviteModal.value = false
@@ -112,7 +112,7 @@ const handleChangeRole = async (memberId, currentRole) => {
   if (!confirm(`Change role to ${newRole}?`)) return
   
   try {
-    await eventsAPI.updateTeamMemberRole(eventId.value, memberId, { role: newRole })
+    await eventsAPI.updateMemberRole(eventId.value, memberId, { role: newRole })
     alert('Role updated')
     await fetchTeamMembers()
   } catch (error) {
