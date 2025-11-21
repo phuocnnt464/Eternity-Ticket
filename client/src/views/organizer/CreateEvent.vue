@@ -365,6 +365,7 @@ const handleSubmit = async (status = 'draft') => {
     if (eventForm.value.organizer_description) formData.append('organizer_description', eventForm.value.organizer_description)
     if (eventForm.value.organizer_contact_email) formData.append('organizer_contact_email', eventForm.value.organizer_contact_email)
     if (eventForm.value.organizer_contact_phone) formData.append('organizer_contact_phone', eventForm.value.organizer_contact_phone)
+    if (eventForm.value.terms_and_conditions) formData.append('terms_and_conditions', eventForm.value.terms_and_conditions)
     
     // ✅ Privacy: Chuyển is_public thành privacy_type
     formData.append('privacy_type', eventForm.value.privacy_type ? 'public' : 'private')
@@ -572,6 +573,13 @@ onMounted(async () => {
           required
         />
 
+        <Input
+          v-model="eventForm.custom_slug"
+          label="Custom URL (optional)"
+          placeholder="e.g. summer-fest-2024"
+          hint="Leave blank to auto-generate from title"
+        />
+
         <div>
           <label class="label label-required">Description</label>
           <textarea
@@ -583,6 +591,20 @@ onMounted(async () => {
           ></textarea>
           <p v-if="errors.description" class="error-text">{{ errors.description }}</p>
           <p v-else class="text-xs text-gray-500 mt-1">{{ eventForm.description?.length || 0 }}/5000 characters</p>
+        </div>
+
+        <div>
+          <label class="label">Short Description</label>
+          <textarea
+            v-model="eventForm.short_description"
+            rows="2"
+            maxlength="200"
+            placeholder="Brief summary (for event card)"
+            class="textarea"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">
+            {{ eventForm.short_description?.length || 0 }}/200 characters
+          </p>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
@@ -858,6 +880,20 @@ onMounted(async () => {
             class="textarea"
           ></textarea>
           <p class="text-xs text-gray-500 mt-1">{{ eventForm.organizer_description?.length || 0 }}/1000 characters</p>
+        </div>
+
+        <div>
+          <label class="label">Terms & Conditions</label>
+          <textarea
+            v-model="eventForm.terms_and_conditions"
+            rows="6"
+            maxlength="5000"
+            placeholder="Enter event terms and conditions, ticket policies, rules..."
+            class="textarea"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">
+            {{ eventForm.terms_and_conditions?.length || 0 }}/5000 characters
+          </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
