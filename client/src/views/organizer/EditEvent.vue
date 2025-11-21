@@ -27,18 +27,42 @@ const eventId = ref(route.params.id)
 const eventForm = ref({
   title: '',
   description: '',
+  short_description: '',
   category_id: '',
   start_date: '',
   end_date: '',
+  
+  // Venue Info
   venue_name: '',
   venue_address: '',
+  venue_city: '',             
   venue_capacity: null,
+  
+  // Organizer Info
+  organizer_name: '',          
+  organizer_description: '',   
+  organizer_contact_email: '', 
+  organizer_contact_phone: '', 
+  
+  // Privacy & Settings
+  privacy_type: 'public',      
+  terms_and_conditions: '',    
+  
+  // Images
+  cover_image: null,
+  thumbnail_image: null,
+  logo_image: null,            
+  venue_map_image: null,       
+  
   status: 'draft'
 })
 
 const sessions = ref([])
 const errors = ref({})
 const coverPreview = ref(null)
+const thumbnailPreview = ref(null)   
+const logoPreview = ref(null)        
+const venueMapPreview = ref(null)
 
 const getStatusBadge = (status) => {
   const badges = {
@@ -58,27 +82,46 @@ const loadEvent = async () => {
     const event = eventResponse.data.event
     
     eventForm.value = {
+       // Basic Info
       title: event.title,
       description: event.description,
+      short_description: event.short_description || '',
       category_id: event.category_id,
       start_date: event.start_date ? new Date(event.start_date).toISOString().slice(0, 16) : '',
       end_date: event.end_date ? new Date(event.end_date).toISOString().slice(0, 16) : '',
+      
+      // Venue Info
       venue_name: event.venue_name,
       venue_address: event.venue_address,
+      venue_city: event.venue_city || '',
       venue_capacity: event.venue_capacity,
+      
+      // Organizer Info
+      organizer_name: event.organizer_name || '',
+      organizer_description: event.organizer_description || '',
+      organizer_contact_email: event.organizer_contact_email || '',
+      organizer_contact_phone: event.organizer_contact_phone || '',
+      
+      // Privacy & Settings
+      privacy_type: event.privacy_type || 'public',
+      terms_and_conditions: event.terms_and_conditions || '',
+      
       status: event.status
     }
     
     coverPreview.value = event.cover_image
+    thumbnailPreview.value = event.thumbnail_image
+    logoPreview.value = event.logo_image
+    venueMapPreview.value = event.venue_map_image
 
     // Load sessions
     const sessionsResponse = await sessionsAPI.getEventSessions(eventId.value)
-    sessions.value = sessionsResponse.data.data || []
+    sessions.value = sessionsResponse.data.sessions || []
     
     // Load ticket types for each session
     for (const session of sessions.value) {
       const ticketsResponse = await sessionsAPI.getSessionTicketTypes(session.session_id)
-      session.ticket_types = ticketsResponse.data.data || []
+      session.ticket_types = ticketsResponse.data.ticket_types || []
     }
   } catch (error) {
     console.error('Failed to load event:', error)
@@ -113,11 +156,85 @@ const handleImageUpload = (event) => {
   reader.readAsDataURL(file)
 }
 
+const handleThumbnailUpload = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    errors.value.thumbnail_image = 'Please select an image file'
+    return
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    errors.value.thumbnail_image = 'Image size must be less than 5MB'
+    return
+  }
+
+  eventForm.value.thumbnail_image = file
+  errors.value.thumbnail_image = ''
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    thumbnailPreview.value = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+const handleLogoUpload = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    errors.value.logo_image = 'Please select an image file'
+    return
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    errors.value.logo_image = 'Image size must be less than 5MB'
+    return
+  }
+
+  eventForm.value.logo_image = file
+  errors.value.logo_image = ''
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    logoPreview.value = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+const handleVenueMapUpload = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    errors.value.venue_map_image = 'Please select an image file'
+    return
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    errors.value.venue_map_image = 'Image size must be less than 5MB'
+    return
+  }
+
+  eventForm.value.venue_map_image = file
+  errors.value.venue_map_image = ''
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    venueMapPreview.value = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
 const validateForm = () => {
   errors.value = {}
   
+  // Basic Info
   if (!eventForm.value.title) errors.value.title = 'Title is required'
   if (!eventForm.value.description) errors.value.description = 'Description is required'
+  if (!eventForm.value.category_id) errors.value.category_id = 'Category is required'
   if (!eventForm.value.start_date) errors.value.start_date = 'Start date is required'
   if (!eventForm.value.end_date) errors.value.end_date = 'End date is required'
   
@@ -125,8 +242,14 @@ const validateForm = () => {
     errors.value.end_date = 'End date must be after start date'
   }
   
+  // Venue Info
   if (!eventForm.value.venue_name) errors.value.venue_name = 'Venue name is required'
   if (!eventForm.value.venue_address) errors.value.venue_address = 'Venue address is required'
+  if (!eventForm.value.venue_city) errors.value.venue_city = 'City is required'
+  
+  // Organizer Info
+  if (!eventForm.value.organizer_name) errors.value.organizer_name = 'Organizer name is required'
+  if (!eventForm.value.organizer_contact_email) errors.value.organizer_contact_email = 'Contact email is required'
   
   return Object.keys(errors.value).length === 0
 }
@@ -258,6 +381,17 @@ onMounted(() => {
           </div>
 
           <div>
+            <label class="label">Short Description</label>
+            <textarea
+              v-model="eventForm.short_description"
+              rows="2"
+              placeholder="Brief summary for listings..."
+              class="textarea"
+            ></textarea>
+            <p class="text-xs text-gray-500 mt-1">Max 200 characters</p>
+          </div>
+
+          <div>
             <label class="label label-required">Category</label>
             <select
               v-model="eventForm.category_id"
@@ -342,6 +476,14 @@ onMounted(() => {
           </div>
 
           <Input
+            v-model="eventForm.venue_city"
+            label="City"
+            placeholder="e.g. Ho Chi Minh City"
+            :error="errors.venue_city"
+            required
+          />
+
+          <Input
             v-model.number="eventForm.venue_capacity"
             type="number"
             label="Venue Capacity"
@@ -349,6 +491,164 @@ onMounted(() => {
           />
         </div>
       </Card>
+
+      <!-- Organizer Information -->
+      <Card>
+        <h2 class="text-xl font-semibold mb-6">Organizer Information</h2>
+        
+        <div class="space-y-4">
+          <Input
+            v-model="eventForm.organizer_name"
+            label="Organizer Name"
+            placeholder="Your organization or personal name"
+            :error="errors.organizer_name"
+            required
+          />
+
+          <div>
+            <label class="label">Organizer Description</label>
+            <textarea
+              v-model="eventForm.organizer_description"
+              rows="3"
+              placeholder="Tell attendees about yourself..."
+              class="textarea"
+            ></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              v-model="eventForm.organizer_contact_email"
+              type="email"
+              label="Contact Email"
+              placeholder="contact@example.com"
+              :error="errors.organizer_contact_email"
+              required
+            />
+
+            <Input
+              v-model="eventForm.organizer_contact_phone"
+              type="tel"
+              label="Contact Phone"
+              placeholder="+84 123 456 789"
+            />
+          </div>
+        </div>
+      </Card>
+
+      <!-- Additional Images -->
+      <Card>
+        <h2 class="text-xl font-semibold mb-6">Additional Images</h2>
+        
+        <div class="space-y-4">
+          <!-- Thumbnail Image -->
+          <div>
+            <label class="label">Thumbnail Image (720x958)</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+              <div v-if="thumbnailPreview" class="mb-3">
+                <img :src="thumbnailPreview" class="max-h-32 mx-auto rounded" />
+              </div>
+              <label class="btn-secondary btn-sm cursor-pointer">
+                Upload Thumbnail
+                <input
+                  type="file"
+                  accept="image/*"
+                  @change="handleThumbnailUpload"
+                  class="hidden"
+                />
+              </label>
+              <p class="text-xs text-gray-500 mt-2">For event listings</p>
+            </div>
+          </div>
+
+          <!-- Logo Image -->
+          <div>
+            <label class="label">Event Logo (275x275)</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+              <div v-if="logoPreview" class="mb-3">
+                <img :src="logoPreview" class="max-h-32 mx-auto rounded" />
+              </div>
+              <label class="btn-secondary btn-sm cursor-pointer">
+                Upload Logo
+                <input
+                  type="file"
+                  accept="image/*"
+                  @change="handleLogoUpload"
+                  class="hidden"
+                />
+              </label>
+              <p class="text-xs text-gray-500 mt-2">Square logo for branding</p>
+            </div>
+          </div>
+
+          <!-- Venue Map -->
+          <div>
+            <label class="label">Venue Seating Map (Optional)</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+              <div v-if="venueMapPreview" class="mb-3">
+                <img :src="venueMapPreview" class="max-h-32 mx-auto rounded" />
+              </div>
+              <label class="btn-secondary btn-sm cursor-pointer">
+                Upload Venue Map
+                <input
+                  type="file"
+                  accept="image/*"
+                  @change="handleVenueMapUpload"
+                  class="hidden"
+                />
+              </label>
+              <p class="text-xs text-gray-500 mt-2">Seating layout or venue map</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <!-- Privacy & Settings -->
+      <Card>
+        <h2 class="text-xl font-semibold mb-6">Privacy & Settings</h2>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="label">Event Privacy</label>
+            <div class="space-y-2">
+              <label class="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="radio"
+                  v-model="eventForm.privacy_type"
+                  value="public"
+                  class="form-radio"
+                />
+                <div>
+                  <p class="font-medium">Public Event</p>
+                  <p class="text-sm text-gray-600">Anyone can see and register</p>
+                </div>
+              </label>
+              
+              <label class="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="radio"
+                  v-model="eventForm.privacy_type"
+                  value="private"
+                  class="form-radio"
+                />
+                <div>
+                  <p class="font-medium">Private Event</p>
+                  <p class="text-sm text-gray-600">Requires access code</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div>
+      <label class="label">Terms and Conditions (Optional)</label>
+      <textarea
+        v-model="eventForm.terms_and_conditions"
+        rows="4"
+        placeholder="Event rules, refund policy, etc..."
+        class="textarea"
+      ></textarea>
+    </div>
+  </div>
+</Card>
 
       <!-- Sessions Summary -->
       <Card>

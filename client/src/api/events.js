@@ -130,6 +130,11 @@ export const eventsAPI = {
     return api.delete(`/events/${id}`)
   },
 
+  // POST /api/events/:id/cancel
+  cancelEvent: (id) => {
+    return api.post(`/events/${id}/cancel`)
+  },
+
   // GET /api/events/:id/orders
   getEventOrders: (id, params) => {
     return api.get(`/events/${id}/orders`, { params })
