@@ -79,12 +79,12 @@ const fetchStatistics = async () => {
     event.value = eventRes.data.event
     const statsData = statsRes.data.statistics
     statistics.value = {
-      total_tickets: statsData.total_tickets || 0,
-      tickets_sold: statsData.tickets_sold || 0,
-      tickets_available: statsData.tickets_available || 0,
-      total_revenue: statsData.total_revenue || 0,
-      total_orders: statsData.total_orders || 0,
-      average_order_value: statsData.average_order_value || 0,
+      total_tickets: statsData.tickets?.total || 0,
+      tickets_sold: statsData.tickets?.sold || 0,
+      tickets_available: statsData.tickets?.available || 0,
+      total_revenue: statsData.revenue?.total || 0,
+      total_orders: statsData.orders?.total || 0,
+      average_order_value: statsData.revenue?.average_order_value || 0,
       sales_by_ticket_type: statsData.sales_by_ticket_type || [],
       sales_trend: statsData.sales_trend || []
     }
