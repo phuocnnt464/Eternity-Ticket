@@ -244,6 +244,8 @@ CREATE TABLE events (
     slug VARCHAR(255) UNIQUE NOT NULL,
     description TEXT,
     short_description TEXT,
+    start_date TIMESTAMP,
+    end_date TIMESTAMP,
     
     -- Event images
     cover_image VARCHAR(500),
@@ -255,6 +257,7 @@ CREATE TABLE events (
     venue_name VARCHAR(255),
     venue_address TEXT,
     venue_city VARCHAR(100),
+    venue_capacity INTEGER,
     venue_coordinates POINT,
     
     -- Organizer information

@@ -34,7 +34,10 @@ class EventModel {
         thumbnail_image,
         logo_image,
         venue_map_image,
-        status = 'draft'
+        status = 'draft',
+        start_date,  
+        end_date,    
+        venue_capacity 
       } = eventData;
 
       // Generate unique slug
@@ -57,23 +60,27 @@ class EventModel {
       const eventQuery = `
         INSERT INTO events (
           organizer_id, category_id, title, slug, description, short_description,
-          venue_name, venue_address, venue_city, organizer_name, organizer_description,
+          venue_name, venue_address, venue_city, venue_capacity,
+          organizer_name, organizer_description,
           organizer_contact_email, organizer_contact_phone, privacy_type,
           terms_and_conditions, additional_info, status,
+          start_date, end_date, 
           cover_image, thumbnail_image, logo_image, venue_map_image
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
         RETURNING *
       `;
 
       const eventValues = [
         organizerId, category_id, title, slug, description, short_description,
-        venue_name, venue_address, venue_city, organizer_name, organizer_description,
+        venue_name, venue_address, venue_city, venue_capacity,
+        organizer_name, organizer_description,
         organizer_contact_email, organizer_contact_phone, privacy_type,
         terms_and_conditions, JSON.stringify(additional_info), status,
+        start_date, end_date,
         cover_image || null,
         thumbnail_image || null,
         logo_image || null,
-        venue_map_image || null
+        venue_map_image || null,
       ];
 
       const eventResult = await client.query(eventQuery, eventValues);
@@ -261,8 +268,11 @@ class EventModel {
       // Main query
       const eventsQuery = `
         SELECT 
-          e.id, e.title, e.slug, e.short_description, e.cover_image, e.thumbnail_image,
-          e.venue_name, e.venue_city, e.status, e.privacy_type, e.view_count,
+          e.id, e.title, e.slug, e.short_description, 
+          e.logo_image, e.cover_image, e.thumbnail_image,
+          e.venue_name, e.venue_address, e.venue_city, e.venue_capacity, 
+          e.status, e.privacy_type, e.view_count,
+          e.start_date, e.end_date,
           e.created_at, e.organizer_id,
           c.name as category_name,
           c.slug as category_slug,
@@ -360,8 +370,10 @@ static async update(eventId, updateData, userId) {
     // Build update query
     const allowedFields = [
       'title', 'description', 'short_description', 'category_id',
-      'venue_name', 'venue_address', 'venue_city', 'organizer_name',
-      'organizer_description', 'organizer_contact_email', 'organizer_contact_phone',
+      'venue_name', 'venue_address', 'venue_city', 'venue_capacity',
+      'organizer_name', 'organizer_description', 
+      'organizer_contact_email', 'organizer_contact_phone',
+      'start_date', 'end_date',
       'terms_and_conditions', 'additional_info', 'cover_image', 'thumbnail_image',
       'logo_image', 'venue_map_image'
     ];
