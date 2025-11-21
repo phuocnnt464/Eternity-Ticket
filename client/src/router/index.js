@@ -50,6 +50,7 @@ const OrderManagement = () => import('@/views/organizer/OrderManagement.vue')
 const TeamManagement = () => import('@/views/organizer/TeamManagement.vue')
 const CheckinPage = () => import('@/views/organizer/CheckinPage.vue')
 const CouponManagement = () => import('@/views/organizer/CouponManagement.vue')
+const EventOverview = () => import('@/views/organizer/EventOverview.vue')
 
 // ==========================================
 // ADMIN PAGES
@@ -288,6 +289,16 @@ const routes = [
         name: 'CouponManagement',
         component: CouponManagement,
         meta: { title: 'Coupon Management - Organizer' }
+      },
+      {
+        path: '/organizer/events/:id/overview',
+        name: 'EventOverview',
+        component: EventOverview,
+        meta: { 
+          requiresAuth: true, 
+          role: 'organizer',
+          title: 'Event Management'
+        }
       }
     ]
   },
