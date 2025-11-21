@@ -29,6 +29,8 @@ const rejectionReason = ref('')
 const showCancelModal = ref(false) 
 const cancellationReason = ref('')
 
+const completingEvents = ref(false)
+
 // const { getImageUrl } = useImageUrl() // ✅ Use composable
 
 const pagination = ref({
@@ -182,6 +184,30 @@ const handleCancelEvent = async (eventId) => {
   }
 }
 
+// Complete past events manually
+const handleCompletePastEvents = async () => {
+  if (!confirm('Complete all past events? This will change status of approved events that have ended.')) {
+    return
+  }
+  
+  completingEvents.value = true
+  try {
+    const response = await adminAPI.completePastEvents()
+    const count = response.data.completed_count || 0
+    
+    if (count > 0) {
+      alert(`✅ Successfully completed ${count} past events!`)
+      await fetchEvents() // Refresh list
+    } else {
+      alert('ℹ️ No events to complete')
+    }
+  } catch (error) {
+    alert(error.response?.data?.message || 'Failed to complete events')
+  } finally {
+    completingEvents.value = false
+  }
+}
+
 const handlePageChange = (page) => {
   pagination.value.currentPage = page
   fetchEvents()
@@ -201,9 +227,21 @@ onMounted(() => {
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">Event Approval</h1>
-      <p class="text-gray-600 mt-1">Review and approve event submissions</p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Event Approval</h1>
+        <p class="text-gray-600 mt-1">Review and approve event submissions</p>
+      </div>
+
+       <!-- Complete Past Events Button -->
+      <Button 
+        variant="secondary" 
+        @click="handleCompletePastEvents"
+        :loading="completingEvents"
+      >
+        <CheckCircleIcon class="w-5 h-5" />
+        Complete Past Events
+      </Button>
     </div>
 
     <!-- Search & Filter -->

@@ -136,4 +136,7 @@ export const adminAPI = {
   getPendingRefunds: (params) => {
     return api.get('/admin/refunds/pending', { params })
   },
+  completePastEvents: () => {
+    return api.post('/admin/events/complete-past')
+  }
 }
