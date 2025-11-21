@@ -28,6 +28,7 @@ const Register = () => import('@/views/auth/Register.vue')
 const ForgotPassword = () => import('@/views/auth/ForgotPassword.vue')
 const ResetPassword = () => import('@/views/auth/ResetPassword.vue')
 const VerifyEmail = () => import('@/views/auth/VerifyEmail.vue')
+const AcceptInvitation = () => import('@/views/auth/AcceptInvitation.vue')
 
 // ==========================================
 // PARTICIPANT PAGES
@@ -135,6 +136,15 @@ const routes = [
         meta: { 
           title: 'Contact Us - Eternity Ticket',
           public: true 
+        }
+      },
+      {
+        path: 'invitations/:token',
+        name: 'AcceptInvitation',
+        component: AcceptInvitation,
+        meta: { 
+          title: 'Accept Invitation - Eternity Ticket',
+          public: true
         }
       }
     ]
