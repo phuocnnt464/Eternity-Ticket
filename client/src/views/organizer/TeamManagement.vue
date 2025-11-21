@@ -36,11 +36,13 @@ const inviteErrors = ref({})
 
 const roleOptions = [
   { value: 'checkin_staff', label: 'Staff', description: 'Can check-in attendees' },
-  { value: 'manager', label: 'Manager', description: 'Can manage event and team' }
+  { value: 'manager', label: 'Manager', description: 'Can manage event and team' },
+  { value: 'owner', label: 'Owner', description: 'Full access to all events and settings' }
 ]
 
 const getRoleBadge = (role) => {
   const badges = {
+    owner: { variant: 'success', text: 'Owner' },  
     manager: { variant: 'primary', text: 'Manager' },
     staff: { variant: 'info', text: 'Staff' }
   }
@@ -56,7 +58,7 @@ const fetchTeamMembers = async () => {
     ])
     
     event.value = eventRes.data.event
-    teamMembers.value = teamRes.data.teamMembers || []
+    teamMembers.value = teamRes.data.members || []
   } catch (error) {
     console.error('Failed to fetch team members:', error)
   } finally {

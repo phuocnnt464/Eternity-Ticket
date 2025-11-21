@@ -11,8 +11,8 @@ const route = useRoute()
 
 const form = ref({
   token: '',
-  password: '',
-  password_confirmation: ''
+  new_password: '',
+  confirm_password: ''
 })
 
 const errors = ref({})
@@ -30,14 +30,14 @@ onMounted(() => {
 const validate = () => {
   errors.value = {}
   
-  if (!form.value.password) {
-    errors.value.password = 'Password is required'
-  } else if (form.value.password.length < 8) {
-    errors.value.password = 'Password must be at least 8 characters'
+  if (!form.value.new_password) {
+    errors.value.new_password = 'Password is required'
+  } else if (form.value.new_password.length < 8) {
+    errors.value.new_password = 'Password must be at least 8 characters'
   }
   
-  if (form.value.password !== form.value.password_confirmation) {
-    errors.value.password_confirmation = 'Passwords do not match'
+  if (form.value.new_password !== form.value.confirm_password) {
+    errors.value.confirm_password = 'Passwords do not match'
   }
   
   return Object.keys(errors.value).length === 0
@@ -80,22 +80,22 @@ const handleSubmit = async () => {
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <Input
-          v-model="form.password"
+          v-model="form.new_password"
           type="password"
           label="New Password"
           placeholder="At least 8 characters"
-          :error="errors.password"
+          :error="errors.new_password"
           :icon="LockClosedIcon"
           help-text="Must be at least 8 characters"
           required
         />
 
         <Input
-          v-model="form.password_confirmation"
+          v-model="form.confirm_password"
           type="password"
           label="Confirm New Password"
           placeholder="Re-enter password"
-          :error="errors.password_confirmation"
+          :error="errors.confirm_password"
           required
         />
 
