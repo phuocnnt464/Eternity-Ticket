@@ -71,8 +71,8 @@ const fetchCoupons = async () => {
       eventsAPI.getEventCoupons(eventId.value)
     ])
     
-    event.value = eventRes.data.data
-    coupons.value = couponsRes.data.data || []
+    event.value = eventRes.data.event
+    coupons.value = couponsRes.data.coupons || []
   } catch (error) {
     console.error('Failed to fetch coupons:', error)
   } finally {
