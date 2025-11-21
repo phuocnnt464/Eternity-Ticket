@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
+import { couponAPI } from '@/api/coupon.js'
 import Card from '@/components/common/Card.vue'
 import Button from '@/components/common/Button.vue'
 import Input from '@/components/common/Input.vue'
@@ -68,7 +69,7 @@ const fetchCoupons = async () => {
   try {
     const [eventRes, couponsRes] = await Promise.all([
       eventsAPI.getEventById(eventId.value),
-      eventsAPI.getEventCoupons(eventId.value)
+      couponAPI.getEventCoupons(eventId.value)
     ])
     
     event.value = eventRes.data.event
@@ -117,8 +118,20 @@ const handleCreate = async () => {
   
   saving.value = true
   try {
-    await eventsAPI.createCoupon(eventId.value, couponForm.value)
-    
+    const data = {
+      event_id: eventId.value,  // ✅ THÊM event_id
+      code: couponForm.value.code.toUpperCase(),
+      discount_type: couponForm.value.discount_type,
+      discount_value: parseFloat(couponForm.value.discount_value),
+      max_uses: couponForm.value.max_uses ? parseInt(couponForm.value.max_uses) : null,
+      valid_from: couponForm.value.valid_from,
+      valid_until: couponForm.value.valid_until,
+      description: couponForm.value.description
+    }
+
+    // await eventsAPI.createCoupon(eventId.value, couponForm.value)
+    await couponAPI.createCoupon(data)  
+
     alert('Coupon created successfully!')
     showCreateModal.value = false
     couponForm.value = {
@@ -142,7 +155,8 @@ const handleDelete = async (couponId, code) => {
   if (!confirm(`Delete coupon "${code}"?`)) return
   
   try {
-    await eventsAPI.deleteCoupon(eventId.value, couponId)
+    // await eventsAPI.deleteCoupon(eventId.value, couponId)
+    await couponAPI.deleteCoupon(couponId)
     alert('Coupon deleted')
     await fetchCoupons()
   } catch (error) {

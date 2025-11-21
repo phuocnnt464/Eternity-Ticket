@@ -52,6 +52,7 @@ const TeamManagement = () => import('@/views/organizer/TeamManagement.vue')
 const CheckinPage = () => import('@/views/organizer/CheckinPage.vue')
 const CouponManagement = () => import('@/views/organizer/CouponManagement.vue')
 const EventOverview = () => import('@/views/organizer/EventOverview.vue')
+const SessionManagement = () => import('@/views/organizer/SessionManagement.vue')
 
 // ==========================================
 // ADMIN PAGES
@@ -301,6 +302,12 @@ const routes = [
         meta: { title: 'Coupon Management - Organizer' }
       },
       {
+        path: 'events/:id/sessions', 
+        name: 'SessionManagement',
+        component: SessionManagement,
+        meta: { title: 'Sessions & Tickets - Organizer' }
+      },
+      {
         path: '/organizer/events/:id/overview',
         name: 'EventOverview',
         component: EventOverview,
@@ -309,7 +316,7 @@ const routes = [
           role: 'organizer',
           title: 'Event Management'
         }
-      }
+      },
     ]
   },
 
