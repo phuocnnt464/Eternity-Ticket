@@ -98,7 +98,7 @@ const formatPrice = (price) => {
 
 const getStatusBadge = (status) => {
   const badges = {
-    approved: { variant: 'success', text: 'Active' },
+    approved: { variant: 'success', text: 'Approved' },
     pending_approval: { variant: 'warning', text: 'Pending' },
     rejected: { variant: 'danger', text: 'Rejected' },
     draft: { variant: 'info', text: 'Draft' }
