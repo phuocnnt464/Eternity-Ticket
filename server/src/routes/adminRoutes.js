@@ -161,8 +161,7 @@ router.post('/events/:id/reject',
 );
 
 router.post('/events/:eventId/cancel',
-  authenticateToken,
-  authorizeRoles('admin', 'sub_admin'),
+  validateUUIDParam('eventId'),
   AdminController.cancelEvent
 );
 
@@ -355,8 +354,6 @@ router.delete('/sub-admins/:userId',
  * @access Private (Admin only)
  */
 router.post('/events/complete-past', 
-  auth, 
-  authorize(['admin', 'sub_admin']), 
   async (req, res) => {
     try {
       console.log(`🔧 Admin ${req.user.id} manually triggering auto-complete events`);

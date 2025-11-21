@@ -2,6 +2,7 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+const pool = require('../config/database');
 
 // JWT Configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'EternityTicketsSecretKey@464';
