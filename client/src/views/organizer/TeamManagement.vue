@@ -175,7 +175,7 @@ onMounted(() => {
         <div class="divide-y divide-gray-200">
           <div
             v-for="member in teamMembers"
-            :key="member.team_member_id"
+            :key="member.id"
             class="py-4 first:pt-0 last:pb-0"
           >
             <div class="flex items-center justify-between">
@@ -210,16 +210,19 @@ onMounted(() => {
               <!-- Actions -->
               <div class="flex items-center space-x-2">
                 <Button
+                  v-if="member.role !== 'owner'"
                   variant="secondary"
                   size="sm"
-                  @click="handleChangeRole(member.team_member_id, member.role)"
+                  @click="handleChangeRole(member.user_id, member.role)"
                 >
                   Change Role
                 </Button>
+  
                 <Button
+                  v-if="member.role !== 'owner'"
                   variant="danger"
                   size="sm"
-                  @click="handleRemoveMember(member.team_member_id, member.first_name)"
+                  @click="handleRemoveMember(member.user_id, member.first_name)"
                 >
                   <TrashIcon class="w-4 h-4" />
                 </Button>
