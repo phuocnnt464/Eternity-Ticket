@@ -773,10 +773,11 @@ static async update(eventId, updateData, userId) {
 
     const query = `
       SELECT 
-        e.id, e.title, e.slug, e.status, e.privacy_type,
+        e.id, e.title, e.slug, e.description, e.short_description, e.privacy_type,
+        e.start_date, e.end_date, e.venue_capacity,
         e.created_at, e.updated_at,
-        e.cover_image, e.thumbnail_image, 
-        e.venue_name, e.venue_city,
+        e.cover_image, e.logo_image, e.thumbnail_image,
+        e.venue_name, e.venue_address, e.venue_city,
         c.name as category_name,
         (SELECT COUNT(*) FROM event_sessions WHERE event_id = e.id) as session_count,
         (SELECT SUM(tt.sold_quantity) FROM ticket_types tt WHERE tt.event_id = e.id) as tickets_sold,
@@ -834,8 +835,10 @@ static async update(eventId, updateData, userId) {
     const query = `
       SELECT 
         e.id, e.title, e.slug, e.description, e.short_description,
+        e.start_date, e.end_date, e.venue_capacity,
         e.created_at, e.updated_at,
-        e.cover_image, e.venue_name, e.venue_city,
+        e.cover_image, e.logo_image, e.thumbnail_image,
+        e.venue_name, e.venue_address, e.venue_city,
         c.name as category_name,
         u.first_name || ' ' || u.last_name as organizer_name,
         u.email as organizer_email,

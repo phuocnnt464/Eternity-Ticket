@@ -258,8 +258,8 @@ onMounted(() => {
               <td class="px-6 py-4">
                 <div class="flex items-center space-x-3">
                   <img
-                    v-if="event.thumbnail_image"
-                    :src="event.thumbnail_image"
+                    v-if="event.logo_image"
+                    :src="event.logo_image"
                     :alt="event.title"
                     class="w-12 h-12 object-cover rounded"
                   />
