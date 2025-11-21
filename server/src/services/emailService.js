@@ -209,7 +209,7 @@ class EmailService {
   async sendPasswordResetEmail(email, token, userName) {
     const template = await this.getTemplate('password_reset');
     
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+    const resetUrl = `${process.env.FRONTEND_URL}/auth/reset-password/${token}`;
     
     const variables = {
       user_name: userName,
