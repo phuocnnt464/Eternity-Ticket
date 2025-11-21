@@ -90,8 +90,10 @@ const fetchEvents = async () => {
     })
     
     events.value = response.data.events || []
-    pagination.value.totalItems = response.data.pagination?.total || 0
-    pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
+
+    const paginationData = response.data.pagination || {}
+    pagination.value.totalItems = paginationData.total_count || 0
+    pagination.value.totalPages = paginationData.total_pages || 0
   } catch (error) {
     console.error('Failed to fetch events:', error)
   } finally {
