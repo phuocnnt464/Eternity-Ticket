@@ -56,7 +56,7 @@ const handleScan = async (ticketCode) => {
   showResult.value = false
   
   try {
-    const response = await checkinAPI.checkIn(ticketCode )
+    const response = await checkinAPI.checkIn(ticketCode)
     
     // Success
     lastResult.value = response.data.data || response.data
