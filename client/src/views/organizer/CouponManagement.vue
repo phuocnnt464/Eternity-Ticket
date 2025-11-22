@@ -75,6 +75,7 @@ const fetchCoupons = async () => {
     
     event.value = eventRes.data.event
     coupons.value = couponsRes.data.coupons || []
+    coupons.value = coupons.value.filter(c => c.is_active !== false)
   } catch (error) {
     console.error('Failed to fetch coupons:', error)
   } finally {
@@ -307,7 +308,7 @@ onMounted(() => {
       </p>
       <Button variant="primary" @click="showCreateModal = true">
         <PlusIcon class="w-5 h-5" />
-        Create Your First Coupon
+        Create First Coupon
       </Button>
     </Card>
 

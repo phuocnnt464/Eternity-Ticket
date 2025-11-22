@@ -103,7 +103,8 @@ class CouponModel {
         FROM coupons c
         LEFT JOIN coupon_usages cu ON c.id = cu.coupon_id
         LEFT JOIN users u ON c.created_by = u.id
-        WHERE c.event_id = $1 OR (c.event_id IS NULL AND $1 IS NULL)
+        WHERE (c.event_id = $1 OR (c.event_id IS NULL AND $1 IS NULL))
+        --  AND c.is_active = true
         GROUP BY c.id, u.first_name, u.last_name
         ORDER BY c.created_at DESC
       `;
