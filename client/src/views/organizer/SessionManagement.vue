@@ -263,6 +263,11 @@ const validateTicketForm = () => {
   if (ticketForm.value.total_quantity < 1) {
     ticketErrors.value.total_quantity = 'Quantity must be at least 1'
   }
+
+  if (!Number.isInteger(ticketForm.value.total_quantity)) {
+    ticketErrors.value.total_quantity = 'Quantity must be a whole number'
+  }
+  
   if (ticketForm.value.min_quantity_per_order < 1) {
     ticketErrors.value.min_quantity_per_order = 'Must be at least 1'
   }

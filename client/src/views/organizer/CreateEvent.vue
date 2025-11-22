@@ -247,6 +247,10 @@ const validateForm = () => {
   if (eventForm.value.organizer_description && eventForm.value.organizer_description.length > 1000) {
     errors.value.organizer_description = 'Organizer description cannot exceed 1000 characters'
   }
+
+  if (eventForm.value.venue_capacity !== null && eventForm.value.venue_capacity < 0) {
+    errors.value.venue_capacity = 'Venue capacity cannot be negative'
+  }
   
   return Object.keys(errors.value).length === 0
 }
@@ -283,7 +287,7 @@ const sessionValidationErrors = computed(() => {
       errors.push(`Session ${index + 1}: Start and end times are required`)
     }
     
-    // ✅ Kiểm tra ticket types
+    // ticket types
     session.ticket_types.forEach((ticket, ticketIndex) => {
       if (!ticket.name) {
         errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Name is required`)
@@ -292,6 +296,9 @@ const sessionValidationErrors = computed(() => {
         errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Quantity must be greater than 0`)
       }
       
+      if (ticket.total_quantity < 0) {
+        errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Quantity cannot be negative`)
+      }
       if (ticket.total_quantity > 100000) {
         errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Quantity cannot exceed 100,000`)
       }
@@ -300,7 +307,11 @@ const sessionValidationErrors = computed(() => {
         errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Price must be 0 or greater`)
       }
 
-      // ✅ Kiểm tra ticket sale time (nếu có nhập)
+      if (ticket.price < 0) {
+        errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Price cannot be negative`)
+      }
+
+      // ticket sale time (if provided)
       if (ticket.sale_start_time && ticket.sale_end_time) {
         const saleStart = new Date(ticket.sale_start_time).getTime()
         const saleEnd = new Date(ticket.sale_end_time).getTime()
@@ -851,6 +862,8 @@ onMounted(async () => {
           type="number"
           label="Venue Capacity"
           placeholder="Maximum capacity"
+          min="1"
+          max="1000000"
         />
       </div>
     </Card>

@@ -67,8 +67,8 @@ const venueMapPreview = ref(null)
 
 const getStatusBadge = (status) => {
   const badges = {
-    approved: { variant: 'success', text: 'Active' },
-    pending_approval: { variant: 'warning', text: 'Pending Approval' },
+    approved: { variant: 'success', text: 'Approved' },
+    pending: { variant: 'warning', text: 'Pending Approval' },
     rejected: { variant: 'danger', text: 'Rejected' },
     completed: { variant: 'secondary', text: 'Completed' },
     draft: { variant: 'info', text: 'Draft' },
@@ -499,6 +499,8 @@ onMounted(async () => {
             type="number"
             label="Venue Capacity"
             placeholder="Maximum capacity"
+            min="1"
+            max="1000000"
           />
         </div>
       </Card>
