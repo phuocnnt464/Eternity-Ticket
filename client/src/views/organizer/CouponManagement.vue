@@ -183,8 +183,8 @@ const generateCode = () => {
 }
 
 const formatDiscount = (coupon) => {
-  if (coupon.discount_type === 'percentage') {
-    return `${coupon.discount_value}%`
+  if (coupon.type === 'percentage') {
+    return `${coupon.discount_value} %`
   }
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
