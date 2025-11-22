@@ -180,8 +180,23 @@ const processImage = async (inputPath, outputPath, config) => {
     // Save processed image
     const info = await pipeline.toFile(outputPath);
     
+     // ✅ FIX: Close sharp instance trước khi delete
+    pipeline = null;  // Release reference
+    
+    // ✅ FIX: Delay nhỏ để Windows release file handle
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // Delete temp file
-    await fs.unlink(inputPath);
+    try {
+      await fs.unlink(inputPath);
+    } catch (unlinkError) {
+      // ✅ FIX: Không throw error nếu không delete được
+      console.warn(`⚠️ Could not delete temp file: ${inputPath}`, unlinkError.message);
+      // File sẽ được cleanup sau
+    }
+    
+    // Delete temp file
+    // await fs.unlink(inputPath);
 
     // return outputPath;
     return {
@@ -250,19 +265,19 @@ const uploadEventImages = (req, res, next) => {
     console.log('📂 Uploaded files:', req.files ? Object.keys(req.files) : 'none');
     console.log('📝 Form fields:', Object.keys(req.body).length ? Object.keys(req.body) : 'empty');
     
-    // ✅ Nếu req.body rỗng, có thể do multer không parse được
-    // This breaks Object.keys(), spread operator, and JSON.stringify
     if (req.body && Object.getPrototypeOf(req.body) === null) {
       const fixedBody = {};
+      
+      // ✅ SỬA: Dùng Object.prototype.hasOwnProperty.call() thay vì .hasOwnProperty()
       for (const key in req.body) {
-        if (req.body.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(req.body, key)) {  // ✅ FIXED!
           fixedBody[key] = req.body[key];
         }
       }
+      
       req.body = fixedBody;
       console.log('✅ Fixed body prototype. Keys:', Object.keys(req.body));
     }
-
     next();
   });
 };

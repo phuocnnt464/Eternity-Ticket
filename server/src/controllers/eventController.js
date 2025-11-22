@@ -654,7 +654,7 @@ class EventController {
       
       const statsQuery = `
         SELECT 
-          COUNT(*) FILTER (WHERE status = 'active') as active_events,
+          COUNT(*) FILTER (WHERE status = 'approved') as approved_events,
           COUNT(*) FILTER (WHERE status = 'pending') as pending_events,
           COUNT(*) FILTER (WHERE status = 'draft') as draft_events,
           COUNT(*) as total_events,
@@ -677,7 +677,7 @@ class EventController {
         success: true,
         message: 'Organizer statistics retrieved successfully',
         data: {
-          active_events: parseInt(stats.active_events) || 0,
+          approved_events: parseInt(stats.approved_events) || 0,
           pending_events: parseInt(stats.pending_events) || 0,
           draft_events: parseInt(stats.draft_events) || 0,
           total_events: parseInt(stats.total_events) || 0,

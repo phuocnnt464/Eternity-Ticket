@@ -266,8 +266,8 @@ onMounted(() => {
                 <div class="flex items-center space-x-3">
                   <div class="flex-shrink-0 w-12 h-12">
                     <img
-                      v-if="event.logo_image"
-                      :src="event.logo_image"
+                      v-if="event.thumbnail_image || event.logo_image"
+                      :src="event.thumbnail_image || event.logo_image"
                       :alt="event.title"
                       class="w-12 h-12 object-cover rounded"
                     />

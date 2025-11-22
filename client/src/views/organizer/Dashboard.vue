@@ -57,10 +57,10 @@ const statCards = computed(() => [
   },
   {
     title: 'Active Events',
-    value: stats.value.active_events,
+    value: stats.value.approved_events,
     icon: UsersIcon,
     color: 'yellow',
-    change: stats.value.active_events,
+    change: stats.value.approved_events,
     trend: 'neutral'
   }
 ])
@@ -202,8 +202,8 @@ onMounted(() => {
               >
                 <div class="flex items-center space-x-3 flex-1">
                   <img
-                    v-if="event.thumbnail_image"
-                    :src="event.thumbnail_image"
+                    v-if="event.thumbnail_image || event.logo_image"
+                    :src="event.thumbnail_image || event.logo_image"
                     :alt="event.title"
                     class="w-12 h-12 object-cover rounded-lg"
                   />
