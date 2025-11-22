@@ -29,9 +29,10 @@ const saving = ref(false)
 
 const couponForm = ref({
   code: '',
-  discount_type: 'percentage',
+  title: '',
+  type: 'percentage',
   discount_value: 0,
-  max_uses: null,
+  usage_limit: null,
   valid_from: '',
   valid_until: '',
   description: ''
@@ -41,7 +42,7 @@ const errors = ref({})
 
 const discountTypes = [
   { value: 'percentage', label: 'Percentage (%)', symbol: '%' },
-  { value: 'fixed', label: 'Fixed Amount (VND)', symbol: 'VND' }
+  { value: 'fixed_amount', label: 'Fixed Amount (VND)', symbol: 'VND' }
 ]
 
 const getStatusBadge = (coupon) => {
@@ -57,7 +58,7 @@ const getStatusBadge = (coupon) => {
     return { variant: 'danger', text: 'Expired' }
   }
   
-  if (coupon.max_uses && coupon.times_used >= coupon.max_uses) {
+  if (coupon.usage_limit && coupon.times_used >= coupon.usage_limit) {
     return { variant: 'danger', text: 'Limit Reached' }
   }
   
@@ -89,12 +90,18 @@ const validateForm = () => {
   } else if (couponForm.value.code.length < 3) {
     errors.value.code = 'Code must be at least 3 characters'
   }
+
+  if (!couponForm.value.title) {
+    errors.value.title = 'Title is required'
+  } else if (couponForm.value.title.length > 200) {
+    errors.value.title = 'Title cannot exceed 200 characters'
+  }
   
   if (!couponForm.value.discount_value || couponForm.value.discount_value <= 0) {
     errors.value.discount_value = 'Discount value must be greater than 0'
   }
   
-  if (couponForm.value.discount_type === 'percentage' && couponForm.value.discount_value > 100) {
+  if (couponForm.value.type === 'percentage' && couponForm.value.discount_value > 100) {
     errors.value.discount_value = 'Percentage cannot exceed 100%'
   }
   
@@ -119,11 +126,12 @@ const handleCreate = async () => {
   saving.value = true
   try {
     const data = {
-      event_id: eventId.value,  // ✅ THÊM event_id
+      event_id: eventId.value, 
       code: couponForm.value.code.toUpperCase(),
-      discount_type: couponForm.value.discount_type,
+      title: couponForm.value.title,    
+      type: couponForm.value.type,
       discount_value: parseFloat(couponForm.value.discount_value),
-      max_uses: couponForm.value.max_uses ? parseInt(couponForm.value.max_uses) : null,
+      usage_limit: couponForm.value.usage_limit ? parseInt(couponForm.value.usage_limit) : null,
       valid_from: couponForm.value.valid_from,
       valid_until: couponForm.value.valid_until,
       description: couponForm.value.description
@@ -136,9 +144,10 @@ const handleCreate = async () => {
     showCreateModal.value = false
     couponForm.value = {
       code: '',
-      discount_type: 'percentage',
+      title: '',
+      type: 'percentage',
       discount_value: 0,
-      max_uses: null,
+      usage_limit: null,
       valid_from: '',
       valid_until: '',
       description: ''
@@ -258,7 +267,7 @@ onMounted(() => {
             <span class="text-gray-600">Usage:</span>
             <span class="font-medium">
               {{ coupon.times_used || 0 }}
-              <span v-if="coupon.max_uses">/ {{ coupon.max_uses }}</span>
+              <span v-if="coupon.usage_limit">/ {{ coupon.usage_limit }}</span>
               <span v-else>/ Unlimited</span>
             </span>
           </div>
@@ -335,6 +344,15 @@ onMounted(() => {
           </p>
         </div>
 
+        <Input
+          v-model="couponForm.title"
+          label="Title"
+          placeholder="e.g. Summer Sale 2024"
+          :error="errors.title"
+          help-text="Display name for this coupon"
+          required
+        />
+
         <div>
           <label class="label">Description (Optional)</label>
           <textarea
@@ -348,7 +366,7 @@ onMounted(() => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="label label-required">Discount Type</label>
-            <select v-model="couponForm.discount_type" class="select">
+            <select v-model="couponForm.type" class="select">
               <option
                 v-for="type in discountTypes"
                 :key="type.value"
@@ -363,14 +381,14 @@ onMounted(() => {
             v-model.number="couponForm.discount_value"
             type="number"
             label="Discount Value"
-            :placeholder="couponForm.discount_type === 'percentage' ? 'e.g. 10' : 'e.g. 50000'"
+            :placeholder="couponForm.type === 'percentage' ? 'e.g. 10' : 'e.g. 50000'"
             :error="errors.discount_value"
             required
           />
         </div>
 
         <Input
-          v-model.number="couponForm.max_uses"
+          v-model.number="couponForm.usage_limit"
           type="number"
           label="Max Uses (Optional)"
           placeholder="Leave empty for unlimited"
