@@ -98,11 +98,17 @@ export const eventsAPI = {
 
   // PUT /api/events/:id
   updateEvent: (id, data) => {
+    if (data instanceof FormData) {
+      return api.put(`/events/${id}`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+    }
+  
     const formData = new FormData()
     
     Object.keys(data).forEach(key => {
       if (data[key] !== null && data[key] !== undefined) {
-        if (typeof data[key] === 'object' && data[key] instanceof File) {
+        if (data[key] instanceof File) {
           formData.append(key, data[key])
         } else if (typeof data[key] !== 'object') {
           formData.append(key, data[key])
