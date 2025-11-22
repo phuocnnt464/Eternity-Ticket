@@ -352,8 +352,9 @@ const handleSubmit = async (status = 'draft') => {
     if (eventForm.value.title) formData.append('title', eventForm.value.title)
     if (eventForm.value.description) formData.append('description', eventForm.value.description)
     if (eventForm.value.category_id) formData.append('category_id', eventForm.value.category_id)
-    
-    // ❌ KHÔNG GỬI: start_date, end_date (sẽ lưu trong sessions)
+
+    if (eventForm.value.start_date) formData.append('start_date', eventForm.value.start_date)
+if (eventForm.value.end_date) formData.append('end_date', eventForm.value.end_date)
     
     // Venue Info
     if (eventForm.value.venue_name) formData.append('venue_name', eventForm.value.venue_name)
