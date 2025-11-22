@@ -130,9 +130,18 @@ onMounted(() => {
           <ArrowLeftIcon class="w-5 h-5 mr-2" />
           Back to Events
         </button>
-        <h1 class="text-2xl font-bold text-gray-900">Check-in</h1>
+        <h1 class="text-2xl font-bold text-gray-900">Check-in Management</h1>
         <p v-if="event" class="text-gray-600 mt-1">{{ event.title }}</p>
       </div>
+
+      <Button 
+        variant="primary" 
+        size="lg"
+        @click="router.push(`/organizer/events/${eventId}/checkin/scanner`)"
+      >
+        <QrCodeIcon class="w-5 h-5" />
+        Open Scanner
+      </Button>
 
       <!-- Mode Toggle -->
       <div class="flex items-center space-x-2">

@@ -50,6 +50,7 @@ const EventStatistics = () => import('@/views/organizer/EventStatistics.vue')
 const OrderManagement = () => import('@/views/organizer/OrderManagement.vue')
 const TeamManagement = () => import('@/views/organizer/TeamManagement.vue')
 const CheckinPage = () => import('@/views/organizer/CheckinPage.vue')
+const CheckinScanner = () => import('@/views/organizer/CheckinScanner.vue')
 const CouponManagement = () => import('@/views/organizer/CouponManagement.vue')
 const EventOverview = () => import('@/views/organizer/EventOverview.vue')
 const SessionManagement = () => import('@/views/organizer/SessionManagement.vue')
@@ -294,6 +295,12 @@ const routes = [
         name: 'CheckinPage',
         component: CheckinPage,
         meta: { title: 'Check-in - Organizer' }
+      },
+      {
+        path: 'events/:id/checkin/scanner',  
+        name: 'CheckinScanner',
+        component: CheckinScanner,
+        meta: { title: 'Check-in Scanner - Organizer' }
       },
       {
         path: 'events/:id/coupons',
