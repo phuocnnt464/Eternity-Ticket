@@ -84,6 +84,9 @@ const fetchEvents = async () => {
     })
     
     events.value = response.data.events || []
+
+    console.log('📊 Events data:', events.value)
+    console.log('📅 First event start_date:', events.value[0]?.start_date)
     
     const paginationData = response.data.pagination || {}
     pagination.value.totalItems = paginationData.total_count || 0
@@ -137,13 +140,31 @@ const handleDelete = async (event) => {
 }
 
 const formatDate = (dateString) => {
-  if (!dateString) return 'N/A'
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  })
+  console.log('🔍 formatDate input:', dateString, typeof dateString) // DEBUG
+  
+  if (!dateString) {
+    console.log('❌ dateString is falsy:', dateString)
+    return 'N/A'
+  }
+  
+  try {
+    const date = new Date(dateString)
+    
+    // Kiểm tra date hợp lệ
+    if (isNaN(date.getTime())) {
+      console.log('❌ Invalid date:', dateString)
+      return 'Invalid Date'
+    }
+    
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  } catch (error) {
+    console.error('❌ formatDate error:', error)
+    return 'Error'
+  }
 }
 
 const formatPrice = (price) => {
