@@ -56,9 +56,7 @@ const handleScan = async (ticketCode) => {
   showResult.value = false
   
   try {
-    const response = await checkinAPI.checkIn(eventId.value, { 
-      ticket_code: ticketCode 
-    })
+    const response = await checkinAPI.checkIn(ticketCode )
     
     // Success
     lastResult.value = response.data.data || response.data
@@ -67,7 +65,7 @@ const handleScan = async (ticketCode) => {
     showResult.value = true
     
     // Play success sound
-    playSound('success')
+    playFeedback('success')
     
     // Auto hide after 3 seconds
     setTimeout(() => {
@@ -92,7 +90,7 @@ const handleScan = async (ticketCode) => {
     }
     
     showResult.value = true
-    playSound('error')
+    playFeedback('error')
     
     // Auto hide after 5 seconds for errors
     setTimeout(() => {
@@ -111,20 +109,18 @@ const handleManualSubmit = () => {
   handleScan(manualCode.value.trim())
 }
 
-// Play sound feedback
-const playSound = (type) => {
+// Play vibration feedback 
+const playFeedback = (type) => {
   try {
-    const audio = new Audio()
-    if (type === 'success') {
-      // Success sound (higher pitch beep)
-      audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGJ0fPTgjMGHm7A7+OZSA0PVqzn77BdGAg+ltryxnMpBSx+zPLaizsIGGS57OihUBELTKXh8bllHAU2jdXzz3wwBSF1xe/glEILElyx6O6qWBUIQ5zd8sFuJAUuf8rx3I4+CRZiuOzpoVIRC0yo4/K8aB8GM4/U88p3LgUme8rx4pNCDBJcsuruq1kVCEOc3fK/biMFL3/K8d2OPgkWYrjs6aFSEQtMqOPyvGgfBjOP1PPKdy4FJnvK8eKTQgwSXLLq7qtZFQhDnN3yv24jBS9/yvHdjj4JFmK47OmhUhELTKjj8rxoHwYzj9Tzyncu'
-    } else {
-      // Error sound (lower pitch buzz)
-      audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA='
+    if ('vibrate' in navigator) {
+      if (type === 'success') {
+        navigator.vibrate(200) // Short vibration for success
+      } else {
+        navigator.vibrate([100, 50, 100]) // Pattern for error
+      }
     }
-    audio.play()
   } catch (e) {
-    // Ignore audio errors
+    // Ignore if not supported
   }
 }
 
@@ -286,7 +282,7 @@ onMounted(() => {
               placeholder="Enter ticket code"
               class="text-center text-lg font-mono"
               :disabled="scanning"
-              autofocus
+              :autofocus="!showScanner" 
             />
             
             <Button
