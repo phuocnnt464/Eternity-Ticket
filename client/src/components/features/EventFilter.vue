@@ -37,6 +37,7 @@ const sortOptions = [
 ]
 
 const applyFilters = () => {
+  console.log('🔍 [EventFilter] Emitting filters:', filters.value)
   emit('update:modelValue', filters.value)
   emit('apply', filters.value)
   showFilters.value = false
@@ -99,8 +100,8 @@ const hasActiveFilters = () => {
               <option value="">All Categories</option>
               <option 
                 v-for="category in categories" 
-                :key="category.category_id"
-                :value="category.category_id"
+                :key="category.id"
+                :value="category.id"
               >
                 {{ category.name }}
               </option>

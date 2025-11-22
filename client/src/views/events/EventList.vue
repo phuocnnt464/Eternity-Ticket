@@ -137,8 +137,8 @@ const fetchCategories = async () => {
     let cats = response.data.categories || []
 
     cats = cats.sort((a, b) => {
-      if (a.name.toLowerCase() === 'other') return 1
-      if (b.name.toLowerCase() === 'other') return -1
+      if (a.name.toLowerCase() === 'others') return 1
+      if (b.name.toLowerCase() === 'others') return -1
       return a.name.localeCompare(b.name)
     })
 
@@ -156,7 +156,9 @@ const handleSearch = () => {
 }
 
 const handleFilterApply = (newFilters) => {
+  console.log('🔍 [EventList] Received filters from EventFilter:', newFilters)
   filters.value = newFilters
+  console.log('🔍 [EventList] Updated filters.value:', filters.value)
   pagination.value.currentPage = 1
   updateQueryParams()
   fetchEvents()
