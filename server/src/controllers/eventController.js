@@ -203,12 +203,15 @@ class EventController {
       const { id } = req.params;
       const userId = req.user.id;
       const updateData = {
-      ...(req.body || {}),
-      ...(req.processedImages || {})
-    };
+        ...(req.body || {}),
+        ...(req.processedImages || {})
+      };
 
 
       console.log(`📝 Updating event ID: ${id} by user: ${userId}`);
+      console.log('📦 Update data received:', JSON.stringify(updateData, null, 2)); // ✅ THÊM DÒNG NÀY
+      console.log('📦 req.body:', JSON.stringify(req.body, null, 2)); // ✅ THÊM DÒNG NÀY
+      console.log('📦 req.processedImages:', JSON.stringify(req.processedImages, null, 2)); // ✅ THÊM DÒNG NÀY
 
       // Remove fields that shouldn't be updated via this endpoint
       const forbiddenFields = ['id', 'organizer_id', 'slug', 'status', 'approved_by', 'approved_at', 'created_at', 'updated_at'];
