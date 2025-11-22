@@ -61,7 +61,9 @@ const fetchEvents = async () => {
     }
 
     const response = await eventsAPI.getPublicEvents(params)
-    let eventsList = response.data.events || []
+    
+    const responseData = response.data.data || response.data
+    let eventsList = responseData.events || responseData || []
     
     // CLIENT-SIDE FILTERING cho các filter chưa được backend hỗ trợ
     
