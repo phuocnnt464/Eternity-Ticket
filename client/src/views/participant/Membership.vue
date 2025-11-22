@@ -58,8 +58,8 @@ const membershipTiers = [
     ]
   },
   {
-    name: 'VIP',
-    value: 'vip',
+    name: 'Advanced',
+    value: 'advanced',
     price: 299000,
     period: 'per month',
     color: 'purple',
