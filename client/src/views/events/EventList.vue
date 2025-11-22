@@ -53,7 +53,7 @@ const fetchEvents = async () => {
     }
     
     if (filters.value.category && filters.value.category.trim()) {
-      params.category = filters.value.category.trim()
+      params.category_id = filters.value.category.trim()
     }
 
     if (filters.value.city && filters.value.city.trim()) {
@@ -61,7 +61,7 @@ const fetchEvents = async () => {
     }
 
     const response = await eventsAPI.getPublicEvents(params)
-    
+
     const responseData = response.data.data || response.data
     let eventsList = responseData.events || responseData || []
     
