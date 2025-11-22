@@ -20,6 +20,7 @@ const showFilters = ref(false)
 
 const filters = ref({
   category: props.modelValue.category || '',
+  city: props.modelValue.city || '', 
   dateFrom: props.modelValue.dateFrom || '',
   dateTo: props.modelValue.dateTo || '',
   minPrice: props.modelValue.minPrice || '',
@@ -46,6 +47,7 @@ const applyFilters = () => {
 const clearFilters = () => {
   filters.value = {
     category: '',
+    city: '', 
     dateFrom: '',
     dateTo: '',
     minPrice: '',
@@ -58,6 +60,7 @@ const clearFilters = () => {
 
 const hasActiveFilters = () => {
   return filters.value.category || 
+         filters.value.city ||    
          filters.value.dateFrom || 
          filters.value.dateTo || 
          filters.value.minPrice || 
@@ -144,6 +147,16 @@ const hasActiveFilters = () => {
               v-model.number="filters.maxPrice" 
               type="number" 
               placeholder="1000000"
+              class="input"
+            />
+          </div>
+
+          <div>
+            <label class="label">City</label>
+            <input 
+              v-model="filters.city" 
+              type="text" 
+              placeholder="Enter city name"
               class="input"
             />
           </div>
