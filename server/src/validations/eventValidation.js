@@ -307,6 +307,22 @@ const updateEventSchema = Joi.object({
       'string.uuid': 'Invalid category ID format'
     }),
 
+  start_date: Joi.date()
+    .iso()
+    .messages({
+      'date.base': 'Start date must be a valid date',
+      'date.format': 'Start date must be in ISO format'
+    }),
+
+  end_date: Joi.date()
+    .iso()
+    .min(Joi.ref('start_date'))
+    .messages({
+      'date.base': 'End date must be a valid date',
+      'date.format': 'End date must be in ISO format',
+      'date.min': 'End date must be after start date'
+    }),
+
   venue_name: Joi.string()
     .min(2)
     .max(200)
@@ -329,6 +345,15 @@ const updateEventSchema = Joi.object({
     .messages({
       'string.min': 'Venue city must be at least 2 characters',
       'string.max': 'Venue city cannot exceed 100 characters'
+    }),
+
+  venue_capacity: Joi.number()
+    .integer()
+    .min(1)
+    .allow(null)
+    .messages({
+      'number.base': 'Venue capacity must be a number',
+      'number.min': 'Venue capacity must be at least 1'
     }),
 
   organizer_name: Joi.string()
@@ -358,6 +383,12 @@ const updateEventSchema = Joi.object({
     .allow('')
     .messages({
       'string.pattern.base': 'Please provide a valid organizer contact phone number'
+    }),
+
+  privacy_type: Joi.string()
+    .valid('public', 'private')
+    .messages({
+      'any.only': 'Privacy type must be either public or private'
     }),
 
   terms_and_conditions: Joi.string()

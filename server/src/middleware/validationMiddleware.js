@@ -87,6 +87,7 @@ const validate = (schema, source = 'body') => {
       }, {});
 
       console.log(' Validation error:', formattedErrors);
+      console.log('📦 Data received:', JSON.stringify(dataToValidate, null, 2));
 
       // Create error response
       const response = createResponse(

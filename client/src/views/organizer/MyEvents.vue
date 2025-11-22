@@ -84,9 +84,6 @@ const fetchEvents = async () => {
     })
     
     events.value = response.data.events || []
-
-    console.log('📊 Events data:', events.value)
-    console.log('📅 First event start_date:', events.value[0]?.start_date)
     
     const paginationData = response.data.pagination || {}
     pagination.value.totalItems = paginationData.total_count || 0
@@ -140,10 +137,7 @@ const handleDelete = async (event) => {
 }
 
 const formatDate = (dateString) => {
-  console.log('🔍 formatDate input:', dateString, typeof dateString) // DEBUG
-  
   if (!dateString) {
-    console.log('❌ dateString is falsy:', dateString)
     return 'N/A'
   }
   
@@ -152,7 +146,6 @@ const formatDate = (dateString) => {
     
     // Kiểm tra date hợp lệ
     if (isNaN(date.getTime())) {
-      console.log('❌ Invalid date:', dateString)
       return 'Invalid Date'
     }
     
