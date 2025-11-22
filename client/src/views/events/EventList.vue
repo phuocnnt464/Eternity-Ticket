@@ -61,7 +61,7 @@ const fetchEvents = async () => {
     }
 
     const response = await eventsAPI.getPublicEvents(params)
-    let eventsList = response.data.data || []
+    let eventsList = response.data.events || []
     
     // CLIENT-SIDE FILTERING cho các filter chưa được backend hỗ trợ
     
@@ -132,7 +132,7 @@ const fetchEvents = async () => {
 const fetchCategories = async () => {
   try {
     const response = await eventsAPI.getCategories()
-    categories.value = response.data.data || []
+    categories.value = response.data.categories || []
   } catch (error) {
     console.error('Failed to fetch categories:', error)
   }

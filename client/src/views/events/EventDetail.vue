@@ -59,7 +59,7 @@ const fetchEventDetails = async () => {
   try {
     const slug = route.params.slug
     const response = await eventsAPI.getEventBySlug(slug)
-    event.value = response.data.data
+    event.value = response.data.event
     
     // Fetch sessions
     await fetchSessions()
@@ -73,8 +73,8 @@ const fetchEventDetails = async () => {
 
 const fetchSessions = async () => {
   try {
-    const response = await sessionsAPI.getEventSessions(event.value.event_id)
-    sessions.value = response.data.data || []
+    const response = await sessionsAPI.getEventSessions(event.value.id)
+    sessions.value = response.data.sessions || []
     
     // Auto-select first session if only one
     if (sessions.value.length === 1) {
@@ -91,8 +91,8 @@ const selectSession = async (session) => {
   
   loadingTickets.value = true
   try {
-    const response = await sessionsAPI.getSessionTicketTypes(session.session_id)
-    ticketTypes.value = response.data.data || []
+    const response = await sessionsAPI.getSessionTicketTypes(session.id)
+    ticketTypes.value = response.data.ticket_types || []
   } catch (error) {
     console.error('Failed to fetch ticket types:', error)
   } finally {
