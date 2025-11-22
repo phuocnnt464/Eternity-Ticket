@@ -265,11 +265,42 @@ const handleUpdate = async () => {
   saving.value = true
   try {
     const formData = new FormData()
-    Object.keys(eventForm.value).forEach(key => {
-      if (eventForm.value[key] && key !== 'status') {
-        formData.append(key, eventForm.value[key])
+
+    const allowedFields = [
+      'title', 'description', 'short_description', 'category_id',
+      'start_date', 'end_date',
+      'venue_name', 'venue_address', 'venue_city', 'venue_capacity',
+      'organizer_name', 'organizer_description',
+      'organizer_contact_email', 'organizer_contact_phone',
+      'privacy_type', 'terms_and_conditions',
+      'cover_image', 'thumbnail_image', 'logo_image', 'venue_map_image'
+    ]
+
+    // Object.keys(eventForm.value).forEach(key => {
+    //   if (eventForm.value[key] && key !== 'status') {
+    //     formData.append(key, eventForm.value[key])
+    //   }
+    // })
+
+    allowedFields.forEach(key => {
+      const value = eventForm.value[key]
+      
+      // ✅ Skip null/undefined và empty strings (trừ số 0)
+      if (value !== null && value !== undefined && value !== '') {
+        // ✅ Chỉ append File objects hoặc changed values
+        if (value instanceof File) {
+          formData.append(key, value)
+        } else if (typeof value === 'string' || typeof value === 'number') {
+          formData.append(key, value)
+        }
       }
     })
+
+    // ✅ Debug: Log FormData contents
+    console.log('📤 FormData to send:')
+    for (let [key, value] of formData.entries()) {
+      console.log(`  ${key}:`, value instanceof File ? `File: ${value.name}` : value)
+    }
 
     await eventsAPI.updateEvent(eventId.value, formData)
     alert('Event updated successfully!')
