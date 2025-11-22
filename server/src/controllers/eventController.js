@@ -311,8 +311,19 @@ class EventController {
           SELECT 
             e.id, e.title, e.slug, e.short_description, e.status, e.privacy_type,
             e.venue_name, e.venue_city, e.created_at, e.organizer_id,
+            e.start_date, e.end_date,
+            e.thumbnail_image, e.logo_image, e.cover_image,
             c.name as category_name,
-            u.first_name || ' ' || u.last_name as organizer_full_name
+            u.first_name || ' ' || u.last_name as organizer_full_name,
+            (SELECT COUNT(*) FROM tickets t 
+            JOIN orders o ON t.order_id = o.id 
+            WHERE t.event_id = e.id AND o.status IN ('completed', 'paid')) as sold_tickets,
+            (SELECT COALESCE(SUM(tt.total_quantity), 0) 
+            FROM ticket_types tt 
+            WHERE tt.event_id = e.id AND tt.is_active = true) as total_tickets,
+            (SELECT COALESCE(SUM(o.total_amount), 0) 
+            FROM orders o 
+            WHERE o.event_id = e.id AND o.status IN ('completed', 'paid')) as revenue
           FROM events e
           LEFT JOIN categories c ON e.category_id = c.id
           LEFT JOIN users u ON e.organizer_id = u.id
