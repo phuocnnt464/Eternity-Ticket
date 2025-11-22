@@ -23,6 +23,7 @@ const route = useRoute()
 const loading = ref(true)
 const saving = ref(false)
 const eventId = ref(route.params.id)
+const categories = ref([])
 
 const eventForm = ref({
   title: '',
@@ -69,13 +70,14 @@ const getStatusBadge = (status) => {
     approved: { variant: 'success', text: 'Active' },
     pending_approval: { variant: 'warning', text: 'Pending Approval' },
     rejected: { variant: 'danger', text: 'Rejected' },
+    completed: { variant: 'secondary', text: 'Completed' },
     draft: { variant: 'info', text: 'Draft' },
-    cancelled: { variant: 'danger', text: 'Cancelled' }
+    cancelled: { variant: 'accent', text: 'Cancelled' }
   }
   return badges[status] || badges.draft
 }
 
-const loadEvent = async () => {
+const fetchEvent = async () => {
   loading.value = true
   try {
     const eventResponse = await eventsAPI.getEventById(eventId.value)
@@ -326,8 +328,14 @@ const handleDelete = async () => {
   }
 }
 
-onMounted(() => {
-  loadEvent()
+onMounted(async () => {
+  await fetchEvent()
+  try {
+    const catResponse = await eventsAPI.getCategories()
+    categories.value = catResponse.data.categories || []
+  } catch (error) {
+    console.error('Failed to load categories:', error)
+  }
 })
 </script>
 
@@ -398,10 +406,13 @@ onMounted(() => {
               :class="['select', errors.category_id && 'input-error']"
             >
               <option value="">Select category</option>
-              <option value="1">Music</option>
-              <option value="2">Sports</option>
-              <option value="3">Conference</option>
-              <option value="4">Festival</option>
+              <option 
+                v-for="category in categories" 
+                :key="category.id" 
+                :value="category.id"
+              >
+                {{ category.name }}
+              </option>
             </select>
             <p v-if="errors.category_id" class="error-text">{{ errors.category_id }}</p>
           </div>
@@ -666,10 +677,10 @@ onMounted(() => {
         <div v-if="sessions.length > 0" class="space-y-3">
           <div
             v-for="session in sessions"
-            :key="session.session_id"
+            :key="session.id"
             class="border border-gray-200 rounded-lg p-4"
           >
-            <h3 class="font-semibold mb-2">{{ session.name }}</h3>
+            <h3 class="font-semibold mb-2">{{ session.title }}</h3>
             <p class="text-sm text-gray-600 mb-2">
               {{ new Date(session.start_time).toLocaleString() }}
             </p>

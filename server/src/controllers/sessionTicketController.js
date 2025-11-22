@@ -226,7 +226,7 @@ class SessionTicketController {
       const response = createResponse(
         true,
         `Found ${ticketTypes.length} ticket types`,
-        { ticketTypes }
+        { ticket_types: ticketTypes }
       );
 
       res.json(response);
