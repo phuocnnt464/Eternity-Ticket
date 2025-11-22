@@ -67,7 +67,7 @@ const extractEventIdFromTicket = async (req, res, next) => {
 
 /**
  * Middleware tổng hợp cho undo checkin
- * Chỉ owner và admin được undo
+ * Chỉ owner, manager và admin được undo
  */
 const canUndoCheckin = [
   extractEventIdFromTicket,
@@ -78,10 +78,25 @@ const canUndoCheckin = [
       return next();
     }
 
-    // Chỉ owner mới được undo
-    if (!req.eventAccess || !req.eventAccess.isOwner) {
+    if (!req.eventAccess) {
       return res.status(403).json(
-        createResponse(false, 'Only event owner or admin can undo check-ins')
+        createResponse(false, 'Event access required')
+      );
+    }
+
+    // Chỉ owner mới được undo
+    // if (!req.eventAccess || !req.eventAccess.isOwner) {
+    //   return res.status(403).json(
+    //     createResponse(false, 'Only event owner or admin can undo check-ins')
+    //   );
+    // }
+
+    const isOwner = req.eventAccess.isOwner;
+    const isManager = req.eventAccess.memberRole === 'manager';
+
+    if (!isOwner && !isManager) {
+      return res.status(403).json(
+        createResponse(false, 'Only event owner, manager, or admin can undo check-ins')
       );
     }
     
