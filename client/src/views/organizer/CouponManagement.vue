@@ -240,7 +240,7 @@ onMounted(() => {
     <div v-else-if="coupons.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <Card
         v-for="coupon in coupons"
-        :key="coupon.coupon_id"
+        :key="coupon.id"
         hover
       >
         <div class="flex items-start justify-between mb-3">
@@ -287,7 +287,7 @@ onMounted(() => {
         <Button
           variant="danger"
           size="sm"
-          @click="handleDelete(coupon.coupon_id, coupon.code)"
+          @click="handleDelete(coupon.id, coupon.code)"
           full-width
         >
           <TrashIcon class="w-4 h-4" />
