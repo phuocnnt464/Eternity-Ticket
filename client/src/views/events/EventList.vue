@@ -132,13 +132,22 @@ const fetchEvents = async () => {
 const fetchCategories = async () => {
   try {
     const response = await eventsAPI.getCategories()
-    categories.value = response.data.categories || []
+    let cats = response.data.categories || []
+
+    cats = cats.sort((a, b) => {
+      if (a.name.toLowerCase() === 'other') return 1
+      if (b.name.toLowerCase() === 'other') return -1
+      return a.name.localeCompare(b.name)
+    })
+
+    categories.value = cats
   } catch (error) {
     console.error('Failed to fetch categories:', error)
   }
 }
 
 const handleSearch = () => {
+  filters.value.search = searchQuery.value 
   pagination.value.currentPage = 1
   updateQueryParams()
   fetchEvents()
