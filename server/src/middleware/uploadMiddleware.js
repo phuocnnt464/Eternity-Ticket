@@ -251,8 +251,16 @@ const uploadEventImages = (req, res, next) => {
     console.log('📝 Form fields:', Object.keys(req.body).length ? Object.keys(req.body) : 'empty');
     
     // ✅ Nếu req.body rỗng, có thể do multer không parse được
-    if (Object.keys(req.body).length === 0 && !req.files) {
-      console.warn('⚠️ Empty body and no files - possible issue with FormData');
+    // This breaks Object.keys(), spread operator, and JSON.stringify
+    if (req.body && Object.getPrototypeOf(req.body) === null) {
+      const fixedBody = {};
+      for (const key in req.body) {
+        if (req.body.hasOwnProperty(key)) {
+          fixedBody[key] = req.body[key];
+        }
+      }
+      req.body = fixedBody;
+      console.log('✅ Fixed body prototype. Keys:', Object.keys(req.body));
     }
 
     next();
@@ -285,7 +293,7 @@ const processEventImages = async (req, res, next) => {
   try {
     console.log('📦 req.body before processing:', req.body); // ✅ THÊM
     console.log('📂 req.files:', req.files); // ✅ THÊM
-    
+
     if (!req.files || Object.keys(req.files).length === 0) {
       console.log('⏭️ No files to process, skipping...'); 
       return next();
