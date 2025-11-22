@@ -82,9 +82,7 @@ const handleCheckIn = async (ticketCode) => {
   checkingIn.value = true
 
   try {
-    const response = await checkinAPI.checkIn(eventId.value, {
-      ticket_code: ticketCode
-    })
+    const response = await checkinAPI.checkIn(ticketCode)
     
     ticketResult.value = response.data.data
     manualCode.value = ''
