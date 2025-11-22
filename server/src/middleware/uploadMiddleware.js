@@ -226,12 +226,38 @@ const cleanupTempFiles = async (files) => {
 /**
  * Middleware to handle event image uploads
  */
-const uploadEventImages = upload.fields([
+const uploadEventImagesBase = upload.fields([
   { name: 'cover_image', maxCount: 1 },
   { name: 'thumbnail_image', maxCount: 1 },
   { name: 'logo_image', maxCount: 1 },
   { name: 'venue_map_image', maxCount: 1 }
 ]);
+
+const uploadEventImages = (req, res, next) => {
+  uploadEventImagesBase(req, res, (err) => {
+    if (err) {
+      console.error('❌ Multer upload error:', err);
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'File upload failed',
+          details: err.message
+        }
+      });
+    }
+
+    // ✅ Debug logs
+    console.log('📂 Uploaded files:', req.files ? Object.keys(req.files) : 'none');
+    console.log('📝 Form fields:', Object.keys(req.body).length ? Object.keys(req.body) : 'empty');
+    
+    // ✅ Nếu req.body rỗng, có thể do multer không parse được
+    if (Object.keys(req.body).length === 0 && !req.files) {
+      console.warn('⚠️ Empty body and no files - possible issue with FormData');
+    }
+
+    next();
+  });
+};
 
 /**
  * Middleware to handle user avatar upload
@@ -257,7 +283,11 @@ const uploadMultipleImages = (fieldName = 'images', maxCount = 5) => {
  */
 const processEventImages = async (req, res, next) => {
   try {
+    console.log('📦 req.body before processing:', req.body); // ✅ THÊM
+    console.log('📂 req.files:', req.files); // ✅ THÊM
+    
     if (!req.files || Object.keys(req.files).length === 0) {
+      console.log('⏭️ No files to process, skipping...'); 
       return next();
     }
 
