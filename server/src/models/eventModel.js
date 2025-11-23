@@ -269,11 +269,13 @@ class EventModel {
       const eventsQuery = `
         SELECT 
           e.id, e.title, e.slug, e.description, e.short_description, 
-          e.logo_image, e.cover_image, e.thumbnail_image,
+          e.logo_image, e.cover_image, e.thumbnail_image,  e.venue_map_image,
           e.venue_name, e.venue_address, e.venue_city, e.venue_capacity, 
           e.status, e.privacy_type, e.view_count,
           e.start_date, e.end_date,
           e.created_at, e.organizer_id,
+          e.organizer_description, e.organizer_contact_email, e.organizer_contact_phone,
+          e.terms_and_conditions, e.payment_account_info,
           c.name as category_name,
           c.slug as category_slug,
           u.first_name || ' ' || u.last_name as organizer_name,

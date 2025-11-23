@@ -418,7 +418,7 @@ onMounted(() => {
         <Spinner size="lg" />
       </div>
 
-      <div v-else-if="orderDetails" class="space-y-6">
+      <div v-else-if="orderDetails" class="space-y-6  max-h-[70vh] overflow-y-auto pr-2">
         <!-- Order Info -->
         <div class="border-b pb-4">
           <div class="flex items-center justify-between mb-4">

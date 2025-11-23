@@ -480,12 +480,90 @@ onMounted(() => {
             </div>
           </div>
         </div>
+        
+        <!-- Organizer Description (if available) -->
+        <div v-if="selectedEvent.organizer_description" class="bg-white border border-gray-200 p-4 rounded-lg">
+          <h4 class="font-semibold text-gray-900 mb-2">About Organizer</h4>
+          <p class="text-sm text-gray-700 whitespace-pre-line">{{ selectedEvent.organizer_description }}</p>
+        </div>
 
-        <!-- Additional Info (if needed) -->
         <div v-if="selectedEvent.short_description" class="bg-blue-50 border border-blue-200 p-4 rounded-lg">
           <p class="text-sm text-blue-900">
             <strong>Short Description:</strong> {{ selectedEvent.short_description }}
           </p>
+        </div>
+
+        <!-- Contact Information -->
+        <div v-if="selectedEvent.organizer_contact_phone || selectedEvent.organizer_contact_email" 
+            class="bg-white border border-gray-200 p-4 rounded-lg">
+          <h4 class="font-semibold text-gray-900 mb-3">Contact Information</h4>
+          <div class="space-y-2">
+            <div v-if="selectedEvent.organizer_contact_email">
+              <p class="text-xs text-gray-500">Email</p>
+              <p class="text-sm text-gray-700">{{ selectedEvent.organizer_contact_email }}</p>
+            </div>
+            <div v-if="selectedEvent.organizer_contact_phone">
+              <p class="text-xs text-gray-500">Phone</p>
+              <p class="text-sm text-gray-700">{{ selectedEvent.organizer_contact_phone }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Privacy & Settings -->
+        <div class="bg-white border border-gray-200 p-4 rounded-lg">
+          <h4 class="font-semibold text-gray-900 mb-3">Event Settings</h4>
+          <div class="space-y-2">
+            <div>
+              <p class="text-xs text-gray-500">Privacy</p>
+              <Badge :variant="selectedEvent.privacy_type === 'public' ? 'success' : 'warning'">
+                {{ selectedEvent.privacy_type === 'public' ? 'Public Event' : 'Private Event' }}
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Information (if available) -->
+        <div v-if="selectedEvent.payment_account_info" class="bg-green-50 border border-green-200 p-4 rounded-lg">
+          <h4 class="font-semibold text-green-900 mb-3">Payment Information</h4>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p class="text-xs text-green-700">Account Name</p>
+              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.account_name }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-green-700">Account Number</p>
+              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.account_number }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-green-700">Bank</p>
+              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.bank_name }}</p>
+            </div>
+            <div v-if="selectedEvent.payment_account_info.bank_branch">
+              <p class="text-xs text-green-700">Branch</p>
+              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.bank_branch }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Images -->
+        <div v-if="selectedEvent.thumbnail_image || selectedEvent.venue_map_image" class="space-y-3">
+          <h4 class="font-semibold text-gray-900">Additional Images</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div v-if="selectedEvent.thumbnail_image">
+              <p class="text-xs text-gray-500 mb-2">Thumbnail</p>
+              <img :src="selectedEvent.thumbnail_image" alt="Thumbnail" class="w-full h-32 object-cover rounded-lg" />
+            </div>
+            <div v-if="selectedEvent.venue_map_image">
+              <p class="text-xs text-gray-500 mb-2">Venue Map</p>
+              <img :src="selectedEvent.venue_map_image" alt="Venue Map" class="w-full h-32 object-cover rounded-lg" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Terms & Conditions (if available) -->
+        <div v-if="selectedEvent.terms_and_conditions" class="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+          <h4 class="font-semibold text-gray-900 mb-2">Terms & Conditions</h4>
+          <p class="text-sm text-gray-700 whitespace-pre-line">{{ selectedEvent.terms_and_conditions }}</p>
         </div>
 
         <!-- Rejection Reason Input (if pending) -->
