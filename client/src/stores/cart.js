@@ -93,6 +93,7 @@ export const useCartStore = defineStore('cart', () => {
       }
       
       existingItem.quantity = newQuantity
+      existingItem.subtotal = existingItem.price * newQuantity
     } else {
       // Add new item
       items.value.push({
@@ -100,6 +101,7 @@ export const useCartStore = defineStore('cart', () => {
         name: ticket.name,
         price: ticket.price,
         quantity: ticket.quantity,
+        subtotal: ticket.price * ticket.quantity, 
         max_quantity_per_order: ticket.max_quantity_per_order,
         min_quantity_per_order: ticket.min_quantity_per_order,
         event_id: ticket.event_id,
@@ -136,6 +138,7 @@ export const useCartStore = defineStore('cart', () => {
       }
 
       item.quantity = quantity
+      item.subtotal = item.price * quantity 
     }
   }
 
