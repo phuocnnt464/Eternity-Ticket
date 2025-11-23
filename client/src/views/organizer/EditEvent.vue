@@ -683,16 +683,16 @@ onMounted(async () => {
           </div>
 
           <div>
-      <label class="label">Terms and Conditions (Optional)</label>
-      <textarea
-        v-model="eventForm.terms_and_conditions"
-        rows="4"
-        placeholder="Event rules, refund policy, etc..."
-        class="textarea"
-      ></textarea>
-    </div>
-  </div>
-</Card>
+            <label class="label">Terms and Conditions (Optional)</label>
+            <textarea
+              v-model="eventForm.terms_and_conditions"
+              rows="4"
+              placeholder="Event rules, refund policy, etc..."
+              class="textarea"
+            ></textarea>
+          </div>
+        </div>
+      </Card>
 
       <!-- Sessions Summary -->
       <Card>

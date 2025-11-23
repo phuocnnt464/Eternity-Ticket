@@ -379,9 +379,9 @@ onMounted(() => {
       <div v-if="selectedEvent" class="space-y-4">
         <!-- Event Image -->
         <img
-          v-if="selectedEvent.cover_image"
-          :src="selectedEvent.cover_image"
-          :alt="selectedEvent.title"
+          v-if="event.cover_image"
+          :src="event.cover_image"
+          :alt="event.title"
           class="w-full h-64 object-cover rounded-lg"
           @error="handleImageError"
         />
