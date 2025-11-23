@@ -99,9 +99,11 @@ const formatPrice = (price) => {
 const getStatusBadge = (status) => {
   const badges = {
     approved: { variant: 'success', text: 'Approved' },
-    pending_approval: { variant: 'warning', text: 'Pending' },
+    pending: { variant: 'warning', text: 'Pending' },
     rejected: { variant: 'danger', text: 'Rejected' },
-    draft: { variant: 'info', text: 'Draft' }
+    draft: { variant: 'info', text: 'Draft' },
+    completed: { variant: 'secondary', text: 'Completed' },
+    cancelled: { variant: 'danger', text: 'Cancelled' }
   }
   return badges[status] || badges.draft
 }
@@ -287,8 +289,9 @@ onMounted(() => {
             <p class="text-sm text-gray-600 mb-4">
               Check out our guide on how to create successful events
             </p>
-            <Button variant="secondary" size="sm" full-width>
-              View Guide
+            <Button variant="secondary" size="sm" full-width 
+              @click="router.push('/organizer/events/create')">
+                View Guide
             </Button>
           </Card>
         </div>
