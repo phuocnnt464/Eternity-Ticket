@@ -109,11 +109,10 @@ const fetchEvents = async () => {
   }
 }
 
-const showEventDetails = async (event) => {
+const handleViewDetails = async (event) => {
   selectedEvent.value = event
-  showModal.value = true
-  
-  // Fetch session details
+  showDetailModal.value = true
+
   try {
     const response = await sessionsAPI.getEventSessions(event.id)
     sessionDetails.value = response.data.sessions || []
@@ -125,12 +124,8 @@ const showEventDetails = async (event) => {
     }
   } catch (error) {
     console.error('Failed to load sessions:', error)
+    sessionDetails.value = []
   }
-}
-
-const handleViewDetails = (event) => {
-  selectedEvent.value = event
-  showDetailModal.value = true
 }
 
 const handleApprove = async (eventId) => {

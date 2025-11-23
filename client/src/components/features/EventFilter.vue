@@ -70,8 +70,8 @@ const hasActiveFilters = () => {
 </script>
 
 <template>
-  <div class="relative">
-    <!-- Filter Toggle Button -->
+  <div class="relative" :class="{ 'z-50': showFilters }">
+    
     <Button
       variant="secondary"
       @click="showFilters = !showFilters"
@@ -82,11 +82,31 @@ const hasActiveFilters = () => {
       <span v-if="hasActiveFilters()" class="absolute -top-1 -right-1 w-3 h-3 bg-primary-600 rounded-full"></span>
     </Button>
 
-    <!-- Filter Panel -->
-    <Transition name="fade">
+    <div 
+      v-if="showFilters"
+      @click="showFilters = false"
+      class="fixed inset-0 z-40 bg-black/50 md:bg-transparent"
+    ></div>
+
+    <Transition 
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="translate-y-1 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-1 opacity-0"
+    >
       <div 
         v-if="showFilters"
-        class="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border p-6 z-50"
+        class="
+          bg-white rounded-lg shadow-xl border p-6 z-50
+          /* === MOBILE STYLES (FIXED CENTER) === */
+          fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-h-[85vh] overflow-y-auto
+          
+          /* === DESKTOP STYLES (ABSOLUTE DROPDOWN) === */
+          md:absolute md:top-full md:right-0 md:left-auto md:translate-x-0 md:translate-y-0 
+          md:w-80 md:max-h-none md:mt-2
+        "
       >
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-semibold text-lg">Filters</h3>
@@ -96,103 +116,62 @@ const hasActiveFilters = () => {
         </div>
 
         <div class="space-y-4">
-          <!-- Category -->
           <div>
             <label class="label">Category</label>
             <select v-model="filters.category" class="select">
               <option value="">All Categories</option>
-              <option 
-                v-for="category in categories" 
-                :key="category.id"
-                :value="category.id"
-              >
+              <option v-for="category in categories" :key="category.id" :value="category.id">
                 {{ category.name }}
               </option>
             </select>
           </div>
 
-          <!-- Date Range -->
-          <div>
-            <label class="label">Date From</label>
-            <input 
-              v-model="filters.dateFrom" 
-              type="date" 
-              class="input"
-            />
+          <div class="grid grid-cols-2 gap-2">
+             <div>
+                <label class="label">From</label>
+                <input v-model="filters.dateFrom" type="date" class="input" />
+             </div>
+             <div>
+                <label class="label">To</label>
+                <input v-model="filters.dateTo" type="date" class="input" />
+             </div>
           </div>
 
-          <div>
-            <label class="label">Date To</label>
-            <input 
-              v-model="filters.dateTo" 
-              type="date" 
-              class="input"
-            />
-          </div>
-
-          <!-- Price Range -->
-          <div>
-            <label class="label">Min Price (VND)</label>
-            <input 
-              v-model.number="filters.minPrice" 
-              type="number" 
-              placeholder="0"
-              class="input"
-            />
-          </div>
-
-          <div>
-            <label class="label">Max Price (VND)</label>
-            <input 
-              v-model.number="filters.maxPrice" 
-              type="number" 
-              placeholder="1000000"
-              class="input"
-            />
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="label">Min (VND)</label>
+              <input v-model.number="filters.minPrice" type="number" placeholder="0" class="input" />
+            </div>
+            <div>
+              <label class="label">Max (VND)</label>
+              <input v-model.number="filters.maxPrice" type="number" placeholder="Max" class="input" />
+            </div>
           </div>
 
           <div>
             <label class="label">City</label>
-            <input 
-              v-model="filters.city" 
-              type="text" 
-              placeholder="Enter city name"
-              class="input"
-            />
+            <input v-model="filters.city" type="text" placeholder="City..." class="input" />
           </div>
 
-          <!-- Sort -->
           <div>
             <label class="label">Sort By</label>
             <select v-model="filters.sort" class="select">
-              <option 
-                v-for="option in sortOptions" 
-                :key="option.value"
-                :value="option.value"
-              >
+              <option v-for="option in sortOptions" :key="option.value" :value="option.value">
                 {{ option.label }}
               </option>
             </select>
           </div>
 
-          <!-- Actions -->
-          <div class="flex items-center space-x-2 pt-4 border-t">
-            <Button variant="secondary" @click="clearFilters" full-width>
+          <div class="flex items-center space-x-2 pt-4 border-t mt-2">
+            <Button variant="secondary" @click="clearFilters" class="w-full justify-center">
               Clear
             </Button>
-            <Button variant="primary" @click="applyFilters" full-width>
+            <Button variant="primary" @click="applyFilters" class="w-full justify-center">
               Apply
             </Button>
           </div>
         </div>
       </div>
     </Transition>
-
-    <!-- Overlay for mobile -->
-    <div 
-      v-if="showFilters"
-      @click="showFilters = false"
-      class="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-    ></div>
   </div>
 </template>
