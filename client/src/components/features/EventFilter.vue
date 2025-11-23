@@ -105,17 +105,17 @@ const hasActiveFilters = () => {
           
           /* === DESKTOP STYLES (ABSOLUTE DROPDOWN) === */
           md:absolute md:top-full md:right-0 md:left-auto md:translate-x-0 md:translate-y-0 
-          md:w-80 md:max-h-none md:mt-2
+          md:w-120 md:max-h-none md:mt-2
         "
       >
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-2">
           <h3 class="font-semibold text-lg">Filters</h3>
           <button @click="showFilters = false" class="text-gray-400 hover:text-gray-600">
             <XMarkIcon class="w-5 h-5" />
           </button>
         </div>
 
-        <div class="space-y-4">
+        <div class="space-y-2">
           <div>
             <label class="label">Category</label>
             <select v-model="filters.category" class="select">
