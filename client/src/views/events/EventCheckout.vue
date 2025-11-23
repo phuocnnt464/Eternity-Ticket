@@ -81,15 +81,15 @@ const handleCheckout = async () => {
 
     // ✅ 3. Create order with correct format
     const orderData = {
-      event_id: event.value.id,           // ✅ event.value.id (string)
-      session_id: session.value.id,       // ✅ session.value.id (string)
+      event_id: event.id,           
+      session_id: session.id,       
       tickets: tickets.value.map(t => ({
         ticket_type_id: t.id,
         quantity: t.quantity
       })),
       customer_info: {
-        first_name: firstName,            // ✅ Split từ full_name
-        last_name: lastName,              // ✅ Split từ full_name
+        first_name: firstName,          
+        last_name: lastName,              
         email: customerInfo.value.email,
         phone: customerInfo.value.phone
       },
@@ -125,7 +125,7 @@ const processOrder = async () => {
     const orderData = {
       session_id: session.value.session_id,
       tickets: tickets.value.map(t => ({
-        ticket_type_id: t.ticket_type_id,
+        ticket_type_id: t.id,
         quantity: t.quantity
       })),
       customer_info: customerInfo.value,
