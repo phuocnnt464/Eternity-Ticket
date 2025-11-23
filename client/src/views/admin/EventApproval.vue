@@ -383,10 +383,10 @@ onMounted(() => {
             v-if="selectedEvent.cover_image"
             :src="selectedEvent.cover_image"
             :alt="selectedEvent.title"
-            class="w-full h-64 object-cover rounded-lg"
+            class="w-full h-auto aspect-video object-cover rounded-lg"
             @error="handleImageError"
           />
-          <div v-else class="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+          <div v-else class="w-full aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
             <span class="text-gray-500">No cover image</span>
           </div>
         </div>
@@ -520,17 +520,47 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Additional Images -->
-        <div v-if="selectedEvent.thumbnail_image || selectedEvent.venue_map_image" class="space-y-3">
+        <!-- Images -->
+        <div class="space-y-3">
           <h4 class="font-semibold text-gray-900">Additional Images</h4>
-          <div class="grid grid-cols-2 gap-4">
-            <div v-if="selectedEvent.thumbnail_image">
-              <p class="text-xs text-gray-500 mb-2">Thumbnail</p>
-              <img :src="selectedEvent.thumbnail_image" alt="Thumbnail" class="w-full h-32 object-cover rounded-lg" />
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Logo Image -->
+            <div v-if="selectedEvent.logo_image" class="space-y-2">
+              <p class="text-xs font-medium text-gray-500">Logo</p>
+              <div class="relative aspect-square overflow-hidden rounded-lg border border-gray-200">
+                <img 
+                  :src="selectedEvent.logo_image" 
+                  alt="Logo" 
+                  class="w-full h-full object-contain bg-white p-2"
+                  @error="handleImageError"
+                />
+              </div>
             </div>
-            <div v-if="selectedEvent.venue_map_image">
-              <p class="text-xs text-gray-500 mb-2">Venue Map</p>
-              <img :src="selectedEvent.venue_map_image" alt="Venue Map" class="w-full h-32 object-cover rounded-lg" />
+
+            <!-- Thumbnail Image -->
+            <div v-if="selectedEvent.thumbnail_image" class="space-y-2">
+              <p class="text-xs font-medium text-gray-500">Thumbnail</p>
+              <div class="relative aspect-video overflow-hidden rounded-lg border border-gray-200">
+                <img 
+                  :src="selectedEvent.thumbnail_image" 
+                  alt="Thumbnail" 
+                  class="w-full h-full object-cover"
+                  @error="handleImageError"
+                />
+              </div>
+            </div>
+
+            <!-- Venue Map Image -->
+            <div v-if="selectedEvent.venue_map_image" class="space-y-2">
+              <p class="text-xs font-medium text-gray-500">Venue Map</p>
+              <div class="relative aspect-video overflow-hidden rounded-lg border border-gray-200">
+                <img 
+                  :src="selectedEvent.venue_map_image" 
+                  alt="Venue Map" 
+                  class="w-full h-full object-cover"
+                  @error="handleImageError"
+                />
+              </div>
             </div>
           </div>
         </div>
