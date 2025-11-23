@@ -719,7 +719,7 @@ onMounted(async () => {
             </p>
             <div class="flex items-center space-x-2">
               <Badge variant="info">{{ session.ticket_types?.length || 0 }} ticket types</Badge>
-              <Badge variant="success">{{ session.available_tickets || 0 }} available</Badge>
+              <Badge variant="success">{{ session.ticket_types?.reduce((sum, t) => sum + (t.available_quantity || 0), 0)}} available</Badge>
             </div>
           </div>
         </div>
