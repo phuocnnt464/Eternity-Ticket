@@ -132,6 +132,12 @@ const emitSelections = () => {
     .filter(([, qty]) => qty > 0)
     .map(([ticketId, quantity]) => {
       const ticket = props.ticketTypes.find(t => t.ticket_type_id === ticketId)
+
+      if (!ticket) {
+        console.error(`Ticket not found for ID: ${ticketId}`)
+        return null
+      }
+
       return {
         ticket_type_id: ticketId,
         ticket_type_name: ticket.name,
@@ -139,7 +145,7 @@ const emitSelections = () => {
         unit_price: ticket.price,
         subtotal: ticket.price * quantity
       }
-    })
+    }).filter(item => item !== null)
   
   emit('update:modelValue', selected)
 }
