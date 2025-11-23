@@ -268,7 +268,7 @@ class EventModel {
       // Main query
       const eventsQuery = `
         SELECT 
-          e.id, e.title, e.slug, e.short_description, 
+          e.id, e.title, e.slug, e.description, e.short_description, 
           e.logo_image, e.cover_image, e.thumbnail_image,
           e.venue_name, e.venue_address, e.venue_city, e.venue_capacity, 
           e.status, e.privacy_type, e.view_count,
@@ -277,11 +277,14 @@ class EventModel {
           c.name as category_name,
           c.slug as category_slug,
           u.first_name || ' ' || u.last_name as organizer_name,
+          u.email as organizer_email,
           (SELECT MIN(es.start_time) FROM event_sessions es WHERE es.event_id = e.id AND es.is_active = true) as earliest_session,
           (SELECT MIN(tt.price) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as min_price,
           (SELECT MAX(tt.price) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as max_price,
           (SELECT SUM(tt.total_quantity) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as total_tickets,
-          (SELECT SUM(tt.sold_quantity) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as sold_tickets
+          (SELECT SUM(tt.sold_quantity) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as sold_tickets,
+          (SELECT COUNT(*) FROM event_sessions WHERE event_id = e.id) as session_count,
+          (SELECT COUNT(*) FROM ticket_types WHERE event_id = e.id) as ticket_count
         FROM events e
         LEFT JOIN categories c ON e.category_id = c.id
         LEFT JOIN users u ON e.organizer_id = u.id
