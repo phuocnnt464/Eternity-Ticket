@@ -67,6 +67,9 @@ const handleCheckout = async () => {
       items: tickets.value
     })
 
+    console.log('🔍 Event ID:', event.value?.id)
+    console.log('🔍 Session ID:', session.value?.id)
+
     // ✅ 1. Split full_name thành first_name và last_name
     const nameParts = customerInfo.value.full_name.trim().split(' ')
     const firstName = nameParts[0] || ''
@@ -81,8 +84,8 @@ const handleCheckout = async () => {
 
     // ✅ 3. Create order with correct format
     const orderData = {
-      event_id: event.id,           
-      session_id: session.id,       
+      event_id: event.value.id,           
+      session_id: session.value.id,       
       tickets: tickets.value.map(t => ({
         ticket_type_id: t.ticket_type_id,
         quantity: t.quantity

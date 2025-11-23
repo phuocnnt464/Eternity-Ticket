@@ -81,8 +81,8 @@ const fetchOrders = async () => {
       })
     ])
     
-    event.value = eventRes.data.data
-    orders.value = ordersRes.data.data || []
+    event.value = eventRes.data.event
+    orders.value = ordersRes.data.orders || []
     pagination.value.totalItems = ordersRes.data.pagination?.total || 0
     pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
   } catch (error) {
