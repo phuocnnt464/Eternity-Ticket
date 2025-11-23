@@ -376,61 +376,136 @@ onMounted(() => {
       title="Event Review"
       size="xl"
     >
-      <div v-if="selectedEvent" class="space-y-4">
-        <!-- Event Image -->
-        <img
-          v-if="selectedEvent.cover_image"
-          :src="selectedEvent.cover_image"
-          :alt="selectedEvent.title"
-          class="w-full h-64 object-cover rounded-lg"
-          @error="handleImageError"
-        />
-        <div v-else class="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-          <span class="text-gray-500">No cover image</span>
-        </div>
-        <!-- Event Info -->
-        <div>
-          <h3 class="text-xl font-bold mb-2">{{ selectedEvent.title }}</h3>
-          <p class="text-gray-600 whitespace-pre-line">{{ selectedEvent.description }}</p>
-        </div>
-
-        <!-- Details Grid -->
-        <div class="grid grid-cols-2 gap-4 py-4 border-t border-b">
-          <div>
-            <p class="text-sm text-gray-600">Organizer</p>
-            <p class="font-medium">{{ selectedEvent.organizer_name }}</p>
-          </div>
-          <div>
-            <p class="text-sm text-gray-600">Category</p>
-            <p class="font-medium">{{ selectedEvent.category_name }}</p>
-          </div>
-          <div>
-            <p class="text-sm text-gray-600">Start Date</p>
-            <p class="font-medium">{{ new Date(selectedEvent.start_date).toLocaleString() }}</p>
-          </div>
-          <div>
-            <p class="text-sm text-gray-600">End Date</p>
-            <p class="font-medium">{{ new Date(selectedEvent.end_date).toLocaleString() }}</p>
-          </div>
-          <div>
-            <p class="text-sm text-gray-600">Venue</p>
-            <p class="font-medium">{{ selectedEvent.venue_name }}</p>
-          </div>
-          <div>
-            <p class="text-sm text-gray-600">Capacity</p>
-            <p class="font-medium">{{ selectedEvent.venue_capacity || 'N/A' }}</p>
+      <div v-if="selectedEvent" class="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+        <!-- Event Cover Image -->
+        <div class="relative">
+          <img
+            v-if="selectedEvent.cover_image"
+            :src="selectedEvent.cover_image"
+            :alt="selectedEvent.title"
+            class="w-full h-64 object-cover rounded-lg"
+            @error="handleImageError"
+          />
+          <div v-else class="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+            <span class="text-gray-500">No cover image</span>
           </div>
         </div>
 
-        <!-- Rejection Reason (if pending) -->
-        <div v-if="selectedEvent.status === 'pending'">
-          <label class="label">Rejection Reason (if rejecting)</label>
+        <!-- Basic Info -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <h3 class="text-xl font-bold mb-2 text-gray-900">{{ selectedEvent.title }}</h3>
+          <div class="flex items-center gap-2 mb-3">
+            <Badge :variant="getStatusBadge(selectedEvent.status).variant">
+              {{ getStatusBadge(selectedEvent.status).text }}
+            </Badge>
+            <span class="text-sm text-gray-600">{{ selectedEvent.category_name }}</span>
+          </div>
+          <p class="text-gray-700 whitespace-pre-line leading-relaxed">{{ selectedEvent.description }}</p>
+        </div>
+
+        <!-- Event Details Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Date & Time -->
+          <div class="bg-white border border-gray-200 p-4 rounded-lg">
+            <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+              <ClockIcon class="w-5 h-5 mr-2 text-blue-600" />
+              Date & Time
+            </h4>
+            <div class="space-y-2">
+              <div>
+                <p class="text-xs text-gray-500">Start Date</p>
+                <p class="font-medium text-gray-900">{{ new Date(selectedEvent.start_date).toLocaleString() }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">End Date</p>
+                <p class="font-medium text-gray-900">{{ new Date(selectedEvent.end_date).toLocaleString() }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Venue -->
+          <div class="bg-white border border-gray-200 p-4 rounded-lg">
+            <h4 class="font-semibold text-gray-900 mb-3">Venue Information</h4>
+            <div class="space-y-2">
+              <div>
+                <p class="text-xs text-gray-500">Venue Name</p>
+                <p class="font-medium text-gray-900">{{ selectedEvent.venue_name }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Address</p>
+                <p class="text-sm text-gray-700">{{ selectedEvent.venue_address }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">City</p>
+                <p class="text-sm text-gray-700">{{ selectedEvent.venue_city || 'N/A' }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Capacity</p>
+                <p class="font-medium text-gray-900">{{ selectedEvent.venue_capacity || 'N/A' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Organizer -->
+          <div class="bg-white border border-gray-200 p-4 rounded-lg">
+            <h4 class="font-semibold text-gray-900 mb-3">Organizer Information</h4>
+            <div class="space-y-2">
+              <div>
+                <p class="text-xs text-gray-500">Name</p>
+                <p class="font-medium text-gray-900">{{ selectedEvent.organizer_name }}</p>
+              </div>
+              <div v-if="selectedEvent.organizer_email">
+                <p class="text-xs text-gray-500">Email</p>
+                <p class="text-sm text-gray-700">{{ selectedEvent.organizer_email }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sessions & Tickets -->
+          <div class="bg-white border border-gray-200 p-4 rounded-lg">
+            <h4 class="font-semibold text-gray-900 mb-3">Sessions & Tickets</h4>
+            <div class="space-y-2">
+              <div>
+                <p class="text-xs text-gray-500">Total Sessions</p>
+                <p class="font-medium text-gray-900">{{ selectedEvent.session_count || 0 }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Ticket Types</p>
+                <p class="font-medium text-gray-900">{{ selectedEvent.ticket_count || 0 }}</p>
+              </div>
+              <div v-if="selectedEvent.total_tickets">
+                <p class="text-xs text-gray-500">Total Tickets</p>
+                <p class="font-medium text-gray-900">{{ selectedEvent.total_tickets }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Info (if needed) -->
+        <div v-if="selectedEvent.short_description" class="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+          <p class="text-sm text-blue-900">
+            <strong>Short Description:</strong> {{ selectedEvent.short_description }}
+          </p>
+        </div>
+
+        <!-- Rejection Reason Input (if pending) -->
+        <div v-if="selectedEvent.status === 'pending'" class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+          <label class="block text-sm font-medium text-gray-900 mb-2">
+            Rejection Reason (if rejecting)
+          </label>
           <textarea
             v-model="rejectionReason"
             rows="3"
             placeholder="Provide reason for rejection..."
-            class="textarea"
+            class="textarea w-full"
           ></textarea>
+        </div>
+
+        <!-- Rejection Reason Display (if rejected) -->
+        <div v-if="selectedEvent.status === 'rejected' && selectedEvent.rejection_reason" 
+            class="bg-red-50 border border-red-200 p-4 rounded-lg">
+          <p class="text-sm font-medium text-red-900 mb-1">Rejection Reason:</p>
+          <p class="text-sm text-red-800">{{ selectedEvent.rejection_reason }}</p>
         </div>
       </div>
 
@@ -483,71 +558,6 @@ onMounted(() => {
         >
           Close
         </Button>
-      </template>
-    </Modal>
-
-    <!-- Cancel Event Modal -->
-    <Modal
-      v-model="showCancelModal"
-      title="Cancel Event"
-      size="md"
-    >
-      <div v-if="selectedEvent" class="space-y-4">
-        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p class="text-red-800 font-medium mb-2">⚠️ Warning</p>
-          <p class="text-sm text-red-700">
-            Cancelling this event will:
-          </p>
-          <ul class="list-disc list-inside text-sm text-red-700 mt-2 space-y-1">
-            <li>Mark the event as cancelled</li>
-            <li>Create automatic refund requests for all paid orders</li>
-            <li>Send notifications to all ticket holders</li>
-            <li>This action cannot be undone</li>
-          </ul>
-        </div>
-
-        <div>
-          <p class="font-medium text-gray-900 mb-2">
-            Event: {{ selectedEvent.title }}
-          </p>
-          <p class="text-sm text-gray-600">
-            Organizer: {{ selectedEvent.organizer_name }}
-          </p>
-        </div>
-
-        <div>
-          <label class="label">Cancellation Reason *</label>
-          <textarea
-            v-model="cancellationReason"
-            rows="4"
-            placeholder="Explain why this event is being cancelled..."
-            class="textarea"
-            required
-          ></textarea>
-          <p class="text-xs text-gray-500 mt-1">
-            This reason will be sent to the organizer and ticket holders.
-          </p>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex space-x-3">
-          <Button
-            variant="secondary"
-            @click="showCancelModal = false"
-            full-width
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            :loading="processingAction"
-            @click="handleCancelEvent(selectedEvent.id)"
-            full-width
-          >
-            Confirm Cancellation
-          </Button>
-        </div>
       </template>
     </Modal>
   </div>
