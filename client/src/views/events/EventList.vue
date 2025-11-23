@@ -24,6 +24,18 @@ const pagination = ref({
   perPage: 12
 })
 
+const defaultFilters = {
+  search: '',
+  category: '',
+  city: '',
+  dateFrom: '',
+  dateTo: '',
+  minPrice: '',
+  maxPrice: '',
+  status: 'approved',
+  sort: 'date_asc'
+}
+
 const filters = ref({
   search: route.query.search || '',
   category: route.query.category || '',
@@ -53,7 +65,7 @@ const fetchEvents = async () => {
     }
     
     if (filters.value.category && filters.value.category.trim()) {
-      params.category_id = filters.value.category.trim()
+      params.category = filters.value.category.trim()
     }
 
     if (filters.value.city && filters.value.city.trim()) {
@@ -150,19 +162,31 @@ const fetchCategories = async () => {
 
 const handleSearch = () => {
   filters.value.search = searchQuery.value 
+  filters.value = { ...filters.value }
   pagination.value.currentPage = 1
   updateQueryParams()
   fetchEvents()
 }
 
 const handleFilterApply = (newFilters) => {
-  console.log('🔍 [EventList] Received filters from EventFilter:', newFilters)
   filters.value = newFilters
-  console.log('🔍 [EventList] Updated filters.value:', filters.value)
+  // Đồng bộ ngược lại ô search nếu filter thay đổi search
+  if (newFilters.search !== undefined) {
+    searchQuery.value = newFilters.search
+  }
+  
   pagination.value.currentPage = 1
   updateQueryParams()
   fetchEvents()
 }
+// const handleFilterApply = (newFilters) => {
+//   console.log('🔍 [EventList] Received filters from EventFilter:', newFilters)
+//   filters.value = newFilters
+//   console.log('🔍 [EventList] Updated filters.value:', filters.value)
+//   pagination.value.currentPage = 1
+//   updateQueryParams()
+//   fetchEvents()
+// }
 
 const handlePageChange = (page) => {
   pagination.value.currentPage = page
@@ -187,6 +211,23 @@ const updateQueryParams = () => {
   Object.keys(query).forEach(key => query[key] === undefined && delete query[key])
 
   router.replace({ query })
+}
+
+const handleClearAll = () => {
+  // Xóa ô tìm kiếm
+  searchQuery.value = ''
+  
+  // Reset filters về mặc định
+  // Việc gán lại object mới này sẽ kích hoạt cái `watch` bên trong EventFilter
+  // giúp EventFilter tự động xóa trắng các ô input.
+  filters.value = { ...defaultFilters }
+  
+  // Reset trang về 1
+  pagination.value.currentPage = 1
+  
+  // Cập nhật URL và gọi API
+  updateQueryParams()
+  fetchEvents()
 }
 
 onMounted(async () => {
@@ -284,7 +325,11 @@ watch(() => route.query.search, (newSearch) => {
           </div>
           <h3 class="text-xl font-semibold text-gray-900 mb-2">No events found</h3>
           <p class="text-gray-600 mb-6">Try adjusting your search or filters</p>
-          <button @click="() => { searchQuery = ''; filters = { status: 'approved', sort: 'date_asc' }; handleSearch(); }" class="btn-primary">
+          <!-- <button @click="() => { searchQuery = ''; filters = { status: 'approved', sort: 'date_asc' }; handleSearch(); }" class="btn-secondary"> -->
+          <button 
+            @click="handleClearAll" 
+            class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+          >  
             Clear Filters
           </button>
         </div>
