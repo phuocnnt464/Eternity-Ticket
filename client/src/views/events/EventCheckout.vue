@@ -26,10 +26,10 @@ const couponCode = ref('')
 
 const event = computed(() => cartStore.event)
 const session = computed(() => cartStore.session)
-const tickets = computed(() => cartStore.tickets)
+const tickets = computed(() => cartStore.items)
 
 const isCartValid = computed(() => {
-  return event.value && session.value && tickets.value.length > 0
+  return event.value && session.value && cartStore.items.length > 0
 })
 
 const membershipDiscount = computed(() => {
