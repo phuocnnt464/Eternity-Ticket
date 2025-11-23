@@ -395,6 +395,9 @@ onMounted(() => {
         <div class="bg-gray-50 p-4 rounded-lg">
           <h3 class="text-xl font-bold mb-2 text-gray-900">{{ selectedEvent.title }}</h3>
           <div class="flex items-center gap-2 mb-3">
+            <Badge :variant="selectedEvent.privacy_type === 'public' ? 'success' : 'warning'">
+              {{ selectedEvent.privacy_type === 'public' ? 'Public Event' : 'Private Event' }}
+            </Badge>
             <Badge :variant="getStatusBadge(selectedEvent.status).variant">
               {{ getStatusBadge(selectedEvent.status).text }}
             </Badge>
@@ -458,6 +461,19 @@ onMounted(() => {
                 <p class="text-xs text-gray-500">Email</p>
                 <p class="text-sm text-gray-700">{{ selectedEvent.organizer_email }}</p>
               </div>
+              <div v-if="selectedEvent.organizer_description">
+                <p class="text-xs text-gray-500">About Organizer</p>
+                <p class="text-sm text-gray-700">{{ selectedEvent.organizer_description }}</p>
+              </div>
+              <div v-if="selectedEvent.short_description" class="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                <p class="text-sm text-blue-900">
+                  <strong>Short Description:</strong> {{ selectedEvent.short_description }}
+                </p>
+              </div>
+              <div v-if="selectedEvent.organizer_contact_phone">
+                <p class="text-xs text-gray-500">Phone</p>
+                <p class="text-sm text-gray-700">{{ selectedEvent.organizer_contact_phone }}</p>
+              </div>
             </div>
           </div>
 
@@ -480,47 +496,6 @@ onMounted(() => {
             </div>
           </div>
         </div>
-        
-        <!-- Organizer Description (if available) -->
-        <div v-if="selectedEvent.organizer_description" class="bg-white border border-gray-200 p-4 rounded-lg">
-          <h4 class="font-semibold text-gray-900 mb-2">About Organizer</h4>
-          <p class="text-sm text-gray-700 whitespace-pre-line">{{ selectedEvent.organizer_description }}</p>
-        </div>
-
-        <div v-if="selectedEvent.short_description" class="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-          <p class="text-sm text-blue-900">
-            <strong>Short Description:</strong> {{ selectedEvent.short_description }}
-          </p>
-        </div>
-
-        <!-- Contact Information -->
-        <div v-if="selectedEvent.organizer_contact_phone || selectedEvent.organizer_contact_email" 
-            class="bg-white border border-gray-200 p-4 rounded-lg">
-          <h4 class="font-semibold text-gray-900 mb-3">Contact Information</h4>
-          <div class="space-y-2">
-            <div v-if="selectedEvent.organizer_contact_email">
-              <p class="text-xs text-gray-500">Email</p>
-              <p class="text-sm text-gray-700">{{ selectedEvent.organizer_contact_email }}</p>
-            </div>
-            <div v-if="selectedEvent.organizer_contact_phone">
-              <p class="text-xs text-gray-500">Phone</p>
-              <p class="text-sm text-gray-700">{{ selectedEvent.organizer_contact_phone }}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Privacy & Settings -->
-        <div class="bg-white border border-gray-200 p-4 rounded-lg">
-          <h4 class="font-semibold text-gray-900 mb-3">Event Settings</h4>
-          <div class="space-y-2">
-            <div>
-              <p class="text-xs text-gray-500">Privacy</p>
-              <Badge :variant="selectedEvent.privacy_type === 'public' ? 'success' : 'warning'">
-                {{ selectedEvent.privacy_type === 'public' ? 'Public Event' : 'Private Event' }}
-              </Badge>
-            </div>
-          </div>
-        </div>
 
         <!-- Payment Information (if available) -->
         <div v-if="selectedEvent.payment_account_info" class="bg-green-50 border border-green-200 p-4 rounded-lg">
@@ -528,19 +503,19 @@ onMounted(() => {
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p class="text-xs text-green-700">Account Name</p>
-              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.account_name }}</p>
+              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.payment_account_name }}</p>
             </div>
             <div>
               <p class="text-xs text-green-700">Account Number</p>
-              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.account_number }}</p>
+              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.payment_account_number }}</p>
             </div>
             <div>
               <p class="text-xs text-green-700">Bank</p>
-              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.bank_name }}</p>
+              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.payment_bank_name }}</p>
             </div>
-            <div v-if="selectedEvent.payment_account_info.bank_branch">
+            <div v-if="selectedEvent.payment_account_info.payment_bank_branch">
               <p class="text-xs text-green-700">Branch</p>
-              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.bank_branch }}</p>
+              <p class="font-medium text-green-900">{{ selectedEvent.payment_account_info.payment_bank_branch }}</p>
             </div>
           </div>
         </div>
