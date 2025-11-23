@@ -39,7 +39,7 @@ props.ticketTypes.forEach(ticket => {
 watch(() => props.modelValue, (newValue) => {
   if (newValue) {
     newValue.forEach(item => {
-      selections.value[item.id] = item.quantity
+      selections.value[item.ticket_type_id] = item.quantity
     })
   }
 }, { immediate: true })
@@ -139,7 +139,7 @@ const emitSelections = () => {
       }
 
       return {
-        id: ticketId,
+        ticket_type_id: ticketId,
         ticket_type_name: ticket.name,
         quantity,
         unit_price: ticket.price,
