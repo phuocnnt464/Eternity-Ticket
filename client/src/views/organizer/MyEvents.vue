@@ -26,7 +26,7 @@ const events = ref([])
 const loading = ref(true)
 const searchQuery = ref('')
 const selectedStatus = ref('all')
-const deletingEventId = ref(null) // ✅ THÊM
+const deletingEventId = ref(null) 
 
 const pagination = ref({
   currentPage: 1,
@@ -57,32 +57,47 @@ const getStatusBadge = (status) => {
   return badges[status] || badges.draft
 }
 
-const filteredEvents = computed(() => {
-  let result = events.value
+// const filteredEvents = computed(() => {
+//   let result = events.value
 
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(event =>
-      event.title?.toLowerCase().includes(query) ||
-      event.venue_name?.toLowerCase().includes(query)
-    )
-  }
+//   if (searchQuery.value) {
+//     const query = searchQuery.value.toLowerCase()
+//     result = result.filter(event =>
+//       event.title?.toLowerCase().includes(query) ||
+//       event.venue_name?.toLowerCase().includes(query)
+//     )
+//   }
 
-  if (selectedStatus.value !== 'all') {
-    result = result.filter(event => event.status === selectedStatus.value)
-  }
+//   if (selectedStatus.value !== 'all') {
+//     result = result.filter(event => event.status === selectedStatus.value)
+//   }
 
-  return result
-})
+//   return result
+// })
 
 const fetchEvents = async () => {
   loading.value = true
   try {
-    const response = await eventsAPI.getOrganizerEvents({
+    const params = {
       page: pagination.value.currentPage,
       limit: pagination.value.perPage
-    })
+    }
+
+    if (searchQuery.value.trim()) {
+      params.search = searchQuery.value.trim()
+    }
     
+    if (selectedStatus.value !== 'all') {
+      params.status = selectedStatus.value
+    }
+
+    // const response = await eventsAPI.getOrganizerEvents({
+    //   page: pagination.value.currentPage,
+    //   limit: pagination.value.perPage
+    // })
+    
+    const response = await eventsAPI.getOrganizerEvents(params)
+
     events.value = response.data.events || []
     
     const paginationData = response.data.pagination || {}
@@ -95,6 +110,11 @@ const fetchEvents = async () => {
     loading.value = false
   }
 }
+
+watch([searchQuery, selectedStatus], () => {
+  pagination.value.currentPage = 1
+  fetchEvents()
+}, { debounce: 300 })
 
 const handlePageChange = (page) => {
   pagination.value.currentPage = page
@@ -208,7 +228,8 @@ onMounted(() => {
         <!-- Status Filter -->
         <div class="flex items-center space-x-2">
           <FunnelIcon class="w-5 h-5 text-gray-400" />
-          <select v-model="selectedStatus" class="select" @change="fetchEvents">
+          <!-- <select v-model="selectedStatus" class="select" @change="fetchEvents"> -->
+          <select v-model="selectedStatus" class="select">
             <option
               v-for="option in statusOptions"
               :key="option.value"
@@ -227,7 +248,8 @@ onMounted(() => {
     </div>
 
     <!-- Events Table -->
-    <Card v-else-if="filteredEvents.length > 0" no-padding>
+    <!-- <Card v-else-if="filteredEvents.length > 0" no-padding> -->
+    <Card v-else-if="events.length > 0" no-padding>
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50 border-b">
@@ -257,7 +279,7 @@ onMounted(() => {
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr
-              v-for="event in filteredEvents"
+              v-for="event in events"
               :key="event.id"
               class="hover:bg-gray-50 transition-colors"
             >

@@ -303,7 +303,7 @@ class EventController {
   static async getMyEvents(req, res) {
     try {
       const organizerId = req.user.id;
-      const { page = 1, limit = 10, status } = req.query;
+      const { page = 1, limit = 10, status, search } = req.query;
 
       console.log(`📋 Getting events for organizer: ${organizerId}, status filter: ${status || 'ALL'}`);
 
@@ -342,6 +342,15 @@ class EventController {
         paramCount++;
       }
 
+      if (search && search.trim()) {
+        query += ` AND (
+          LOWER(e.title) LIKE LOWER($${paramCount}) OR 
+          LOWER(e.venue_name) LIKE LOWER($${paramCount + 1})
+        )`;
+        queryParams.push(`%${search}%`, `%${search}%`);
+        paramCount += 2;
+      }
+
       query += ` ORDER BY e.created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
       queryParams.push(parseInt(limit), offset);
 
@@ -352,10 +361,25 @@ class EventController {
         WHERE e.organizer_id = $1
       `;
       let countParams = [organizerId];
+      let countParamCount = 2;
+
+      // if (status && status !== "ALL") {
+      //   countQuery += ' AND e.status = $2::event_status';
+      //   countParams.push(status);
+      // }
 
       if (status && status !== "ALL") {
-        countQuery += ' AND e.status = $2::event_status';
+        countQuery += ` AND e.status = $${countParamCount}::event_status`;
         countParams.push(status);
+        countParamCount++;
+      }
+
+      if (search && search.trim()) {
+        countQuery += ` AND (
+          LOWER(e.title) LIKE LOWER($${countParamCount}) OR 
+          LOWER(e.venue_name) LIKE LOWER($${countParamCount + 1})
+        )`;
+        countParams.push(`%${search}%`, `%${search}%`);
       }
 
       console.log(`📋 Executing query:`, query);
