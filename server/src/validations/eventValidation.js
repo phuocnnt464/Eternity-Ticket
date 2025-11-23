@@ -44,6 +44,24 @@ const createEventSchema = Joi.object({
       'any.required': 'Event category is required'
     }),
 
+  start_date: Joi.date()
+    .iso()
+    .optional()  // optional vì có thể set sau qua sessions
+    .messages({
+      'date.base': 'Start date must be a valid date',
+      'date.format': 'Start date must be in ISO format'
+    }),
+
+  end_date: Joi.date()
+    .iso()
+    .min(Joi.ref('start_date'))
+    .optional()  // optional vì có thể set sau qua sessions
+    .messages({
+      'date.base': 'End date must be a valid date',
+      'date.format': 'End date must be in ISO format',
+      'date.min': 'End date must be after start date'
+    }),
+
   venue_name: Joi.string()
     .min(2)
     .max(200)
