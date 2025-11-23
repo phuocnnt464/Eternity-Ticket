@@ -14,7 +14,7 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg', 'xl', 'full'].includes(value)
+    validator: (value) => ['sm', 'md', 'lg', 'xl', '2xl', '3xl', 'full'].includes(value)
   },
   closeOnOverlay: {
     type: Boolean,
@@ -29,6 +29,8 @@ const sizeClasses = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   xl: 'max-w-xl',
+  '2xl': 'max-w-4xl',   
+  '3xl': 'max-w-6xl',
   full: 'max-w-full mx-4'
 }
 
