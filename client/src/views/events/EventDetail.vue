@@ -120,11 +120,13 @@ const handlePurchase = () => {
       return
     }
 
+    // ✅ 1. Clear cart items TRƯỚC (không xóa event/session nếu chưa có)
+    if (cartStore.items.length > 0) {
+      cartStore.items = []  // Chỉ xóa items, không dùng clear()
+    }
+
     // 1. Set event and session
     cartStore.setEventAndSession(event.value, selectedSession.value)
-    
-    // 2. Clear existing cart items
-    cartStore.clear()
     
     // 3. Add selected tickets to cart
     selectedTickets.value.forEach(ticket => {
@@ -148,6 +150,12 @@ const handlePurchase = () => {
         event_id: event.value.id,
         session_id: selectedSession.value.id
       })
+    })
+
+    console.log('✅ Cart after adding:', {
+      event: cartStore.event,
+      session: cartStore.session,
+      items: cartStore.items
     })
 
     // Go to checkout
