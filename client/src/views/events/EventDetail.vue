@@ -130,16 +130,16 @@ const handlePurchase = () => {
     selectedTickets.value.forEach(ticket => {
       // Find original ticket type to get constraints
       const ticketType = ticketTypes.value.find(
-        t => t.id === ticket.ticket_type_id
+        t => t.id === ticket.id
       )
       
       if (!ticketType) {
-        console.error(`Ticket type not found: ${ticket.ticket_type_id}`)
+        console.error(`Ticket type not found: ${ticket.id}`)
         return
       }
       
       cartStore.addItem({
-        ticket_type_id: ticket.ticket_type_id,
+        id: ticket.id,
         name: ticket.ticket_type_name,
         price: ticket.unit_price,
         quantity: ticket.quantity,
