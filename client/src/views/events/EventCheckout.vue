@@ -60,17 +60,43 @@ const handleWaitingRoomReady = () => {
 const handleCheckout = async () => {
   loading.value = true
   try {
-    // 1. Create order
+    // Debug logs
+    console.log('🛒 Cart state:', {
+      event: event.value,
+      session: session.value,
+      items: tickets.value
+    })
+
+    // ✅ 1. Split full_name thành first_name và last_name
+    const nameParts = customerInfo.value.full_name.trim().split(' ')
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
+
+    // ✅ 2. Validate customer info
+    if (!firstName || !lastName) {
+      alert('Please enter both first name and last name')
+      loading.value = false
+      return
+    }
+
+    // ✅ 3. Create order with correct format
     const orderData = {
-      event_id: event.id,
-      session_id: sessionId,
+      event_id: event.value.id,           // ✅ event.value.id (string)
+      session_id: session.value.id,       // ✅ session.value.id (string)
       tickets: tickets.value.map(t => ({
-        ticket_type_id: t.ticket_type_id,
+        ticket_type_id: t.id,
         quantity: t.quantity
       })),
-      customer_info: customerInfo.value,
+      customer_info: {
+        first_name: firstName,            // ✅ Split từ full_name
+        last_name: lastName,              // ✅ Split từ full_name
+        email: customerInfo.value.email,
+        phone: customerInfo.value.phone
+      },
       coupon_code: couponCode.value || undefined
     }
+
+    console.log('📦 Order data to send:', orderData)
 
     const response = await ordersAPI.createOrder(orderData)
     const order = response.data.data
