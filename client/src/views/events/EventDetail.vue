@@ -113,15 +113,52 @@ const handlePurchase = () => {
   }
 
   // Add to cart
-  cartStore.setEvent(event.value)
-  cartStore.setSession(selectedSession.value)
-  cartStore.setTickets(selectedTickets.value)
+  try {
+    // Validate selected tickets
+    if (!selectedTickets.value || selectedTickets.value.length === 0) {
+      alert('Please select at least one ticket')
+      return
+    }
 
-  // Go to checkout
-  router.push({
-    name: 'EventCheckout',
-    params: { slug: route.params.slug }
-  })
+    // 1. Set event and session
+    cartStore.setEventAndSession(event.value, selectedSession.value)
+    
+    // 2. Clear existing cart items
+    cartStore.clear()
+    
+    // 3. Add selected tickets to cart
+    selectedTickets.value.forEach(ticket => {
+      // Find original ticket type to get constraints
+      const ticketType = ticketTypes.value.find(
+        t => t.id === ticket.ticket_type_id
+      )
+      
+      if (!ticketType) {
+        console.error(`Ticket type not found: ${ticket.ticket_type_id}`)
+        return
+      }
+      
+      cartStore.addItem({
+        ticket_type_id: ticket.ticket_type_id,
+        name: ticket.ticket_type_name,
+        price: ticket.unit_price,
+        quantity: ticket.quantity,
+        max_quantity_per_order: ticketType.max_quantity_per_order || 10,
+        min_quantity_per_order: ticketType.min_quantity_per_order || 1,
+        event_id: event.value.id,
+        session_id: selectedSession.value.id
+      })
+    })
+
+    // Go to checkout
+    router.push({
+      name: 'EventCheckout',
+      params: { slug: route.params.slug }
+    })
+  } catch (error) {
+    console.error('Failed to handle purchase:', error)
+    alert(error.message || 'Failed to add tickets to cart')
+  }
 }
 
 const handleShare = async () => {
