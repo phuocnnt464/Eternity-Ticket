@@ -527,39 +527,51 @@ onMounted(() => {
             <!-- Logo Image -->
             <div v-if="selectedEvent.logo_image" class="space-y-2">
               <p class="text-xs font-medium text-gray-500">Logo</p>
-              <div class="relative aspect-square overflow-hidden rounded-lg border border-gray-200">
+              <div class="relative aspect-video overflow-hidden rounded-lg border-2 border-gray-200">
                 <img 
+                  v-if="selectedEvent.logo_image"
                   :src="selectedEvent.logo_image" 
                   alt="Logo" 
                   class="w-full h-full object-contain bg-white p-2"
                   @error="handleImageError"
                 />
+                <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center">
+                  <span class="text-xs text-gray-400">No logo</span>
+                </div>
               </div>
             </div>
 
             <!-- Thumbnail Image -->
             <div v-if="selectedEvent.thumbnail_image" class="space-y-2">
               <p class="text-xs font-medium text-gray-500">Thumbnail</p>
-              <div class="relative aspect-video overflow-hidden rounded-lg border border-gray-200">
+              <div class="relative aspect-video overflow-hidden rounded-lg border-2 border-gray-200">
                 <img 
+                  v-if="selectedEvent.thumbnail_image"
                   :src="selectedEvent.thumbnail_image" 
                   alt="Thumbnail" 
                   class="w-full h-full object-cover"
                   @error="handleImageError"
                 />
+                <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center">
+                  <span class="text-xs text-gray-400">No thumbnail</span>
+                </div>
               </div>
             </div>
 
             <!-- Venue Map Image -->
             <div v-if="selectedEvent.venue_map_image" class="space-y-2">
               <p class="text-xs font-medium text-gray-500">Venue Map</p>
-              <div class="relative aspect-video overflow-hidden rounded-lg border border-gray-200">
+              <div class="relative aspect-video overflow-hidden rounded-lg border-2 border-gray-200">
                 <img 
+                  v-if="selectedEvent.venue_map_image"
                   :src="selectedEvent.venue_map_image" 
                   alt="Venue Map" 
                   class="w-full h-full object-cover"
                   @error="handleImageError"
                 />
+                <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center">
+                  <span class="text-xs text-gray-400">No venue map</span>
+                </div>
               </div>
             </div>
           </div>
