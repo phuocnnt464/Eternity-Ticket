@@ -94,8 +94,8 @@ const selectSession = async (session) => {
     const response = await sessionsAPI.getSessionTicketTypes(session.id)
     ticketTypes.value = response.data.ticket_types || []
 
-    console.log('🎫 Ticket types received:', ticketTypes.value)
-    console.log('🔍 First ticket structure:', ticketTypes.value[0])
+    // console.log('🎫 Ticket types received:', ticketTypes.value)
+    // console.log('🔍 First ticket structure:', ticketTypes.value[0])
   } catch (error) {
     console.error('Failed to fetch ticket types:', error)
   } finally {

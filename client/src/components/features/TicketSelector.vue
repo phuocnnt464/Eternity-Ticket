@@ -32,14 +32,14 @@ const selections = ref({})
 
 // Initialize selections
 props.ticketTypes.forEach(ticket => {
-  selections.value[ticket.ticket_type_id] = 0
+  selections.value[ticket.id] = 0
 })
 
 // Watch for external changes
 watch(() => props.modelValue, (newValue) => {
   if (newValue) {
     newValue.forEach(item => {
-      selections.value[item.ticket_type_id] = item.quantity
+      selections.value[item.id] = item.quantity
     })
   }
 }, { immediate: true })
@@ -105,7 +105,7 @@ const getSaleStatus = (ticket) => {
 
 const updateQuantity = (ticketId, delta) => {
   const current = selections.value[ticketId] || 0
-  const ticket = props.ticketTypes.find(t => t.ticket_type_id === ticketId)
+  const ticket = props.ticketTypes.find(t => t.id === ticketId)
   
   let newQty = current + delta
   
@@ -131,7 +131,7 @@ const emitSelections = () => {
   const selected = Object.entries(selections.value)
     .filter(([, qty]) => qty > 0)
     .map(([ticketId, quantity]) => {
-      const ticket = props.ticketTypes.find(t => t.ticket_type_id === ticketId)
+      const ticket = props.ticketTypes.find(t => t.id === ticketId)
 
       if (!ticket) {
         console.error(`Ticket not found for ID: ${ticketId}`)
@@ -139,7 +139,7 @@ const emitSelections = () => {
       }
 
       return {
-        ticket_type_id: ticketId,
+        id: ticketId,
         ticket_type_name: ticket.name,
         quantity,
         unit_price: ticket.price,
@@ -173,7 +173,7 @@ const formatPrice = (price) => {
     <div class="space-y-3">
       <div
         v-for="ticket in ticketTypes"
-        :key="ticket.ticket_type_id"
+        :key="ticket.id"
         :class="[
           'card',
           !isAvailable(ticket) && 'opacity-60'
@@ -210,19 +210,19 @@ const formatPrice = (price) => {
         <div class="flex items-center justify-between pt-3 border-t">
           <div class="flex items-center space-x-3">
             <button
-              @click="updateQuantity(ticket.ticket_type_id, -1)"
-              :disabled="!isAvailable(ticket) || selections[ticket.ticket_type_id] === 0"
+              @click="updateQuantity(ticket.id, -1)"
+              :disabled="!isAvailable(ticket) || selections[ticket.id] === 0"
               class="btn-secondary btn-sm w-10 h-10 !p-0"
             >
               <MinusIcon class="w-5 h-5" />
             </button>
             
             <span class="font-semibold text-lg w-12 text-center">
-              {{ selections[ticket.ticket_type_id] || 0 }}
+              {{ selections[ticket.id] || 0 }}
             </span>
             
             <button
-              @click="updateQuantity(ticket.ticket_type_id, 1)"
+              @click="updateQuantity(ticket.id, 1)"
               :disabled="!isAvailable(ticket) || !canAddMore"
               class="btn-primary btn-sm w-10 h-10 !p-0"
             >
@@ -230,10 +230,10 @@ const formatPrice = (price) => {
             </button>
           </div>
 
-          <div v-if="selections[ticket.ticket_type_id] > 0" class="text-right">
+          <div v-if="selections[ticket.id] > 0" class="text-right">
             <p class="text-sm text-gray-600">Subtotal</p>
             <p class="font-semibold text-primary-600">
-              {{ formatPrice(ticket.price * selections[ticket.ticket_type_id]) }}
+              {{ formatPrice(ticket.price * selections[ticket.id]) }}
             </p>
           </div>
         </div>
