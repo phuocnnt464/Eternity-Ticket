@@ -84,7 +84,7 @@ const handleCheckout = async () => {
       event_id: event.id,           
       session_id: session.id,       
       tickets: tickets.value.map(t => ({
-        ticket_type_id: t.id,
+        ticket_type_id: t.ticket_type_id,
         quantity: t.quantity
       })),
       customer_info: {
@@ -125,7 +125,7 @@ const processOrder = async () => {
     const orderData = {
       session_id: session.value.session_id,
       tickets: tickets.value.map(t => ({
-        ticket_type_id: t.id,
+        ticket_type_id: t.ticket_type_id,
         quantity: t.quantity
       })),
       customer_info: customerInfo.value,
