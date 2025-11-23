@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { adminAPI } from '@/api/admin.js'
+import { sessionsAPI } from '@/api/sessions.js'
 import Card from '@/components/common/Card.vue'
 import Button from '@/components/common/Button.vue'
 import Badge from '@/components/common/Badge.vue'
@@ -28,6 +29,7 @@ const processingAction = ref(false)
 const rejectionReason = ref('')
 const showCancelModal = ref(false) 
 const cancellationReason = ref('')
+const sessionDetails = ref([])
 
 const completingEvents = ref(false)
 
@@ -104,6 +106,25 @@ const fetchEvents = async () => {
     console.error('Failed to fetch events:', error)
   } finally {
     loading.value = false
+  }
+}
+
+const showEventDetails = async (event) => {
+  selectedEvent.value = event
+  showModal.value = true
+  
+  // Fetch session details
+  try {
+    const response = await sessionsAPI.getEventSessions(event.id)
+    sessionDetails.value = response.data.sessions || []
+    
+    // Load ticket types for each session
+    for (const session of sessionDetails.value) {
+      const ticketsRes = await sessionsAPI.getSessionTicketTypes(session.id)
+      session.ticket_types = ticketsRes.data.ticket_types || []
+    }
+  } catch (error) {
+    console.error('Failed to load sessions:', error)
   }
 }
 
@@ -480,19 +501,34 @@ onMounted(() => {
           <!-- Sessions & Tickets -->
           <div class="bg-white border border-gray-200 p-4 rounded-lg">
             <h4 class="font-semibold text-gray-900 mb-3">Sessions & Tickets</h4>
-            <div class="space-y-2">
-              <div>
-                <p class="text-xs text-gray-500">Total Sessions</p>
-                <p class="font-medium text-gray-900">{{ selectedEvent.session_count || 0 }}</p>
+            <div v-if="sessionDetails.length > 0" class="space-y-3">
+              <div v-for="session in sessionDetails" :key="session.id" class="border-l-4 border-primary-500 pl-3">
+                <p class="font-medium text-sm text-gray-900">{{ session.title }}</p>
+                <p class="text-xs text-gray-600 mb-2">
+                  {{ new Date(session.start_time).toLocaleString('vi-VN') }} 
+                  → {{ new Date(session.end_time).toLocaleString('vi-VN') }}
+                </p>
+                
+                <div v-if="session.ticket_types && session.ticket_types.length > 0" class="space-y-1">
+                  <div v-for="ticket in session.ticket_types" :key="ticket.id" 
+                      class="flex items-center justify-between text-xs bg-gray-50 p-2 rounded">
+                    <span class="font-medium">{{ ticket.name }}</span>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-primary-600 font-semibold">
+                        {{ ticket.price.toLocaleString('vi-VN') }}₫
+                      </span>
+                      <span class="text-gray-600">
+                        {{ ticket.total_quantity - (ticket.sold_quantity || 0) }}/{{ ticket.total_quantity }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p class="text-xs text-gray-500">Ticket Types</p>
-                <p class="font-medium text-gray-900">{{ selectedEvent.ticket_count || 0 }}</p>
-              </div>
-              <div v-if="selectedEvent.total_tickets">
-                <p class="text-xs text-gray-500">Total Tickets</p>
-                <p class="font-medium text-gray-900">{{ selectedEvent.total_tickets }}</p>
-              </div>
+            </div>
+            
+            <div v-else class="text-sm text-gray-500">
+              <p>Total Sessions: {{ selectedEvent.session_count || 0 }}</p>
+              <p>Total Ticket Types: {{ selectedEvent.ticket_count || 0 }}</p>
             </div>
           </div>
         </div>
@@ -544,7 +580,7 @@ onMounted(() => {
             <!-- Thumbnail Image -->
             <div v-if="selectedEvent.thumbnail_image" class="space-y-2">
               <p class="text-xs font-medium text-gray-500">Thumbnail</p>
-              <div class="relative aspect-video overflow-hidden rounded-lg border-2 border-gray-200">
+              <div class="relative aspect-[3/4] overflow-hidden rounded-lg border-2 border-gray-200">
                 <img 
                   v-if="selectedEvent.thumbnail_image"
                   :src="selectedEvent.thumbnail_image" 
@@ -561,12 +597,12 @@ onMounted(() => {
             <!-- Venue Map Image -->
             <div v-if="selectedEvent.venue_map_image" class="space-y-2">
               <p class="text-xs font-medium text-gray-500">Venue Map</p>
-              <div class="relative aspect-video overflow-hidden rounded-lg border-2 border-gray-200">
+              <div class="relative overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-50">
                 <img 
                   v-if="selectedEvent.venue_map_image"
                   :src="selectedEvent.venue_map_image" 
                   alt="Venue Map" 
-                  class="w-full h-full object-cover"
+                  class="w-full h-auto object-contain max-h-96"
                   @error="handleImageError"
                 />
                 <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center">
