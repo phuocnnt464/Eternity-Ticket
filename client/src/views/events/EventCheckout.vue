@@ -102,19 +102,63 @@ const handleCheckout = async () => {
     console.log('📦 Order data to send:', orderData)
 
     const response = await ordersAPI.createOrder(orderData)
-    const order = response.data.data
+
+
+    const orderResult = response.data.data
+    const orderId = orderResult.order.id
 
     // 2. Get VNPay payment URL
-    const paymentResponse = await ordersAPI.getVNPayURL(order.order.id)
-    const paymentUrl = paymentResponse.data.data.payment_url
+    // const paymentResponse = await ordersAPI.getVNPayURL(order.order_id)
+    // const paymentUrl = paymentResponse.data.payment_url
 
-    // 3. Redirect to VNPay
-    window.location.href = paymentUrl
+     try {
+      const paymentResponse = await ordersAPI.getVNPayURL(orderId)
+      console.log('✅ Payment URL response:', paymentResponse)
+      
+      // Response structure: { success: true, data: { payment_url, order_number, expires_at } }
+      const paymentUrl = paymentResponse.data.payment_url
 
-    // Clear cart
-    cartStore.clearCart()
+      if (!paymentUrl) {
+        throw new Error('Payment URL not found in response')
+      }
+
+      console.log('✅ Redirecting to VNPay:', paymentUrl)
+
+      // ✅ 6. Clear cart before redirect
+      cartStore.clear()
+
+      // 3. Redirect to VNPay
+      window.location.href = paymentUrl
+
+    } catch (paymentError) {
+      console.error('❌ Payment URL error:', paymentError)
+      
+      // ⚠️ Fallback: VNPay chưa config hoặc có lỗi
+      const errorMsg = paymentError.response?.data?.error?.message || paymentError.message
+      
+      alert(`Order created successfully!\n\nOrder ID: ${orderId}\n\nNote: Payment gateway is not configured yet (${errorMsg}). Your order is pending.\n\nPlease check "My Orders" page.`)
+      
+      router.push({
+        name: 'MyOrders',
+        params: { orderId: orderId }
+      })
+      
+      cartStore.clear()
+    }
   } catch (error) {
-    alert(error.response?.data?.error?.message || 'Order creation failed')
+     console.error('❌ Order creation error:', error)
+    console.error('❌ Error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    })
+    
+    const errorMessage = error.response?.data?.error?.message 
+      || error.response?.data?.message 
+      || error.message 
+      || 'Order creation failed'
+    alert(errorMessage)
+    // alert(error.response?.data?.error?.message || 'Order creation failed')
   } finally {
     loading.value = false
   }
@@ -136,7 +180,7 @@ const processOrder = async () => {
     }
 
     const response = await ordersAPI.createOrder(orderData)
-    const order = response.data.data
+    const order = response.data.order
 
     // Redirect to payment
     router.push({
@@ -159,6 +203,14 @@ onMounted(() => {
       name: 'EventDetail',
       params: { slug: route.params.slug }
     })
+  }
+
+  console.log('🎪 Session config:', session.value)
+  
+  if (session.value?.enable_waiting_room) {
+    console.log('⏳ Entering waiting room...')
+    showWaitingRoom.value = true
+    sessionId.value = session.value.id
   }
 
   // Pre-fill customer info from auth

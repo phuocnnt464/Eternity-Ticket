@@ -10,6 +10,10 @@ class VNPayService {
     this.vnp_HashSecret = process.env.VNPAY_HASH_SECRET;
     this.vnp_Url = process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
     // this.vnp_ReturnUrl = process.env.VNPAY_RETURN_URL;
+
+    if (!this.vnp_TmnCode || !this.vnp_HashSecret) {
+      console.warn('⚠️ VNPay credentials not configured. Payment will not work.');
+    }
   }
 
   /**
@@ -32,6 +36,10 @@ class VNPayService {
    * @returns {String} Payment URL
    */
   createPaymentUrl(params) {
+    if (!this.vnp_TmnCode || !this.vnp_HashSecret) {
+      throw new Error('VNPay is not configured. Please contact administrator.');
+    }
+
     const {
       orderId,
       amount,
