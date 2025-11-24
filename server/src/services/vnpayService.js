@@ -1,5 +1,4 @@
 // server/src/services/vnpayService.js
-// UPDATE EXISTING FILE WITH MEMBERSHIP SUPPORT
 
 const crypto = require('crypto');
 const querystring = require('querystring');
@@ -98,10 +97,15 @@ class VNPayService {
 
     console.log('📦 VNPay Params (before sort):', vnp_Params);
     // Sort params
-    vnp_Params = this.sortObject(vnp_Params);
+    // vnp_Params = this.sortObject(vnp_Params);
+
+    const sortedKeys = Object.keys(vnp_Params).sort();
 
     // Create signature
-     const signData = querystring.stringify(vnp_Params, { encode: false });
+    //  const signData = querystring.stringify(vnp_Params, { encode: false });
+    const signData = sortedKeys
+        .map(key => `${key}=${encodeURIComponent(vnp_Params[key])}`)
+        .join('&');
     console.log('🔐 Sign data:', signData);
     
     const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
@@ -109,10 +113,20 @@ class VNPayService {
     
     console.log('✅ Signature generated:', signed.substring(0, 20) + '...');
     
-    vnp_Params['vnp_SecureHash'] = signed;
+    // vnp_Params['vnp_SecureHash'] = signed;
+
+    const sortedParams = {};
+    sortedKeys.forEach(key => {
+        sortedParams[key] = vnp_Params[key];
+    });
+    sortedParams['vnp_SecureHash'] = signed;
 
     // Build URL
-    const paymentUrl = this.vnp_Url + '?' + querystring.stringify(vnp_Params, { encode: false });
+    // const paymentUrl = this.vnp_Url + '?' + querystring.stringify(vnp_Params, { encode: false });
+
+    const paymentUrl = this.vnp_Url + '?' + querystring.stringify(sortedParams);
+    console.log('🌐 Final payment URL length:', paymentUrl.length);
+    console.log('🌐 First 200 chars:', paymentUrl.substring(0, 200));
 
     return paymentUrl;
   }
@@ -135,17 +149,27 @@ class VNPayService {
     const secureHash = vnpParams['vnp_SecureHash'];
 
     // Remove hash params
-    delete vnpParams['vnp_SecureHash'];
-    delete vnpParams['vnp_SecureHashType'];
+    // delete vnpParams['vnp_SecureHash'];
+    // delete vnpParams['vnp_SecureHashType'];
+    const params = { ...vnpParams };
+    delete params['vnp_SecureHash'];
+    delete params['vnp_SecureHashType'];
 
     // Sort params
-    const sortedParams = this.sortObject(vnpParams);
+    // const sortedParams = this.sortObject(vnpParams);
 
     // Create signature
-    const signData = querystring.stringify(sortedParams, { encode: false });
+    // const signData = querystring.stringify(sortedParams, { encode: false });
+    // const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
+    // const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
+
+    const sortedKeys = Object.keys(params).sort();
+    const signData = sortedKeys
+        .map(key => `${key}=${encodeURIComponent(params[key])}`)
+        .join('&');
+
     const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
-
     return secureHash === signed;
   }
 
