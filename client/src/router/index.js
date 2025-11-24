@@ -79,6 +79,13 @@ const ServerError = () => import('@/views/errors/ServerError.vue')
 // ROUTES DEFINITION
 // ==========================================
 const routes = [
+  {
+    path: '/debug/vnpay',
+    name: 'VNPayDebug',
+    component: () => import('@/views/debug/VNPayDebug.vue'),
+    meta: { requiresAuth: true }
+  },
+  
   // ==========================================
   // PUBLIC ROUTES
   // ==========================================
