@@ -36,9 +36,27 @@ class VNPayService {
    * @returns {String} Payment URL
    */
   createPaymentUrl(params) {
+    console.log('🔐 VNPay createPaymentUrl called');
+    console.log('📋 Input params:', {
+        orderId: params.orderId,
+        amount: params.amount,
+        orderInfo: params.orderInfo,
+        orderType: params.orderType,
+        ipAddr: params.ipAddr,
+        returnUrl: params.returnUrl
+    });
+
     if (!this.vnp_TmnCode || !this.vnp_HashSecret) {
       throw new Error('VNPay is not configured. Please contact administrator.');
     }
+
+    console.log('🔑 VNPay Config:', {
+        tmnCode: this.vnp_TmnCode,
+        tmnCodeLength: this.vnp_TmnCode.length,
+        hasSecret: !!this.vnp_HashSecret,
+        secretLength: this.vnp_HashSecret.length,
+        url: this.vnp_Url
+    });
 
     const {
       orderId,
@@ -78,13 +96,18 @@ class VNPayService {
       vnp_ExpireDate: expireDate
     };
 
+    console.log('📦 VNPay Params (before sort):', vnp_Params);
     // Sort params
     vnp_Params = this.sortObject(vnp_Params);
 
     // Create signature
-    const signData = querystring.stringify(vnp_Params, { encode: false });
+     const signData = querystring.stringify(vnp_Params, { encode: false });
+    console.log('🔐 Sign data:', signData);
+    
     const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
+    
+    console.log('✅ Signature generated:', signed.substring(0, 20) + '...');
     
     vnp_Params['vnp_SecureHash'] = signed;
 
