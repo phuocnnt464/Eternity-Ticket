@@ -75,9 +75,8 @@ class VNPayService {
     // ✅ FIX: Sử dụng UTC+7 timezone
     const date = new Date();
     // Chuyển sang GMT+7
-    const vietnamTime = new Date(date.getTime() + (7 * 60 * 60 * 1000));
-    const createDate = this.formatDate(vietnamTime);
-    const expireDate = this.formatDate(new Date(vietnamTime.getTime() + 15 * 60 * 1000));
+    const createDate = this.formatDate(date);
+    const expireDate = this.formatDate(new Date(date.getTime() + 15 * 60 * 1000));
 
     // Build VNPay params
     let vnp_Params = {
