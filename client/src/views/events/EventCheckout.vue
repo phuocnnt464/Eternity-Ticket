@@ -47,7 +47,7 @@ const validateCoupon = async (code) => {
     })
     
     couponCode.value = code
-    couponDiscount.value = response.data.data.discount_amount
+    couponDiscount.value = response.data.discount_amount
   } catch (error) {
     throw new Error(error.response?.data?.error?.message || 'Invalid coupon')
   }
@@ -128,7 +128,7 @@ const handleCheckout = async () => {
       console.log('✅ Payment URL response:', paymentResponse)
       
       // Response structure: { success: true, data: { payment_url, order_number, expires_at } }
-      const paymentUrl = paymentResponse.data.payment_url
+      const paymentUrl = paymentResponse.payment_url
 
       if (!paymentUrl) {
         throw new Error('Payment URL not found in response')
@@ -158,7 +158,7 @@ const handleCheckout = async () => {
       cartStore.clear()
     }
   } catch (error) {
-     console.error('❌ Order creation error:', error)
+    console.error('❌ Order creation error:', error)
     console.error('❌ Error details:', {
       message: error.message,
       response: error.response?.data,
