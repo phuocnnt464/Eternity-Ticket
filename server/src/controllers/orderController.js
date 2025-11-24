@@ -546,7 +546,7 @@ class OrderController {
       const paymentUrl = VNPayService.createPaymentUrl({
         orderId: order.order_number,
         amount: order.total_amount,
-        orderInfo: `Payment for order ${order.order_number}`,
+        orderInfo: `PaymentForOrder${order.order_number}`,
         orderType: 'billpayment',
         ipAddr,
         returnUrl: `${process.env.FRONTEND_URL}/payment/result`

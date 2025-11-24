@@ -1,7 +1,7 @@
 // server/src/services/vnpayService.js
 
 const crypto = require('crypto');
-const qs = require('qs');
+const querystring = require('querystring');
 
 class VNPayService {
   constructor() {
@@ -72,11 +72,16 @@ class VNPayService {
       throw new Error('returnUrl is required for VNPay payment');
     }
 
-    // ✅ FIX: Sử dụng UTC+7 timezone
+    // Create date (GMT+7)
     const date = new Date();
-    // Chuyển sang GMT+7
     const createDate = this.formatDate(date);
     const expireDate = this.formatDate(new Date(date.getTime() + 15 * 60 * 1000));
+
+    console.log('⏰ Timestamps:', {
+      now: date.toISOString(),
+      createDate,
+      expireDate
+    });
 
     // Build VNPay params
     let vnp_Params = {
@@ -105,13 +110,13 @@ class VNPayService {
     // Sort params
     vnp_Params = this.sortObject(vnp_Params);
 
-    // ✅ FIX: Tạo signData theo đúng chuẩn VNPay (không encode)
-    // const signData = qs.stringify(vnp_Params, { encode: false });
-    const signData = Object.keys(vnp_Params).map(key => {
-        return key + "=" + encodeURIComponent(vnp_Params[key]);
-    }).join("&");
+    // ✅ CRITICAL FIX: Create signature WITHOUT URL encoding
+    // VNPay requires: "vnp_OrderInfo=Payment for order" NOT "vnp_OrderInfo=Payment%20for%20order"
+    const signData = Object.keys(vnp_Params)
+      .map(key => `${key}=${vnp_Params[key]}`)
+      .join('&');
     
-    console.log('🔐 Sign data:', signData);
+    console.log('🔐 Sign data (NO encoding):', signData);
 
     // Create signature
     const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
@@ -121,11 +126,10 @@ class VNPayService {
     console.log('✅ Full signature:', signed);
 
     // Add signature to params
-    // vnp_Params['vnp_SecureHash'] = signed;
+    vnp_Params['vnp_SecureHash'] = signed;
 
-    // ✅ FIX: Build URL với encode = false theo chuẩn VNPay
-    // const paymentUrl = this.vnp_Url + '?' + qs.stringify(vnp_Params, { encode: false });
-    const paymentUrl = this.vnp_Url + '?' + signData + '&vnp_SecureHash=' + signed;
+    // ✅ Build final URL WITH proper URL encoding
+    const paymentUrl = this.vnp_Url + '?' + querystring.stringify(vnp_Params);
 
     console.log('🌐 Final payment URL length:', paymentUrl.length);
     console.log('🌐 Full URL:', paymentUrl);
@@ -161,11 +165,10 @@ class VNPayService {
     // Sort params
     const sortedParams = this.sortObject(params);
 
-    // ✅ FIX: Verify với encode = false
-    // const signData = qs.stringify(sortedParams, { encode: false });
-    const signData = Object.keys(sortedParams).map(key => {
-        return key + "=" + encodeURIComponent(sortedParams[key]);
-    }).join("&");
+    // ✅ Create signature WITHOUT URL encoding (same as createPaymentUrl)
+    const signData = Object.keys(sortedParams)
+      .map(key => `${key}=${sortedParams[key]}`)
+      .join('&');
     
     console.log('🔍 Verify sign data:', signData);
 
@@ -180,19 +183,36 @@ class VNPayService {
   }
 
   /**
-   * Format date for VNPay
+   * Format date for VNPay (GMT+7)
    * @param {Date} date
-   * @returns {String} Formatted date
+   * @returns {String} Formatted date YYYYMMDDHHmmss
    */
   formatDate(date) {
     const pad = (num) => num.toString().padStart(2, '0');
     
-    return date.getFullYear() +
-           pad(date.getMonth() + 1) +
-           pad(date.getDate()) +
-           pad(date.getHours()) +
-           pad(date.getMinutes()) +
-           pad(date.getSeconds());
+    // ✅ Sử dụng toLocaleString với timezone Asia/Ho_Chi_Minh
+    const options = { 
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    };
+    
+    const formatter = new Intl.DateTimeFormat('en-GB', options);
+    const parts = formatter.formatToParts(date);
+    
+    const year = parts.find(p => p.type === 'year').value;
+    const month = parts.find(p => p.type === 'month').value;
+    const day = parts.find(p => p.type === 'day').value;
+    const hour = parts.find(p => p.type === 'hour').value;
+    const minute = parts.find(p => p.type === 'minute').value;
+    const second = parts.find(p => p.type === 'second').value;
+    
+    return `${year}${month}${day}${hour}${minute}${second}`;
   }
 }
 
