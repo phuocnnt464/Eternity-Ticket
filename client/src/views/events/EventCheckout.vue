@@ -105,7 +105,19 @@ const handleCheckout = async () => {
 
 
     const orderResult = response.data.data
+
+    if (!orderResult || !orderResult.order) {
+      throw new Error('Invalid order response from server')
+    }
+
     const orderId = orderResult.order.id
+    const orderNumber = orderResult.order.order_number
+
+    console.log('✅ Order created:', {
+      id: orderId,
+      number: orderNumber,
+      tickets_count: orderResult.tickets_count
+    })
 
     // 2. Get VNPay payment URL
     // const paymentResponse = await ordersAPI.getVNPayURL(order.order_id)
