@@ -106,7 +106,10 @@ class VNPayService {
     vnp_Params = this.sortObject(vnp_Params);
 
     // ✅ FIX: Tạo signData theo đúng chuẩn VNPay (không encode)
-    const signData = qs.stringify(vnp_Params, { encode: false });
+    // const signData = qs.stringify(vnp_Params, { encode: false });
+    const signData = Object.keys(vnp_Params).map(key => {
+        return key + "=" + encodeURIComponent(vnp_Params[key]);
+    }).join("&");
     
     console.log('🔐 Sign data:', signData);
 
@@ -118,10 +121,11 @@ class VNPayService {
     console.log('✅ Full signature:', signed);
 
     // Add signature to params
-    vnp_Params['vnp_SecureHash'] = signed;
+    // vnp_Params['vnp_SecureHash'] = signed;
 
     // ✅ FIX: Build URL với encode = false theo chuẩn VNPay
-    const paymentUrl = this.vnp_Url + '?' + qs.stringify(vnp_Params, { encode: false });
+    // const paymentUrl = this.vnp_Url + '?' + qs.stringify(vnp_Params, { encode: false });
+    const paymentUrl = this.vnp_Url + '?' + signData + '&vnp_SecureHash=' + signed;
 
     console.log('🌐 Final payment URL length:', paymentUrl.length);
     console.log('🌐 Full URL:', paymentUrl);
@@ -158,7 +162,10 @@ class VNPayService {
     const sortedParams = this.sortObject(params);
 
     // ✅ FIX: Verify với encode = false
-    const signData = qs.stringify(sortedParams, { encode: false });
+    // const signData = qs.stringify(sortedParams, { encode: false });
+    const signData = Object.keys(sortedParams).map(key => {
+        return key + "=" + encodeURIComponent(sortedParams[key]);
+    }).join("&");
     
     console.log('🔍 Verify sign data:', signData);
 
