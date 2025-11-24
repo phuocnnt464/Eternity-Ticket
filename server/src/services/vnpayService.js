@@ -8,7 +8,6 @@ class VNPayService {
     this.vnp_TmnCode = process.env.VNPAY_TMN_CODE;
     this.vnp_HashSecret = process.env.VNPAY_HASH_SECRET;
     this.vnp_Url = process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
-    // this.vnp_ReturnUrl = process.env.VNPAY_RETURN_URL;
 
     if (!this.vnp_TmnCode || !this.vnp_HashSecret) {
       console.warn('⚠️ VNPay credentials not configured. Payment will not work.');
@@ -73,10 +72,12 @@ class VNPayService {
       throw new Error('returnUrl is required for VNPay payment');
     }
 
-    // Create date (GMT+7)
+    // ✅ FIX: Sử dụng UTC+7 timezone
     const date = new Date();
-    const createDate = this.formatDate(date);
-    const expireDate = this.formatDate(new Date(date.getTime() + 15 * 60 * 1000));
+    // Chuyển sang GMT+7
+    const vietnamTime = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+    const createDate = this.formatDate(vietnamTime);
+    const expireDate = this.formatDate(new Date(vietnamTime.getTime() + 15 * 60 * 1000));
 
     // Build VNPay params
     let vnp_Params = {
@@ -105,12 +106,8 @@ class VNPayService {
     // Sort params
     vnp_Params = this.sortObject(vnp_Params);
 
-    // Create sign data
-    const signData = qs.stringify(vnp_Params, { 
-      encode: true,
-      encodeValuesOnly: true,
-      format: 'RFC1738'
-    });
+    // ✅ FIX: Tạo signData theo đúng chuẩn VNPay (không encode)
+    const signData = qs.stringify(vnp_Params, { encode: false });
     
     console.log('🔐 Sign data:', signData);
 
@@ -119,17 +116,13 @@ class VNPayService {
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
     
     console.log('✅ Signature generated:', signed.substring(0, 20) + '...');
+    console.log('✅ Full signature:', signed);
 
     // Add signature to params
     vnp_Params['vnp_SecureHash'] = signed;
 
-    // Build final URL
-    // const paymentUrl = this.vnp_Url + '?' + qs.stringify(vnp_Params, { encode: false });
-    const paymentUrl = this.vnp_Url + '?' + qs.stringify(vnp_Params, { 
-      encode: true,
-      encodeValuesOnly: true,
-      format: 'RFC1738'
-    });
+    // ✅ FIX: Build URL với encode = false theo chuẩn VNPay
+    const paymentUrl = this.vnp_Url + '?' + qs.stringify(vnp_Params, { encode: false });
 
     console.log('🌐 Final payment URL length:', paymentUrl.length);
     console.log('🌐 Full URL:', paymentUrl);
@@ -165,12 +158,8 @@ class VNPayService {
     // Sort params
     const sortedParams = this.sortObject(params);
 
-    // ✅ FIX: Dùng sortedParams thay vì vnp_Params
-    const signData = qs.stringify(sortedParams, { 
-      encode: true,
-      encodeValuesOnly: true,
-      format: 'RFC1738'
-    });
+    // ✅ FIX: Verify với encode = false
+    const signData = qs.stringify(sortedParams, { encode: false });
     
     console.log('🔍 Verify sign data:', signData);
 
@@ -178,8 +167,8 @@ class VNPayService {
     const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
-    console.log('🔍 Expected hash:', signed.substring(0, 20) + '...');
-    console.log('🔍 Received hash:', secureHash.substring(0, 20) + '...');
+    console.log('🔍 Expected hash:', signed);
+    console.log('🔍 Received hash:', secureHash);
 
     return secureHash === signed;
   }
