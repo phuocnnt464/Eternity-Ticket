@@ -531,9 +531,17 @@ class OrderController {
 
       // Generate VNPay URL
       const VNPayService = require('../services/vnpayService');
-      const ipAddr = req.headers['x-forwarded-for'] || 
+      let ipAddr = req.headers['x-forwarded-for'] || 
                     req.connection.remoteAddress || 
-                    req.ip;
+                    req.ip || '127.0.0.1';
+
+      if (ipAddr === '::1' || ipAddr === '::ffff:127.0.0.1') {
+        ipAddr = '127.0.0.1';
+      }
+
+      if (ipAddr.startsWith('::ffff:')) {
+        ipAddr = ipAddr.substring(7);
+      }
 
       const paymentUrl = VNPayService.createPaymentUrl({
         orderId: order.order_number,

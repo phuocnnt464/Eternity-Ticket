@@ -1,7 +1,7 @@
 // server/src/services/vnpayService.js
 
 const crypto = require('crypto');
-const querystring = require('querystring');
+const querystring = require('qs');
 
 class VNPayService {
   constructor() {
@@ -64,7 +64,8 @@ class VNPayService {
       orderType = 'other', // 'billpayment', 'fashion', 'other', 'membership'
       ipAddr,
       returnUrl,
-      locale = 'vn'
+      locale = 'vn',
+      bankCode = null
     } = params;
  
     // Validate returnUrl is required
@@ -72,65 +73,56 @@ class VNPayService {
       throw new Error('returnUrl is required for VNPay payment');
     }
 
-
-    // Create date
+    // Create date (GMT+7)
     const date = new Date();
     const createDate = this.formatDate(date);
-    const expireDate = this.formatDate(new Date(date.getTime() + 15 * 60 * 1000)); // 15 minutes
+    const expireDate = this.formatDate(new Date(date.getTime() + 15 * 60 * 1000));
 
-    // Build VNPay params
+    // ✅ Build VNPay params theo đúng thứ tự VNPay spec
     let vnp_Params = {
       vnp_Version: '2.1.0',
       vnp_Command: 'pay',
       vnp_TmnCode: this.vnp_TmnCode,
-      vnp_Locale: locale,
+      vnp_Amount: Math.round(amount * 100), // VNPay yêu cầu nhân 100
       vnp_CurrCode: 'VND',
       vnp_TxnRef: orderId,
       vnp_OrderInfo: orderInfo,
       vnp_OrderType: orderType,
-      vnp_Amount: Math.round(amount * 100), // VNPay uses smallest currency unit
+      vnp_Locale: locale,
       vnp_ReturnUrl: returnUrl,
       vnp_IpAddr: ipAddr,
       vnp_CreateDate: createDate,
       vnp_ExpireDate: expireDate
     };
 
+    // ✅ Thêm bankCode nếu có (tùy chọn)
+    if (bankCode !== null && bankCode !== '') {
+      vnp_Params['vnp_BankCode'] = bankCode;
+    }
+
     console.log('📦 VNPay Params (before sort):', vnp_Params);
-    // Sort params
-    // vnp_Params = this.sortObject(vnp_Params);
 
-    const sortedKeys = Object.keys(vnp_Params).sort();
+    // ✅ Sort params theo alphabet (VNPay requirement)
+    vnp_Params = this.sortObject(vnp_Params);
 
-    // Create signature
-    //  const signData = querystring.stringify(vnp_Params, { encode: false });
-    const signData = sortedKeys
-        .map(key => {
-            const value = vnp_Params[key];
-            // ✅ Không encode giá trị khi tạo signature
-            return `${key}=${value}`;
-        })
-        .join('&');
+    // ✅ Tạo sign data với qs.stringify({ encode: false })
+    const signData = qs.stringify(vnp_Params, { encode: false });
     console.log('🔐 Sign data:', signData);
-    
+
+    // ✅ Tạo signature với HMAC SHA512
     const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
     
     console.log('✅ Signature generated:', signed.substring(0, 20) + '...');
+
+    // ✅ Thêm vnp_SecureHash vào params
+    vnp_Params['vnp_SecureHash'] = signed;
+
+    // ✅ Build final URL với qs.stringify({ encode: false })
+    const paymentUrl = this.vnp_Url + '?' + qs.stringify(vnp_Params, { encode: false });
     
-    // vnp_Params['vnp_SecureHash'] = signed;
-
-    const sortedParams = {};
-    sortedKeys.forEach(key => {
-        sortedParams[key] = vnp_Params[key];
-    });
-    sortedParams['vnp_SecureHash'] = signed;
-
-    // Build URL
-    // const paymentUrl = this.vnp_Url + '?' + querystring.stringify(vnp_Params, { encode: false });
-
-    const paymentUrl = this.vnp_Url + '?' + querystring.stringify(sortedParams);
     console.log('🌐 Final payment URL length:', paymentUrl.length);
-    console.log('🌐 First 200 chars:', paymentUrl.substring(0, 200));
+    console.log('🌐 Full URL:', paymentUrl);
 
     return paymentUrl;
   }
@@ -167,18 +159,17 @@ class VNPayService {
     // const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
     // const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
-    const sortedKeys = Object.keys(params).sort();
-    const signData = sortedKeys
-        .map(key => {
-            const value = params[key];
-            // ✅ Không encode giá trị khi verify
-            return `${key}=${value}`;
-        })
-        .join('&');
+    // ✅ Sort params
+    const sortedParams = this.sortObject(params);
+
+    // ✅ Create signature với qs.stringify({ encode: false })
+    const signData = qs.stringify(sortedParams, { encode: false });
+    
+    console.log('🔍 Verify sign data:', signData);
 
     const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
-    
+
     console.log('🔍 Expected hash:', signed.substring(0, 20) + '...');
     console.log('🔍 Received hash:', secureHash.substring(0, 20) + '...');
     
