@@ -104,7 +104,7 @@ const handleCheckout = async () => {
     const response = await ordersAPI.createOrder(orderData)
 
 
-    const orderResult = response.data.data
+    const orderResult = response.data
 
     if (!orderResult || !orderResult.order) {
       throw new Error('Invalid order response from server')
