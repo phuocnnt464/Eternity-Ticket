@@ -153,4 +153,14 @@ router.post('/cleanup/expired',
   OrderController.cleanupExpiredOrders
 );
 
+/**
+ * @route   GET /api/orders/debug/vnpay
+ * @desc    Debug VNPay configuration
+ * @access  Private (for development only)
+ */
+router.get('/debug/vnpay',
+  authenticateToken,
+  OrderController.debugVNPay
+);
+
 module.exports = router;

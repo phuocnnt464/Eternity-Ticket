@@ -751,6 +751,59 @@ class OrderController {
       return res.json({ RspCode: '99', Message: 'Unknown error' });
     }
   }
+
+  /**
+   * Debug VNPay configuration
+   * GET /api/orders/debug/vnpay
+   */
+  static async debugVNPay(req, res) {
+    try {
+      const VNPayService = require('../services/vnpayService');
+      
+      // Check credentials
+      const hasCredentials = !!process.env.VNPAY_TMN_CODE && !!process.env.VNPAY_HASH_SECRET;
+      
+      // Generate test URL
+      let testUrl = null;
+      let error = null;
+      
+      if (hasCredentials) {
+        try {
+          testUrl = VNPayService.createPaymentUrl({
+            orderId: 'TEST-ORDER-001',
+            amount: 100000,
+            orderInfo: 'Test payment',
+            orderType: 'billpayment',
+            ipAddr: '127.0.0.1',
+            returnUrl: `${process.env.FRONTEND_URL}/payment/result`
+          });
+        } catch (err) {
+          error = err.message;
+        }
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          credentials_configured: hasCredentials,
+          tmn_code: process.env.VNPAY_TMN_CODE || 'NOT_SET',
+          tmn_code_length: process.env.VNPAY_TMN_CODE?.length || 0,
+          hash_secret_length: process.env.VNPAY_HASH_SECRET?.length || 0,
+          vnpay_url: process.env.VNPAY_URL || 'NOT_SET',
+          frontend_url: process.env.FRONTEND_URL || 'NOT_SET',
+          test_payment_url: testUrl,
+          error: error
+        }
+      });
+      
+    } catch (error) {
+      console.error('Debug VNPay error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
 }
 
 module.exports = OrderController;
