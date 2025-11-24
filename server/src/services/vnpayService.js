@@ -1,7 +1,7 @@
 // server/src/services/vnpayService.js
 
 const crypto = require('crypto');
-const querystring = require('querystring');
+const qs = require('qs');
 
 class VNPayService {
   constructor() {
@@ -10,18 +10,26 @@ class VNPayService {
     this.vnp_Url = process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
 
     if (!this.vnp_TmnCode || !this.vnp_HashSecret) {
-      console.warn('⚠️ VNPay credentials not configured. Payment will not work.');
+      console.warn('⚠️ VNPay credentials not configured');
     }
   }
 
+  /**
+   * ✅ Sort object THEO CHUẨN VNPAY (encode key & value)
+   */
   sortObject(obj) {
-    const sorted = {};
-    const keys = Object.keys(obj).sort();
-    
-    keys.forEach(key => {
-      sorted[key] = obj[key];
-    });
-    
+    let sorted = {};
+    let str = [];
+    let key;
+    for (key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        str.push(encodeURIComponent(key));
+      }
+    }
+    str.sort();
+    for (key = 0; key < str.length; key++) {
+      sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+    }
     return sorted;
   }
 
@@ -29,7 +37,7 @@ class VNPayService {
     console.log('🔐 VNPay createPaymentUrl called');
 
     if (!this.vnp_TmnCode || !this.vnp_HashSecret) {
-      throw new Error('VNPay is not configured. Please contact administrator.');
+      throw new Error('VNPay is not configured');
     }
 
     const {
@@ -42,18 +50,22 @@ class VNPayService {
       locale = 'vn',
       bankCode = null
     } = params;
- 
+
     if (!returnUrl) {
-      throw new Error('returnUrl is required for VNPay payment');
+      throw new Error('returnUrl is required');
     }
 
-    // ✅ FIX: Get current GMT+7 time
+    // ✅ Create date GMT+7
+    process.env.TZ = 'Asia/Ho_Chi_Minh';
     const date = new Date();
-    const createDate = this.formatDate(date);
+    const moment = require('moment');
+    const createDate = moment(date).format('YYYYMMDDHHmmss');
+    const expireDate = moment(date).add(15, 'minutes').format('YYYYMMDDHHmmss');
 
     console.log('⏰ Create Date:', createDate);
+    console.log('⏰ Expire Date:', expireDate);
 
-    // ✅ FIX: Remove vnp_ExpireDate (optional and may cause issues)
+    // ✅ Build params
     let vnp_Params = {
       vnp_Version: '2.1.0',
       vnp_Command: 'pay',
@@ -66,36 +78,35 @@ class VNPayService {
       vnp_Locale: locale,
       vnp_ReturnUrl: returnUrl,
       vnp_IpAddr: ipAddr,
-      vnp_CreateDate: createDate
-      // ❌ REMOVED: vnp_ExpireDate
+      vnp_CreateDate: createDate,
+      vnp_ExpireDate: expireDate  // ✅ BẮT BUỘC!
     };
 
     if (bankCode !== null && bankCode !== '') {
       vnp_Params['vnp_BankCode'] = bankCode;
     }
 
-    console.log('📦 VNPay Params:', vnp_Params);
+    console.log('📦 VNPay Params (before sort):', vnp_Params);
 
-    // Sort params
+    // ✅ Sort theo chuẩn VNPay (encode key & value)
     vnp_Params = this.sortObject(vnp_Params);
 
-    // ✅ Create signature WITHOUT URL encoding
-    const signData = Object.keys(vnp_Params)
-      .map(key => `${key}=${vnp_Params[key]}`)
-      .join('&');
-    
+    console.log('📦 VNPay Params (after sort):', vnp_Params);
+
+    // ✅ Create signature (vnp_Params đã encode rồi)
+    const signData = qs.stringify(vnp_Params, { encode: false });
+
     console.log('🔐 Sign data:', signData);
 
-    // ✅ Create HMAC-SHA512 signature (lowercase)
     const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
-    
+
     console.log('✅ Signature:', signed);
 
     vnp_Params['vnp_SecureHash'] = signed;
 
-    // ✅ Build URL with encoding
-    const paymentUrl = this.vnp_Url + '?' + querystring.stringify(vnp_Params);
+    // ✅ Build URL
+    const paymentUrl = this.vnp_Url + '?' + qs.stringify(vnp_Params, { encode: false });
 
     console.log('🌐 Payment URL:', paymentUrl);
 
@@ -105,27 +116,17 @@ class VNPayService {
   verifyReturnUrl(vnpParams) {
     console.log('🔍 VNPay verifyReturnUrl called');
 
-    const requiredFields = ['vnp_TxnRef', 'vnp_Amount', 'vnp_ResponseCode', 'vnp_SecureHash'];
-  
-    for (const field of requiredFields) {
-      if (!vnpParams[field]) {
-        console.error(`❌ Missing field: ${field}`);
-        return false;
-      }
-    }
-
     const secureHash = vnpParams['vnp_SecureHash'];
 
-    const params = { ...vnpParams };
+    let params = { ...vnpParams };
     delete params['vnp_SecureHash'];
     delete params['vnp_SecureHashType'];
 
-    const sortedParams = this.sortObject(params);
+    // ✅ Sort theo chuẩn VNPay
+    params = this.sortObject(params);
 
-    const signData = Object.keys(sortedParams)
-      .map(key => `${key}=${sortedParams[key]}`)
-      .join('&');
-    
+    const signData = qs.stringify(params, { encode: false });
+
     console.log('🔍 Verify sign data:', signData);
 
     const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
@@ -135,33 +136,6 @@ class VNPayService {
     console.log('🔍 Received:', secureHash);
 
     return secureHash === signed;
-  }
-
-  formatDate(date) {
-    const pad = (num) => num.toString().padStart(2, '0');
-    
-    const options = { 
-      timeZone: 'Asia/Ho_Chi_Minh',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    };
-    
-    const formatter = new Intl.DateTimeFormat('en-GB', options);
-    const parts = formatter.formatToParts(date);
-    
-    const year = parts.find(p => p.type === 'year').value;
-    const month = parts.find(p => p.type === 'month').value;
-    const day = parts.find(p => p.type === 'day').value;
-    const hour = parts.find(p => p.type === 'hour').value;
-    const minute = parts.find(p => p.type === 'minute').value;
-    const second = parts.find(p => p.type === 'second').value;
-    
-    return `${year}${month}${day}${hour}${minute}${second}`;
   }
 }
 
