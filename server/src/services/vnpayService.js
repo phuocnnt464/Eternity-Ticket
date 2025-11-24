@@ -104,7 +104,11 @@ class VNPayService {
     // Create signature
     //  const signData = querystring.stringify(vnp_Params, { encode: false });
     const signData = sortedKeys
-        .map(key => `${key}=${encodeURIComponent(vnp_Params[key])}`)
+        .map(key => {
+            const value = vnp_Params[key];
+            // ✅ Không encode giá trị khi tạo signature
+            return `${key}=${value}`;
+        })
         .join('&');
     console.log('🔐 Sign data:', signData);
     
@@ -165,11 +169,19 @@ class VNPayService {
 
     const sortedKeys = Object.keys(params).sort();
     const signData = sortedKeys
-        .map(key => `${key}=${encodeURIComponent(params[key])}`)
+        .map(key => {
+            const value = params[key];
+            // ✅ Không encode giá trị khi verify
+            return `${key}=${value}`;
+        })
         .join('&');
 
     const hmac = crypto.createHmac('sha512', this.vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
+    
+    console.log('🔍 Expected hash:', signed.substring(0, 20) + '...');
+    console.log('🔍 Received hash:', secureHash.substring(0, 20) + '...');
+    
     return secureHash === signed;
   }
 
