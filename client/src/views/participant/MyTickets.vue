@@ -74,13 +74,13 @@ const filteredTickets = computed(() => {
 const fetchTickets = async () => {
   loading.value = true
   try {
-    const userId = authStore.user.user_id
+    const userId = authStore.user.id
     const response = await usersAPI.getTicketHistory(userId, {
       page: pagination.value.currentPage,
       limit: pagination.value.perPage
     })
     
-    tickets.value = response.data.data || []
+    tickets.value = response.data.tickets || []
     pagination.value.totalItems = response.data.pagination?.total || 0
     pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
   } catch (error) {

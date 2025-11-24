@@ -1,7 +1,7 @@
 // server/src/services/vnpayService.js
 
 const crypto = require('crypto');
-const querystring = require('qs');
+const qs = require('qs');
 
 class VNPayService {
   constructor() {
@@ -172,7 +172,7 @@ class VNPayService {
 
     console.log('🔍 Expected hash:', signed.substring(0, 20) + '...');
     console.log('🔍 Received hash:', secureHash.substring(0, 20) + '...');
-    
+
     return secureHash === signed;
   }
 
