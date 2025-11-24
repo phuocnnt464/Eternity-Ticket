@@ -2,7 +2,7 @@ require('dotenv').config();
 const crypto = require('crypto');
 const querystring = require('querystring');
 
-console.log('🔍 VNPay Live Test (Current Time)\n');
+console.log('🔍 VNPay Final Test (Without ExpireDate)\n');
 
 const vnp_TmnCode = process.env.VNPAY_TMN_CODE;
 const vnp_HashSecret = process.env.VNPAY_HASH_SECRET?.trim();
@@ -27,30 +27,27 @@ const formatDate = (date) => {
 };
 
 const createDate = formatDate(gmt7);
-const expireTime = new Date(gmt7.getTime() + 15 * 60 * 1000);
-const expireDate = formatDate(expireTime);
 
 console.log('⏰ Timestamps:');
 console.log(`Current (GMT+7): ${gmt7.toISOString()}`);
 console.log(`Create Date: ${createDate}`);
-console.log(`Expire Date: ${expireDate}`);
 console.log();
 
-// Test params with CURRENT time
+// ✅ Test params WITHOUT vnp_ExpireDate
 const params = {
   vnp_Amount: 10000000,
   vnp_Command: 'pay',
   vnp_CreateDate: createDate,
   vnp_CurrCode: 'VND',
-  vnp_ExpireDate: expireDate,
   vnp_IpAddr: '127.0.0.1',
   vnp_Locale: 'vn',
-  vnp_OrderInfo: 'TestPayment',  // NO spaces
+  vnp_OrderInfo: 'TestPayment',
   vnp_OrderType: 'billpayment',
   vnp_ReturnUrl: 'http://localhost:5173/payment/result',
   vnp_TmnCode: vnp_TmnCode,
-  vnp_TxnRef: 'TEST-' + Date.now(),  // Unique ID
+  vnp_TxnRef: 'TEST-' + Date.now(),
   vnp_Version: '2.1.0'
+  // ❌ NO vnp_ExpireDate!
 };
 
 // Sort
@@ -83,10 +80,9 @@ const url = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?' +
             querystring.stringify(finalParams);
 
 console.log('='.repeat(80));
-console.log('🌐 Payment URL (Valid for 15 minutes):');
+console.log('🌐 Payment URL (NO ExpireDate):');
 console.log('='.repeat(80));
 console.log(url);
 console.log();
 console.log('✨ Copy this URL and test in browser NOW!');
-console.log('⏱️  This URL expires at:', expireTime.toLocaleString());
 console.log('='.repeat(80));
