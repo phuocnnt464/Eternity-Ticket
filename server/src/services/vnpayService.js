@@ -15,7 +15,7 @@ class VNPayService {
   }
 
   /**
-   * ✅ Sort object THEO CHUẨN VNPAY (encode key & value)
+   * ✅ Sort object THEO CHUẨN VNPAY
    */
   sortObject(obj) {
     let sorted = {};
@@ -79,7 +79,7 @@ class VNPayService {
       vnp_ReturnUrl: returnUrl,
       vnp_IpAddr: ipAddr,
       vnp_CreateDate: createDate,
-      vnp_ExpireDate: expireDate  // ✅ BẮT BUỘC!
+      vnp_ExpireDate: expireDate
     };
 
     if (bankCode !== null && bankCode !== '') {
@@ -93,8 +93,11 @@ class VNPayService {
 
     console.log('📦 VNPay Params (after sort):', vnp_Params);
 
-    // ✅ Create signature (vnp_Params đã encode rồi)
-    const signData = qs.stringify(vnp_Params, { encode: false });
+    // ✅ CRITICAL: Tạo signData từ sorted params đã encode
+    // KHÔNG dùng qs.stringify() vì đã encode rồi!
+    const signData = Object.keys(vnp_Params)
+      .map(key => `${key}=${vnp_Params[key]}`)
+      .join('&');
 
     console.log('🔐 Sign data:', signData);
 
@@ -105,8 +108,10 @@ class VNPayService {
 
     vnp_Params['vnp_SecureHash'] = signed;
 
-    // ✅ Build URL
-    const paymentUrl = this.vnp_Url + '?' + qs.stringify(vnp_Params, { encode: false });
+    // ✅ Build URL từ params đã encode
+    const paymentUrl = this.vnp_Url + '?' + Object.keys(vnp_Params)
+      .map(key => `${key}=${vnp_Params[key]}`)
+      .join('&');
 
     console.log('🌐 Payment URL:', paymentUrl);
 
@@ -125,7 +130,10 @@ class VNPayService {
     // ✅ Sort theo chuẩn VNPay
     params = this.sortObject(params);
 
-    const signData = qs.stringify(params, { encode: false });
+    // ✅ Tạo signData (không dùng qs.stringify)
+    const signData = Object.keys(params)
+      .map(key => `${key}=${params[key]}`)
+      .join('&');
 
     console.log('🔍 Verify sign data:', signData);
 
