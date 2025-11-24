@@ -121,7 +121,7 @@ const handleCheckout = async () => {
 
     // 2. Get VNPay payment URL
     // const paymentResponse = await ordersAPI.getVNPayURL(order.order_id)
-    // const paymentUrl = paymentResponse.data.payment_url
+    // const paymentUrl = paymentResponse.payment_url
 
      try {
       const paymentResponse = await ordersAPI.getVNPayURL(orderId)
