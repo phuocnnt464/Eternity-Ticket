@@ -5,6 +5,7 @@ import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
 import { ordersAPI } from '@/api/orders.js'
 import { eventsAPI } from '@/api/events.js'
+import { queueAPI } from '@/api/queue.js'
 import CheckoutForm from '@/components/features/CheckoutForm.vue'
 import OrderSummary from '@/components/features/OrderSummary.vue'
 import WaitingRoom from '@/components/features/WaitingRoom.vue'
@@ -359,6 +360,25 @@ const handleBackToInfo = () => {
   currentStep.value = 1
 }
 
+const checkWaitingRoom = async () => {
+  try {
+    // Check if session has waiting room enabled
+    const response = await queueAPI.getStatus(session.value.id)
+    
+    if (response.data?.waiting_room_enabled) {
+      console.log('⏳ Waiting room enabled, showing waiting room...')
+      showWaitingRoom.value = true
+      sessionId.value = session.value.id
+    } else {
+      console.log('✅ No waiting room required')
+      showWaitingRoom.value = false
+    }
+  } catch (error) {
+    console.log('ℹ️ No waiting room config found, proceeding to checkout')
+    showWaitingRoom.value = false
+  }
+}
+
 onMounted(() => {
   if (!isCartValid.value) {
     router.push({
@@ -368,12 +388,14 @@ onMounted(() => {
   }
 
   console.log('🎪 Session config:', session.value)
+
+  await checkWaitingRoom()
   
-  if (session.value?.enable_waiting_room) {
-    console.log('⏳ Entering waiting room...')
-    showWaitingRoom.value = true
-    sessionId.value = session.value.id
-  }
+  // if (session.value?.enable_waiting_room) {
+  //   console.log('⏳ Entering waiting room...')
+  //   showWaitingRoom.value = true
+  //   sessionId.value = session.value.id
+  // }
 
   // Pre-fill customer info from auth
   if (authStore.user) {
