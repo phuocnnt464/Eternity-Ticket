@@ -30,16 +30,17 @@ const pagination = ref({
 const statusOptions = [
   { value: 'all', label: 'All Orders' },
   { value: 'pending', label: 'Pending Payment' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' }
+  { value: 'paid', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'failed', label: 'Failed' }
 ]
 
 const getStatusBadge = (status) => {
   const badges = {
     pending: { variant: 'warning', text: 'Pending', icon: ClockIcon },
-    completed: { variant: 'success', text: 'Completed', icon: CheckCircleIcon },
+    paid: { variant: 'success', text: 'Completed', icon: CheckCircleIcon },
     cancelled: { variant: 'danger', text: 'Cancelled', icon: XCircleIcon },
-    expired: { variant: 'danger', text: 'Expired', icon: XCircleIcon }
+    failed: { variant: 'danger', text: 'Failed', icon: XCircleIcon }
   }
   return badges[status] || badges.pending
 }
@@ -192,7 +193,7 @@ onMounted(() => {
             </Button>
 
             <Button
-              v-if="order.status === 'completed'"
+              v-if="order.status === 'paid'"
               variant="primary"
               size="sm"
               @click="handleDownloadTickets(order.order_id)"
