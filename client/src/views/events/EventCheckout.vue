@@ -204,16 +204,6 @@ const checkQueueStatusAndStartTimer = async () => {
     const response = await queueAPI.getStatus(session.value.id)
     const apiResponse = response.data
     
-    console.log('🔍 API Response:', apiResponse)
-    
-    if (!apiResponse.success) {
-      console.warn('Queue status check failed:', apiResponse.message || 'Unknown error')
-      // Không có waiting room → Tạo timer 15 phút
-      const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
-      startSlotCountdown(expiryTime)
-      return true
-    }
-    
     const data = apiResponse.data
     console.log('🔍 Queue status check:', data)
     
