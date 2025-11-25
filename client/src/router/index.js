@@ -17,7 +17,6 @@ const Home = () => import('@/views/Home.vue')
 const EventList = () => import('@/views/events/EventList.vue')
 const EventDetail = () => import('@/views/events/EventDetail.vue')
 const EventCheckout = () => import('@/views/events/EventCheckout.vue')
-const PaymentResult = () => import('@/views/PaymentResult.vue')
 const AboutUs = () => import('@/views/AboutUs.vue')
 const ContactUs = () => import('@/views/ContactUs.vue')
 
@@ -39,7 +38,8 @@ const MyTickets = () => import('@/views/participant/MyTickets.vue')
 const MyOrders = () => import('@/views/participant/MyOrders.vue')
 const Membership = () => import('@/views/participant/Membership.vue')
 const Notifications = () => import('@/views/participant/Notifications.vue')
-
+const OrderPaymentResult = () => import('@/views/participant/OrderPaymentResult.vue')
+const MembershipPaymentResult = () => import('@/views/participant/MembershipPaymentResult.vue') 
 // ==========================================
 // ORGANIZER PAGES
 // ==========================================
@@ -157,15 +157,6 @@ const routes = [
           public: true
         }
       },
-      {
-      path: 'payment/result',  
-      name: 'PaymentResult',
-      component: PaymentResult,
-      meta: { 
-        title: 'Payment Result - Eternity Ticket',
-        public: true 
-      }
-    },
     ]
   },
 
@@ -250,6 +241,25 @@ const routes = [
         name: 'ParticipantNotifications',
         component: Notifications,
         meta: { title: 'Notifications - Eternity Ticket' }
+      },
+      {
+        path: 'payment/result',  
+        name: 'OrderPaymentResult',
+        component: OrderPaymentResult,
+        meta: { 
+          title: 'Payment Result - Eternity Ticket',
+          public: true 
+        }
+      },
+      {
+        path: 'membership/payment/result',  
+        name: 'MembershipPaymentResult',
+        component: MembershipPaymentResult,
+        meta: { 
+          title: 'Membership Payment Result - Eternity Ticket',
+          public: true,
+          requiresAuth: true
+        }
       }
     ]
   },

@@ -106,4 +106,14 @@ router.put(
   MembershipController.adminUpdatePricing
 );
 
+/**
+ * @route   POST /api/membership/orders/:orderNumber/payment/mock
+ * @desc    Mock payment for membership (development/testing)
+ * @access  Private
+ */
+router.post('/orders/:orderNumber/payment/mock',
+  authenticateToken,
+  MembershipController.mockPayment
+);
+
 module.exports = router;

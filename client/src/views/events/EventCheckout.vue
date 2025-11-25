@@ -119,51 +119,40 @@ const handleCheckout = async () => {
       tickets_count: orderResult.tickets_count
     })
 
-    // 2. Get VNPay payment URL
-    // const paymentResponse = await ordersAPI.getVNPayURL(order.order_id)
-    // const paymentUrl = paymentResponse.payment_url
-
-     try {
-      const paymentResponse = await ordersAPI.getVNPayURL(orderId)
-      console.log('✅ Payment URL response:', paymentResponse)
+     // ✅ USE MOCK PAYMENT instead of VNPay
+    try {
+      console.log('🎭 Processing mock payment...')
       
-      // Response structure: { success: true, data: { payment_url, order_number, expires_at } }
-      const paymentUrl = paymentResponse.payment_url
+      const paymentResponse = await ordersAPI.mockPayment(orderId, true) // true = success
+      console.log('✅ Payment response:', paymentResponse)
+      
+      if (paymentResponse.success) {
+        // Clear cart before redirect
+        cartStore.clear()
 
-      if (!paymentUrl) {
-        throw new Error('Payment URL not found in response')
+        // Redirect to payment result page
+        const redirectUrl = paymentResponse.data.redirect_url
+        window.location.href = redirectUrl
+      } else {
+        throw new Error(paymentResponse.message || 'Payment failed')
       }
 
-      console.log('✅ Redirecting to VNPay:', paymentUrl)
-
-      // ✅ 6. Clear cart before redirect
-      cartStore.clear()
-
-      // 3. Redirect to VNPay
-      window.location.href = paymentUrl
-
     } catch (paymentError) {
-      console.error('❌ Payment URL error:', paymentError)
+      console.error('❌ Payment error:', paymentError)
       
-      // ⚠️ Fallback: VNPay chưa config hoặc có lỗi
       const errorMsg = paymentError.response?.data?.error?.message || paymentError.message
       
-      alert(`Order created successfully!\n\nOrder ID: ${orderId}\n\nNote: Payment gateway is not configured yet (${errorMsg}). Your order is pending.\n\nPlease check "My Orders" page.`)
+      alert(`Payment failed: ${errorMsg}\n\nPlease try again or contact support.`)
       
       router.push({
         name: 'MyOrders',
-        params: { orderId: orderId }
+        // params: { orderId: orderId }
       })
       
       cartStore.clear()
     }
   } catch (error) {
     console.error('❌ Order creation error:', error)
-    console.error('❌ Error details:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status
-    })
     
     const errorMessage = error.response?.data?.error?.message 
       || error.response?.data?.message 

@@ -114,14 +114,58 @@ const confirmUpgrade = async () => {
   
   upgrading.value = true
   try {
-    const response = await membershipAPI.upgrade({
-      tier: selectedPlan.value.value
+    // Step 1: Create membership order
+    const orderResponse = await membershipAPI.createOrder({
+      tier: selectedPlan.value.value,
+      billing_period: 'monthly', // or get from selectedPlan
+      return_url: window.location.origin + '/membership/payment/result'
     })
     
-    // Redirect to payment
-    window.location.href = response.data.data.payment_url
+    console.log('✅ Membership order created:', orderResponse)
+    
+    const orderData = orderResponse.data
+    
+    // If free tier (no payment required)
+    if (!orderData.payment_required) {
+      alert('Membership activated successfully!')
+      await authStore.loadUser()
+      await fetchMembershipData()
+      showUpgradeModal.value = false
+      upgrading.value = false
+      return
+    }
+    
+    // Step 2: Process mock payment
+    try {
+      console.log('🎭 Processing mock membership payment...')
+      
+      const paymentResponse = await membershipAPI.mockPayment(
+        orderData.order.order_number, 
+        true // true = success
+      )
+      
+      console.log('✅ Payment response:', paymentResponse)
+      
+      if (paymentResponse.success) {
+        // Redirect to payment result page
+        const redirectUrl = paymentResponse.data.redirect_url
+        window.location.href = redirectUrl
+      } else {
+        throw new Error(paymentResponse.message || 'Payment failed')
+      }
+      
+    } catch (paymentError) {
+      console.error('❌ Payment error:', paymentError)
+      
+      const errorMsg = paymentError.response?.data?.error?.message || paymentError.message
+      
+      alert(`Payment failed: ${errorMsg}\n\nPlease try again.`)
+      upgrading.value = false
+    }
+    
   } catch (error) {
-    alert(error.response?.data?.error?.message || 'Failed to upgrade membership')
+    console.error('❌ Order creation error:', error)
+    alert(error.response?.data?.error?.message || 'Failed to create membership order')
     upgrading.value = false
   }
 }

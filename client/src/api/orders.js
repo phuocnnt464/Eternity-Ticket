@@ -52,5 +52,11 @@ export const ordersAPI = {
   getVNPayURL: async (orderId) => {
     const response = await api.post(`/orders/${orderId}/payment/vnpay`)
     return response.data
+  },
+
+  // Mock Payment (for development)
+  mockPayment: async (orderId, success = true) => {
+    const response = await api.post(`/orders/${orderId}/payment/mock`, { success })
+    return response.data
   }
 }

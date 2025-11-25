@@ -474,6 +474,96 @@ class MembershipController {
       next(error);
     }
   }
+  /**
+   * Mock Payment for Membership
+   * POST /api/membership/orders/:orderNumber/payment/mock
+   */
+  static async mockPayment(req, res, next) {
+    try {
+      const { orderNumber } = req.params;
+      const { success = true } = req.body;
+      const userId = req.user.id;
+
+      console.log(`🎭 Mock membership payment for order: ${orderNumber}, success: ${success}`);
+
+      // Get order
+      const orderQuery = await require('../config/database').query(`
+        SELECT * FROM membership_orders 
+        WHERE order_number = $1 AND user_id = $2
+      `, [orderNumber, userId]);
+
+      if (orderQuery.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Order not found' }
+        });
+      }
+
+      const order = orderQuery.rows[0];
+
+      if (order.status !== 'pending') {
+        return res.status(400).json({
+          success: false,
+          error: { message: 'Order is not pending payment' }
+        });
+      }
+
+      // Simulate payment processing delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const transactionId = `MOCK-MEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      if (success) {
+        // Success payment - activate membership
+        await MembershipModel.completeMembershipPayment(order.id, {
+          payment_method: 'mock',
+          payment_transaction_id: transactionId,
+          payment_data: {
+            mock: true,
+            payment_time: new Date().toISOString()
+          }
+        });
+
+        console.log(`✅ Mock membership payment successful: ${orderNumber}`);
+
+        return res.json({
+          success: true,
+          message: 'Membership payment successful!',
+          data: {
+            order_number: orderNumber,
+            transaction_id: transactionId,
+            status: 'success',
+            redirect_url: `${process.env.FRONTEND_URL}/membership/payment/result?status=success&order=${orderNumber}&txn=${transactionId}`
+          }
+        });
+      } else {
+        // Failed payment
+        await require('../config/database').query(`
+          UPDATE membership_orders
+          SET status = 'failed',
+              payment_data = $1,
+              updated_at = NOW()
+          WHERE id = $2
+        `, [JSON.stringify({ mock: true, error: 'Simulated payment failure' }), order.id]);
+
+        console.log(`❌ Mock membership payment failed: ${orderNumber}`);
+
+        return res.json({
+          success: false,
+          message: 'Payment failed',
+          data: {
+            order_number: orderNumber,
+            status: 'failed',
+            redirect_url: `${process.env.FRONTEND_URL}/membership/payment/result?status=failed&order=${orderNumber}`
+          }
+        });
+      }
+
+    } catch (error) {
+      console.error('Mock membership payment error:', error);
+      next(error);
+    }
+  }
 }
 
 module.exports = MembershipController;

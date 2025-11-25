@@ -163,4 +163,15 @@ router.get('/debug/vnpay',
   OrderController.debugVNPay
 );
 
+/**
+ * @route   POST /api/orders/:orderId/payment/mock
+ * @desc    Mock payment (for development/testing)
+ * @access  Private
+ */
+router.post('/:orderId/payment/mock',
+  authenticateToken,
+  validateUUIDParam('orderId'),
+  OrderController.mockPayment
+);
+
 module.exports = router;

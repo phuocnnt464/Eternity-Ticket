@@ -45,5 +45,11 @@ export const membershipAPI = {
   // PUT /api/membership/admin/pricing/:tier
   adminUpdatePricing: (tier, data) => {
     return api.put(`/membership/admin/pricing/${tier}`, data)
+  },
+  
+   // Mock Payment (for development)
+  mockPayment: async (orderNumber, success = true) => {
+    const response = await api.post(`/membership/orders/${orderNumber}/payment/mock`, { success })
+    return response.data
   }
 }

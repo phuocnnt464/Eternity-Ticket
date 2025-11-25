@@ -812,6 +812,105 @@ class OrderController {
       });
     }
   }
+
+  /**
+   * Mock Payment - Simulate VNPay payment
+   * POST /api/orders/:orderId/payment/mock
+   */
+  static async mockPayment(req, res) {
+    try {
+      const { orderId } = req.params;
+      const { success = true } = req.body; // Allow testing both success/failure
+      const userId = req.user.id;
+
+      console.log(`🎭 Mock payment for order: ${orderId}, success: ${success}`);
+
+      const order = await OrderModel.findById(orderId, userId);
+
+      if (!order) {
+        return res.status(404).json(
+          createResponse(false, 'Order not found')
+        );
+      }
+
+      if (order.status !== 'pending') {
+        return res.status(400).json(
+          createResponse(false, 'Order is not pending payment')
+        );
+      }
+
+      // Check expiry
+      if (new Date() > new Date(order.reserved_until)) {
+        await OrderModel.updateOrderStatus(orderId, {
+          status: 'cancelled',
+          paid_at: null
+        });
+
+        return res.status(410).json(
+          createResponse(false, 'Order has expired')
+        );
+      }
+
+      // Simulate payment processing delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const transactionId = `MOCK-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      if (success) {
+        // Success payment
+        await OrderModel.updateOrderStatus(orderId, {
+          status: 'paid',
+          payment_method: 'mock',
+          payment_transaction_id: transactionId,
+          payment_data: {
+            mock: true,
+            payment_time: new Date().toISOString()
+          },
+          paid_at: new Date()
+        });
+
+        console.log(`✅ Mock payment successful: ${order.order_number}`);
+
+        return res.json(createResponse(
+          true,
+          'Payment successful!',
+          {
+            order_number: order.order_number,
+            transaction_id: transactionId,
+            redirect_url: `${process.env.FRONTEND_URL}/payment/result?status=success&order=${order.order_number}&txn=${transactionId}`
+          }
+        ));
+      } else {
+        // Failed payment
+        await OrderModel.updateOrderStatus(orderId, {
+          status: 'failed',
+          payment_method: 'mock',
+          payment_data: {
+            mock: true,
+            error: 'Simulated payment failure'
+          },
+          paid_at: null
+        });
+
+        console.log(`❌ Mock payment failed: ${order.order_number}`);
+
+        return res.json(createResponse(
+          false,
+          'Payment failed',
+          {
+            order_number: order.order_number,
+            redirect_url: `${process.env.FRONTEND_URL}/payment/result?status=failed&order=${order.order_number}`
+          }
+        ));
+      }
+
+    } catch (error) {
+      console.error('Mock payment error:', error);
+      res.status(500).json(
+        createResponse(false, 'Payment processing failed')
+      );
+    }
+  }
 }
 
 module.exports = OrderController;
