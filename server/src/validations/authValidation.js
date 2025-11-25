@@ -236,6 +236,7 @@ const updateProfileSchema = Joi.object({
   date_of_birth: Joi.date()
     .max('now')
     .optional()
+    .allow('', null)
     .messages({
       'date.max': 'Date of birth cannot be in the future'
     }),
@@ -243,6 +244,7 @@ const updateProfileSchema = Joi.object({
   gender: Joi.string()
     .valid('male', 'female', 'other', 'prefer_not_to_say')
     .optional()
+    .allow('', null)
     .messages({
       'any.only': 'Gender must be one of: male, female, other, prefer_not_to_say'
     }),
@@ -250,6 +252,7 @@ const updateProfileSchema = Joi.object({
   address: Joi.string()
     .max(500)
     .optional()
+    .allow('', null)
     .trim()
     .messages({
       'string.max': 'Address cannot exceed 500 characters'
@@ -258,6 +261,7 @@ const updateProfileSchema = Joi.object({
   city: Joi.string()
     .max(100)
     .optional()
+    .allow('', null)
     .trim()
     .messages({
       'string.max': 'City cannot exceed 100 characters'
@@ -266,6 +270,7 @@ const updateProfileSchema = Joi.object({
   country: Joi.string()
     .max(100)
     .optional()
+    .allow('', null)
     .trim()
     .messages({
       'string.max': 'Country cannot exceed 100 characters'
