@@ -120,7 +120,6 @@ const handleWaitingRoomReady = () => {
   showWaitingRoom.value = false
 }
 
-// ✅ STEP 1: Create Order
 const handleCheckout = async () => {
   loading.value = true
   try {
@@ -143,15 +142,17 @@ const handleCheckout = async () => {
     console.log('📦 Creating order:', orderData)
 
     const response = await ordersAPI.createOrder(orderData)
-    const orderResult = response.data
+    
+    // ✅ Axios đã unwrap, response = { success, data, timestamp }
+    console.log('📦 Full order response:', response)
 
-    console.log('📦 Full order result:', orderResult)
+    const orderReusult = response.data.order 
 
     createdOrder.value = {
-      id: orderResult.order.id,
-      order_number: orderResult.order.order_number,
-      total_amount: orderResult.order.total_amount,
-      reserved_until: orderResult.reserved_until || orderResult.order.reserved_until
+      id: orderReusult.id,
+      order_number: orderReusult.order_number,
+      total_amount: orderReusult.total_amount,
+      reserved_until: response.data.reserved_until || orderReusult.reserved_until
     }
 
     console.log('✅ Order created:', createdOrder.value)
@@ -243,11 +244,16 @@ const handleBackToInfo = () => {
 const checkWaitingRoom = async () => {
   try {
     const response = await queueAPI.getStatus(session.value.id)
-    const data = response.data?.data
     
-    console.log('🔍 Queue status:', data)
+    // ✅ Axios đã unwrap response.data rồi, nên response chính là data
+    console.log('🔍 Full response from axios:', response)
+    console.log('🔍 Response structure:', {
+      success: response.success,
+      hasData: !!response.data,
+      waiting_room_enabled: response.data?.waiting_room_enabled
+    })
     
-    if (data?.waiting_room_enabled) {
+    if (response.data?.waiting_room_enabled) {
       console.log('⏳ Waiting room enabled')
       showWaitingRoom.value = true
       sessionId.value = session.value.id

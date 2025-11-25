@@ -178,7 +178,7 @@ const confirmUpgrade = async () => {
   try {
     // Step 1: Create membership order
     const orderResponse = await membershipAPI.createOrder({
-      tier: selectedPlan.value.value,
+      tier: selectedPlan.value.membership_tier,
       billing_period: 'monthly',
       return_url: window.location.origin + '/membership/payment/result'
     })
