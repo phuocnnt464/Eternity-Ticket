@@ -327,44 +327,58 @@ watch(showWaitingRoom, (isShowing) => {
         Back to Event
       </button>
 
-      <!-- ✅ COUNTDOWN TIMER - HIỂN THỊ KHI CÓ ORDER (CẢ 2 STEP) -->
-      <div v-if="createdOrder && timeRemaining !== null" class="mb-6 flex justify-center">
-        <div :class="[
-          'flex items-center gap-3 px-6 py-3 rounded-lg shadow-lg text-lg font-bold',
-          timeRemaining < 120 ? 'bg-red-100 text-red-700 animate-pulse' : 
-          timeRemaining < 300 ? 'bg-yellow-100 text-yellow-700' : 
-          'bg-blue-100 text-blue-700'
-        ]">
-          <ClockIcon class="w-6 h-6" />
-          <span>
-            Complete payment within: {{ formatTimeRemaining(timeRemaining) }}
-          </span>
+      <!-- ✅ COUNTDOWN TIMER - HIỂN THỊ NGAY KHI CÓ ORDER (BẤT KỂ STEP NÀO) -->
+      <div v-if="createdOrder && timeRemaining !== null && !showWaitingRoom" class="mb-6">
+        <div class="flex justify-center">
+          <div :class="[
+            'flex items-center gap-3 px-6 py-3 rounded-lg shadow-lg text-lg font-bold transition-all',
+            timeRemaining < 120 ? 'bg-red-100 text-red-700 animate-pulse ring-2 ring-red-300' : 
+            timeRemaining < 300 ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-300' : 
+            'bg-blue-100 text-blue-700 ring-2 ring-blue-300'
+          ]">
+            <ClockIcon class="w-6 h-6" />
+            <div class="flex flex-col">
+              <span class="text-xs font-normal opacity-75">Complete payment within</span>
+              <span class="text-2xl font-bold">{{ formatTimeRemaining(timeRemaining) }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Warning message when time is low -->
+        <div v-if="timeRemaining < 180" class="mt-2 text-center">
+          <p class="text-sm text-red-600 font-semibold animate-pulse">
+            ⚠️ Hurry! Your tickets will be released soon!
+          </p>
         </div>
       </div>
 
       <!-- Progress Steps -->
       <div v-if="!showWaitingRoom && isCartValid" class="mb-8">
         <div class="flex items-center justify-center space-x-4">
+          <!-- Step 1 -->
           <div class="flex items-center">
             <div :class="[
-              'w-10 h-10 rounded-full flex items-center justify-center font-semibold',
+              'w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all',
               currentStep >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'
             ]">
-              1
+              <CheckCircleIcon v-if="createdOrder && currentStep > 1" class="w-6 h-6" />
+              <span v-else>1</span>
             </div>
             <span class="ml-2 text-sm font-medium">Customer Info</span>
           </div>
           
+          <!-- Progress Line -->
           <div class="w-16 h-1 bg-gray-200">
             <div :class="[
-              'h-full transition-all',
-              currentStep >= 2 ? 'bg-primary-600' : 'bg-gray-200'
+              'h-full transition-all duration-500',
+              currentStep >= 2 ? 'bg-primary-600 w-full' : 'bg-gray-200 w-0'
             ]" />
           </div>
           
+          <!-- Step 2 -->
           <div class="flex items-center">
             <div :class="[
-              'w-10 h-10 rounded-full flex items-center justify-center font-semibold',
+              'w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all',
               currentStep >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'
             ]">
               2
@@ -439,7 +453,7 @@ watch(showWaitingRoom, (isShowing) => {
 
       <!-- STEP 2: Payment -->
       <div v-else-if="isCartValid && currentStep === 2" class="max-w-2xl mx-auto">
-        <!-- Processing -->
+        <!-- Processing Payment -->
         <div v-if="processingPayment" class="card text-center space-y-6">
           <div class="flex justify-center">
             <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div>
@@ -494,26 +508,22 @@ watch(showWaitingRoom, (isShowing) => {
             </label>
             
             <div class="space-y-2">
-              <!-- ✅ Cash -->
-              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                 <input type="radio" v-model="paymentMethod" value="cash" class="mr-3">
                 <span>💵 Cash</span>
               </label>
               
-              <!-- ✅ VNPay -->
-              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                 <input type="radio" v-model="paymentMethod" value="vnpay" class="mr-3">
                 <span>🏦 VNPay</span>
               </label>
               
-              <!-- ✅ MoMo -->
-              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                 <input type="radio" v-model="paymentMethod" value="momo" class="mr-3">
                 <span>📱 MoMo</span>
               </label>
               
-              <!-- ✅ Banking -->
-              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                 <input type="radio" v-model="paymentMethod" value="banking" class="mr-3">
                 <span>🏛️ Bank Transfer</span>
               </label>
