@@ -1,11 +1,11 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount  } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
 import { ordersAPI } from '@/api/orders.js'
 import { eventsAPI } from '@/api/events.js'
-import { queueAPI } from '@/api/queue.js'
+import { queueAPI } from '@/api'
 import CheckoutForm from '@/components/features/CheckoutForm.vue'
 import OrderSummary from '@/components/features/OrderSummary.vue'
 import WaitingRoom from '@/components/features/WaitingRoom.vue'
@@ -26,13 +26,13 @@ const couponDiscount = ref(0)
 const couponCode = ref('')
 
 // ✅ Payment step states
-const currentStep = ref(1) // 1 = Customer Info, 2 = Payment
+const currentStep = ref(1)
 const createdOrder = ref(null)
 const paymentMethod = ref('cash')
 const processingPayment = ref(false)
 const paymentCountdown = ref(3)
 
-// ✅ Order expiry countdown
+// ✅ Order expiry countdown - LUÔN HIỂN THỊ KHI CÓ ORDER
 const orderExpiryTime = ref(null)
 const timeRemaining = ref(null)
 const countdownInterval = ref(null)
@@ -47,9 +47,8 @@ const isCartValid = computed(() => {
 
 const membershipDiscount = computed(() => {
   if (!authStore.isPremium) return 0
-  
   const subtotal = tickets.value.reduce((sum, item) => sum + item.subtotal, 0)
-  return subtotal * 0.1 // 10% discount for premium members
+  return subtotal * 0.1
 })
 
 const formatPrice = (price) => {
@@ -68,9 +67,9 @@ const formatTimeRemaining = (seconds) => {
 
 // ✅ Start countdown timer
 const startCountdown = (expiryTime) => {
+  console.log('⏰ Starting countdown for:', expiryTime)
   orderExpiryTime.value = expiryTime
   
-  // Clear existing interval
   if (countdownInterval.value) {
     clearInterval(countdownInterval.value)
   }
@@ -83,8 +82,16 @@ const startCountdown = (expiryTime) => {
     if (diff <= 0) {
       timeRemaining.value = 0
       clearInterval(countdownInterval.value)
-      alert('Order has expired! Please create a new order.')
-      router.push({ name: 'EventDetail', params: { slug: route.params.slug } })
+      alert('⏰ Order expired! Tickets have been released.')
+      
+      // Clear order and go back
+      createdOrder.value = null
+      currentStep.value = 1
+      
+      router.push({
+        name: 'EventDetail',
+        params: { slug: route.params.slug }
+      })
     } else {
       timeRemaining.value = diff
     }
@@ -109,202 +116,67 @@ const validateCoupon = async (code) => {
 }
 
 const handleWaitingRoomReady = () => {
+  console.log('✅ Waiting room ready, proceeding to checkout')
   showWaitingRoom.value = false
 }
 
-// const handleCheckout = async () => {
-//   loading.value = true
-//   try {
-//     // Debug logs
-//     console.log('🛒 Cart state:', {
-//       event: event.value,
-//       session: session.value,
-//       items: tickets.value
-//     })
-
-//     console.log('🔍 Event ID:', event.value?.id)
-//     console.log('🔍 Session ID:', session.value?.id)
-
-//     // ✅ 1. Split full_name thành first_name và last_name
-//     const nameParts = customerInfo.value.full_name.trim().split(' ')
-//     const firstName = nameParts[0] || ''
-//     const lastName = nameParts.slice(1).join(' ') || ''
-
-//     // ✅ 2. Validate customer info
-//     if (!firstName || !lastName) {
-//       alert('Please enter both first name and last name')
-//       loading.value = false
-//       return
-//     }
-
-//     // ✅ 3. Create order with correct format
-//     const orderData = {
-//       event_id: event.value.id,           
-//       session_id: session.value.id,       
-//       tickets: tickets.value.map(t => ({
-//         ticket_type_id: t.ticket_type_id,
-//         quantity: t.quantity
-//       })),
-//       customer_info: {
-//         first_name: firstName,          
-//         last_name: lastName,              
-//         email: customerInfo.value.email,
-//         phone: customerInfo.value.phone
-//       },
-//       coupon_code: couponCode.value || undefined
-//     }
-
-//     console.log('📦 Order data to send:', orderData)
-
-//     const response = await ordersAPI.createOrder(orderData)
-
-
-//     const orderResult = response.data
-
-//     if (!orderResult || !orderResult.order) {
-//       throw new Error('Invalid order response from server')
-//     }
-
-//     const orderId = orderResult.order.id
-//     const orderNumber = orderResult.order.order_number
-
-//     console.log('✅ Order created:', {
-//       id: orderId,
-//       number: orderNumber,
-//       tickets_count: orderResult.tickets_count
-//     })
-
-//      // ✅ USE MOCK PAYMENT instead of VNPay
-//     try {
-//       console.log('🎭 Processing mock payment...')
-      
-//       const paymentResponse = await ordersAPI.mockPayment(orderId, true) // true = success
-//       console.log('✅ Payment response:', paymentResponse)
-      
-//       if (paymentResponse.success) {
-//         // Clear cart before redirect
-//         cartStore.clear()
-
-//         // Redirect to payment result page
-//         const redirectUrl = paymentResponse.data.redirect_url
-//         window.location.href = redirectUrl
-//       } else {
-//         throw new Error(paymentResponse.message || 'Payment failed')
-//       }
-
-//     } catch (paymentError) {
-//       console.error('❌ Payment error:', paymentError)
-      
-//       const errorMsg = paymentError.response?.data?.error?.message || paymentError.message
-      
-//       alert(`Payment failed: ${errorMsg}\n\nPlease try again or contact support.`)
-      
-//       router.push({
-//         name: 'MyOrders',
-//         // params: { orderId: orderId }
-//       })
-      
-//       cartStore.clear()
-//     }
-//   } catch (error) {
-//     console.error('❌ Order creation error:', error)
-    
-//     const errorMessage = error.response?.data?.error?.message 
-//       || error.response?.data?.message 
-//       || error.message 
-//       || 'Order creation failed'
-//     alert(errorMessage)
-//     // alert(error.response?.data?.error?.message || 'Order creation failed')
-//   } finally {
-//     loading.value = false
-//   }
-// }
-
+// ✅ STEP 1: Create Order
 const handleCheckout = async () => {
   loading.value = true
   try {
     const orderData = {
-      event_id: event.value.id,           
-      session_id: session.value.id,       
+      event_id: event.value.id,
+      session_id: session.value.id,
       tickets: tickets.value.map(t => ({
         ticket_type_id: t.ticket_type_id,
         quantity: t.quantity
       })),
       customer_info: {
-        first_name: customerInfo.value.first_name, 
-        last_name: customerInfo.value.last_name,              
+        first_name: customerInfo.value.first_name,
+        last_name: customerInfo.value.last_name,
         email: customerInfo.value.email,
         phone: customerInfo.value.phone
       },
       coupon_code: couponCode.value || undefined
     }
 
+    console.log('📦 Creating order:', orderData)
+
     const response = await ordersAPI.createOrder(orderData)
     const orderResult = response.data
 
-    // const orderId = orderResult.order.id
-    // const orderNumber = orderResult.order.order_number
-    // const totalAmount = orderResult.order.total_amount
+    console.log('📦 Full order result:', orderResult)
 
     createdOrder.value = {
       id: orderResult.order.id,
       order_number: orderResult.order.order_number,
       total_amount: orderResult.order.total_amount,
-      reserved_until: orderResult.reserved_until
+      reserved_until: orderResult.reserved_until || orderResult.order.reserved_until
     }
 
     console.log('✅ Order created:', createdOrder.value)
+    console.log('⏰ Reserved until:', createdOrder.value.reserved_until)
 
     // ✅ Start countdown timer
-    startCountdown(createdOrder.value.reserved_until)
-    
-    // console.log('✅ Order created:', { id: orderId, number: orderNumber })
-
-    // ✅ Clear cart and redirect to Payment Gateway
-    // cartStore.clear()
+    if (createdOrder.value.reserved_until) {
+      startCountdown(createdOrder.value.reserved_until)
+    } else {
+      console.error('❌ No reserved_until time in response!')
+    }
     
     // ✅ Move to payment step
     currentStep.value = 2
 
   } catch (error) {
     console.error('❌ Order creation error:', error)
-    alert(error.response?.data?.error?.message || 'Order creation failed')
+    const errorMsg = error.response?.data?.error?.message || 
+                     error.response?.data?.message || 
+                     'Order creation failed'
+    alert(errorMsg)
   } finally {
     loading.value = false
   }
 }
-
-// const processOrder = async () => {
-//   loading.value = true
-
-//   try {
-//     const orderData = {
-//       session_id: session.value.session_id,
-//       tickets: tickets.value.map(t => ({
-//         ticket_type_id: t.ticket_type_id,
-//         quantity: t.quantity
-//       })),
-//       customer_info: customerInfo.value,
-//       coupon_code: couponCode.value || undefined
-//     }
-
-//     const response = await ordersAPI.createOrder(orderData)
-//     const order = response.data.order
-
-//     // Redirect to payment
-//     router.push({
-//       name: 'MyOrders',
-//       params: { orderId: order.order_id }
-//     })
-
-//     // Clear cart
-//     cartStore.clearCart()
-//   } catch (error) {
-//     alert(error.response?.data?.error?.message || 'Order creation failed')
-//   } finally {
-//     loading.value = false
-//   }
-// }
 
 // ✅ STEP 2: Process Payment
 const handlePayment = async (success = true) => {
@@ -332,6 +204,11 @@ const handlePayment = async (success = true) => {
         if (response.success) {
           console.log('✅ Payment successful')
           
+          // Clear countdown
+          if (countdownInterval.value) {
+            clearInterval(countdownInterval.value)
+          }
+          
           // Clear cart
           cartStore.clear()
 
@@ -357,53 +234,57 @@ const handlePayment = async (success = true) => {
 }
 
 const handleBackToInfo = () => {
-  currentStep.value = 1
-}
-
-const checkWaitingRoom = async () => {
-  try {
-    // Check if session has waiting room enabled
-    const response = await queueAPI.getStatus(session.value.id)
-    
-    if (response.data?.waiting_room_enabled) {
-      console.log('⏳ Waiting room enabled, showing waiting room...')
-      showWaitingRoom.value = true
-      sessionId.value = session.value.id
-    } else {
-      console.log('✅ No waiting room required')
-      showWaitingRoom.value = false
-    }
-  } catch (error) {
-    console.log('ℹ️ No waiting room config found, proceeding to checkout')
-    showWaitingRoom.value = false
+  if (confirm('Go back to customer information? Your order will remain active.')) {
+    currentStep.value = 1
   }
 }
 
-onMounted(() => {
+// ✅ Check waiting room on mount
+const checkWaitingRoom = async () => {
+  try {
+    const response = await queueAPI.getStatus(session.value.id)
+    const data = response.data?.data
+    
+    console.log('🔍 Queue status:', data)
+    
+    if (data?.waiting_room_enabled) {
+      console.log('⏳ Waiting room enabled')
+      showWaitingRoom.value = true
+      sessionId.value = session.value.id
+      return true
+    } else {
+      console.log('✅ No waiting room required')
+      return false
+    }
+  } catch (error) {
+    console.log('ℹ️ No waiting room config found:', error.message)
+    return false
+  }
+}
+
+onMounted(async () => {
   if (!isCartValid.value) {
     router.push({
       name: 'EventDetail',
       params: { slug: route.params.slug }
     })
+    return
   }
 
   console.log('🎪 Session config:', session.value)
-
-  checkWaitingRoom()
   
-  // if (session.value?.enable_waiting_room) {
-  //   console.log('⏳ Entering waiting room...')
-  //   showWaitingRoom.value = true
-  //   sessionId.value = session.value.id
-  // }
-
-  // Pre-fill customer info from auth
-  if (authStore.user) {
-    customerInfo.value = {
-      first_name: authStore.user.first_name || '',
-      last_name: authStore.user.last_name || '',
-      email: authStore.user.email,
-      phone: authStore.user.phone || ''
+  // ✅ Check waiting room first
+  const hasWaitingRoom = await checkWaitingRoom()
+  
+  if (!hasWaitingRoom) {
+    // Pre-fill customer info immediately if no waiting room
+    if (authStore.user) {
+      customerInfo.value = {
+        first_name: authStore.user.first_name || '',
+        last_name: authStore.user.last_name || '',
+        email: authStore.user.email,
+        phone: authStore.user.phone || ''
+      }
     }
   }
 })
@@ -412,6 +293,18 @@ onBeforeUnmount(() => {
   // Clear countdown on component unmount
   if (countdownInterval.value) {
     clearInterval(countdownInterval.value)
+  }
+})
+
+// ✅ Watch for waiting room completion to pre-fill
+watch(showWaitingRoom, (isShowing) => {
+  if (!isShowing && authStore.user) {
+    customerInfo.value = {
+      first_name: authStore.user.first_name || '',
+      last_name: authStore.user.last_name || '',
+      email: authStore.user.email,
+      phone: authStore.user.phone || ''
+    }
   }
 })
 </script>
@@ -427,6 +320,21 @@ onBeforeUnmount(() => {
         <ArrowLeftIcon class="w-5 h-5 mr-2" />
         Back to Event
       </button>
+
+      <!-- ✅ COUNTDOWN TIMER - HIỂN THỊ KHI CÓ ORDER (CẢ 2 STEP) -->
+      <div v-if="createdOrder && timeRemaining !== null" class="mb-6 flex justify-center">
+        <div :class="[
+          'flex items-center gap-3 px-6 py-3 rounded-lg shadow-lg text-lg font-bold',
+          timeRemaining < 120 ? 'bg-red-100 text-red-700 animate-pulse' : 
+          timeRemaining < 300 ? 'bg-yellow-100 text-yellow-700' : 
+          'bg-blue-100 text-blue-700'
+        ]">
+          <ClockIcon class="w-6 h-6" />
+          <span>
+            Complete payment within: {{ formatTimeRemaining(timeRemaining) }}
+          </span>
+        </div>
+      </div>
 
       <!-- Progress Steps -->
       <div v-if="!showWaitingRoom && isCartValid" class="mb-8">
@@ -456,19 +364,6 @@ onBeforeUnmount(() => {
               2
             </div>
             <span class="ml-2 text-sm font-medium">Payment</span>
-          </div>
-        </div>
-
-        <!-- ✅ Countdown Timer -->
-        <div v-if="currentStep === 2 && timeRemaining !== null" class="mt-4 flex justify-center">
-          <div :class="[
-            'flex items-center gap-2 px-4 py-2 rounded-lg',
-            timeRemaining < 120 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-          ]">
-            <ClockIcon class="w-5 h-5" />
-            <span class="font-semibold">
-              Time remaining: {{ formatTimeRemaining(timeRemaining) }}
-            </span>
           </div>
         </div>
       </div>
