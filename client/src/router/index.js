@@ -253,7 +253,7 @@ const routes = [
         meta: { title: 'My Orders - Eternity Ticket' }
       },
       {
-        path: 'orders/:id',
+        path: 'orders/:orderId',
         name: 'OrderDetails',
         component: OrderDetails,
         meta: { title: 'Order Details - Eternity Ticket' }

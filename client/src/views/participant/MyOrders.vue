@@ -76,7 +76,7 @@ const fetchOrders = async () => {
 
 const handleViewDetails = (order) => {
   router.push({
-    name: 'OrderDetail',
+    name: 'OrderDetails',
     params: { orderId: order.id }
   })
 }
