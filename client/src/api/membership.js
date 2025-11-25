@@ -46,6 +46,11 @@ export const membershipAPI = {
   adminUpdatePricing: (tier, data) => {
     return api.put(`/membership/admin/pricing/${tier}`, data)
   },
+
+  // Process payment (mock or real)
+  processPayment: (orderNumber, data) => {
+    return api.post(`/membership/orders/${orderNumber}/payment`, data)
+  },
   
    // Mock Payment (for development)
   mockPayment: async (orderNumber, success = true) => {

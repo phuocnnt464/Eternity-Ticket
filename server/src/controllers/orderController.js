@@ -193,7 +193,7 @@ class OrderController {
       const { payment_method, payment_data } = req.body;
       const userId = req.user.id;
 
-      console.log(`Processing payment for order: ${orderId}`);
+      console.log(`Processing payment for order: ${orderId}, method: ${payment_method}`);
 
       // Get order and verify ownership
       const order = await OrderModel.findById(orderId, userId);
@@ -227,22 +227,39 @@ class OrderController {
       let paymentResult;
       let transactionId = `TXN${Date.now()}${Math.random().toString(36).substr(2, 5)}`;
 
-      if (payment_method === 'vnpay') {
-        // In real implementation, this would integrate with VNPay API
+      // if (payment_method === 'vnpay') {
+      //   // In real implementation, this would integrate with VNPay API
+      //   paymentResult = {
+      //     success: true,
+      //     transaction_id: transactionId,
+      //     response_code: '00',
+      //     message: 'Payment successful'
+      //   };
+      // } else {
+      //   const isSuccess = Math.random() > 0.1; // 90% success rate
+      //   // Mock other payment methods
+      //   paymentResult = {
+      //     success: isSuccess,
+      //     transaction_id: transactionId,
+      //     response_code: isSuccess ? '00' : '01',
+      //     message: isSuccess ? 'Payment successful' : 'Payment failed'
+      //   };
+      // }
+
+      if (payment_data?.mock === true) {
+        paymentResult = {
+          success: payment_data?.success !== false, // Default true
+          transaction_id: transactionId,
+          response_code: payment_data?.success !== false ? '00' : '01',
+          message: payment_data?.success !== false ? 'Payment successful' : 'Payment failed'
+        };
+      } else {
+        // Real payment processing (future implementation)
         paymentResult = {
           success: true,
           transaction_id: transactionId,
           response_code: '00',
           message: 'Payment successful'
-        };
-      } else {
-        const isSuccess = Math.random() > 0.1; // 90% success rate
-        // Mock other payment methods
-        paymentResult = {
-          success: isSuccess,
-          transaction_id: transactionId,
-          response_code: isSuccess ? '00' : '01',
-          message: isSuccess ? 'Payment successful' : 'Payment failed'
         };
       }
 
@@ -276,7 +293,7 @@ class OrderController {
       if (paymentResult.success) {
         const response = createResponse(
           true,
-          'Payment processed successfully! Check your email for tickets.',
+          'Payment processed successfully!',
           {
             order: updatedOrder,
             transaction_id: transactionId,
@@ -288,7 +305,7 @@ class OrderController {
       } else {
         const response = createResponse(
           false,
-          'Payment failed. Please try again or use a different payment method.',
+          'Payment failed.',
           {
             transaction_id: transactionId,
             payment_status: 'failed'

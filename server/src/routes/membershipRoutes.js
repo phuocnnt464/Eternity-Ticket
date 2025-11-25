@@ -107,6 +107,16 @@ router.put(
 );
 
 /**
+ * @route   POST /api/membership/orders/:orderNumber/payment
+ * @desc    Process membership payment (mock or real)
+ * @access  Private
+ */
+router.post('/orders/:orderNumber/payment',
+  authenticateToken,
+  MembershipController.processPayment
+);
+
+/**
  * @route   POST /api/membership/orders/:orderNumber/payment/mock
  * @desc    Mock payment for membership (development/testing)
  * @access  Private

@@ -57,114 +57,146 @@ const handleWaitingRoomReady = () => {
   showWaitingRoom.value = false
 }
 
+// const handleCheckout = async () => {
+//   loading.value = true
+//   try {
+//     // Debug logs
+//     console.log('🛒 Cart state:', {
+//       event: event.value,
+//       session: session.value,
+//       items: tickets.value
+//     })
+
+//     console.log('🔍 Event ID:', event.value?.id)
+//     console.log('🔍 Session ID:', session.value?.id)
+
+//     // ✅ 1. Split full_name thành first_name và last_name
+//     const nameParts = customerInfo.value.full_name.trim().split(' ')
+//     const firstName = nameParts[0] || ''
+//     const lastName = nameParts.slice(1).join(' ') || ''
+
+//     // ✅ 2. Validate customer info
+//     if (!firstName || !lastName) {
+//       alert('Please enter both first name and last name')
+//       loading.value = false
+//       return
+//     }
+
+//     // ✅ 3. Create order with correct format
+//     const orderData = {
+//       event_id: event.value.id,           
+//       session_id: session.value.id,       
+//       tickets: tickets.value.map(t => ({
+//         ticket_type_id: t.ticket_type_id,
+//         quantity: t.quantity
+//       })),
+//       customer_info: {
+//         first_name: firstName,          
+//         last_name: lastName,              
+//         email: customerInfo.value.email,
+//         phone: customerInfo.value.phone
+//       },
+//       coupon_code: couponCode.value || undefined
+//     }
+
+//     console.log('📦 Order data to send:', orderData)
+
+//     const response = await ordersAPI.createOrder(orderData)
+
+
+//     const orderResult = response.data
+
+//     if (!orderResult || !orderResult.order) {
+//       throw new Error('Invalid order response from server')
+//     }
+
+//     const orderId = orderResult.order.id
+//     const orderNumber = orderResult.order.order_number
+
+//     console.log('✅ Order created:', {
+//       id: orderId,
+//       number: orderNumber,
+//       tickets_count: orderResult.tickets_count
+//     })
+
+//      // ✅ USE MOCK PAYMENT instead of VNPay
+//     try {
+//       console.log('🎭 Processing mock payment...')
+      
+//       const paymentResponse = await ordersAPI.mockPayment(orderId, true) // true = success
+//       console.log('✅ Payment response:', paymentResponse)
+      
+//       if (paymentResponse.success) {
+//         // Clear cart before redirect
+//         cartStore.clear()
+
+//         // Redirect to payment result page
+//         const redirectUrl = paymentResponse.data.redirect_url
+//         window.location.href = redirectUrl
+//       } else {
+//         throw new Error(paymentResponse.message || 'Payment failed')
+//       }
+
+//     } catch (paymentError) {
+//       console.error('❌ Payment error:', paymentError)
+      
+//       const errorMsg = paymentError.response?.data?.error?.message || paymentError.message
+      
+//       alert(`Payment failed: ${errorMsg}\n\nPlease try again or contact support.`)
+      
+//       router.push({
+//         name: 'MyOrders',
+//         // params: { orderId: orderId }
+//       })
+      
+//       cartStore.clear()
+//     }
+//   } catch (error) {
+//     console.error('❌ Order creation error:', error)
+    
+//     const errorMessage = error.response?.data?.error?.message 
+//       || error.response?.data?.message 
+//       || error.message 
+//       || 'Order creation failed'
+//     alert(errorMessage)
+//     // alert(error.response?.data?.error?.message || 'Order creation failed')
+//   } finally {
+//     loading.value = false
+//   }
+// }
+
 const handleCheckout = async () => {
   loading.value = true
   try {
-    // Debug logs
-    console.log('🛒 Cart state:', {
-      event: event.value,
-      session: session.value,
-      items: tickets.value
-    })
-
-    console.log('🔍 Event ID:', event.value?.id)
-    console.log('🔍 Session ID:', session.value?.id)
-
-    // ✅ 1. Split full_name thành first_name và last_name
-    const nameParts = customerInfo.value.full_name.trim().split(' ')
-    const firstName = nameParts[0] || ''
-    const lastName = nameParts.slice(1).join(' ') || ''
-
-    // ✅ 2. Validate customer info
-    if (!firstName || !lastName) {
-      alert('Please enter both first name and last name')
-      loading.value = false
-      return
-    }
-
-    // ✅ 3. Create order with correct format
-    const orderData = {
-      event_id: event.value.id,           
-      session_id: session.value.id,       
-      tickets: tickets.value.map(t => ({
-        ticket_type_id: t.ticket_type_id,
-        quantity: t.quantity
-      })),
-      customer_info: {
-        first_name: firstName,          
-        last_name: lastName,              
-        email: customerInfo.value.email,
-        phone: customerInfo.value.phone
-      },
-      coupon_code: couponCode.value || undefined
-    }
-
-    console.log('📦 Order data to send:', orderData)
-
     const response = await ordersAPI.createOrder(orderData)
-
-
     const orderResult = response.data
-
-    if (!orderResult || !orderResult.order) {
-      throw new Error('Invalid order response from server')
-    }
 
     const orderId = orderResult.order.id
     const orderNumber = orderResult.order.order_number
+    const totalAmount = orderResult.order.total_amount
 
-    console.log('✅ Order created:', {
-      id: orderId,
-      number: orderNumber,
-      tickets_count: orderResult.tickets_count
+    console.log('✅ Order created:', { id: orderId, number: orderNumber })
+
+    // ✅ Clear cart and redirect to Mock Payment Gateway
+    cartStore.clear()
+    
+    router.push({
+      name: 'MockPaymentGateway',
+      query: {
+        orderId: orderId,          
+        order: orderNumber,         
+        amount: totalAmount,
+        type: 'order'
+      }
     })
 
-     // ✅ USE MOCK PAYMENT instead of VNPay
-    try {
-      console.log('🎭 Processing mock payment...')
-      
-      const paymentResponse = await ordersAPI.mockPayment(orderId, true) // true = success
-      console.log('✅ Payment response:', paymentResponse)
-      
-      if (paymentResponse.success) {
-        // Clear cart before redirect
-        cartStore.clear()
-
-        // Redirect to payment result page
-        const redirectUrl = paymentResponse.data.redirect_url
-        window.location.href = redirectUrl
-      } else {
-        throw new Error(paymentResponse.message || 'Payment failed')
-      }
-
-    } catch (paymentError) {
-      console.error('❌ Payment error:', paymentError)
-      
-      const errorMsg = paymentError.response?.data?.error?.message || paymentError.message
-      
-      alert(`Payment failed: ${errorMsg}\n\nPlease try again or contact support.`)
-      
-      router.push({
-        name: 'MyOrders',
-        // params: { orderId: orderId }
-      })
-      
-      cartStore.clear()
-    }
   } catch (error) {
     console.error('❌ Order creation error:', error)
-    
-    const errorMessage = error.response?.data?.error?.message 
-      || error.response?.data?.message 
-      || error.message 
-      || 'Order creation failed'
-    alert(errorMessage)
-    // alert(error.response?.data?.error?.message || 'Order creation failed')
+    alert(error.response?.data?.error?.message || 'Order creation failed')
   } finally {
     loading.value = false
   }
 }
-
 
 const processOrder = async () => {
   loading.value = true
