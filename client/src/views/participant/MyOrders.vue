@@ -104,6 +104,17 @@ const handleCancelOrder = async (orderId) => {
   }
 }
 
+const handleRetryPayment = async (order) => {
+  // Option 1: Navigate to checkout with order info
+  router.push({
+    name: 'EventDetail',
+    params: { slug: order.event_slug }
+  })
+  
+  // Option 2: Reopen payment modal
+  // alert('Redirect to payment page for order: ' + order.order_number)
+}
+
 const formatPrice = (price) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -179,6 +190,12 @@ onMounted(() => {
               <p><strong>Date:</strong> {{ new Date(order.created_at).toLocaleString() }}</p>
               <p><strong>Tickets:</strong> {{ order.total_quantity }} ticket(s)</p>
               <p><strong>Total:</strong> <span class="text-primary-600 font-semibold">{{ formatPrice(order.total_amount) }}</span></p>
+               <p v-if="order.status === 'cancelled'" class="text-orange-600 text-xs mt-2">
+                ⏰ This order was automatically cancelled because payment was not completed within 15 minutes.
+              </p>
+              <p v-if="order.status === 'failed'" class="text-red-600 text-xs mt-2">
+                ❌ Payment failed. Please try again or contact support.
+              </p>
             </div>
           </div>
 
@@ -209,6 +226,15 @@ onMounted(() => {
               @click="handleCancelOrder(order.id)"
             >
               Cancel Order
+            </Button>
+
+            <Button
+              v-if="order.status === 'failed'"
+              variant="warning"
+              size="sm"
+              @click="handleRetryPayment(order)"
+            >
+              Retry Payment
             </Button>
           </div>
         </div>
