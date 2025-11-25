@@ -432,28 +432,87 @@ class UserModel {
    * @param {Object} updateData - Data to update
    * @returns {Object} Updated user data
    */
+  // static async updateProfile(userId, updateData) {
+  //   const allowedFields = [
+  //     'first_name', 'last_name', 'phone', 'avatar_url', 
+  //     'date_of_birth', 'gender', 'address', 'city', 'country'
+  //   ];
+    
+  //   const fieldsToUpdate = [];
+  //   const values = [];
+  //   let paramCount = 1;
+
+  //   // Build dynamic query
+  //   Object.keys(updateData).forEach(key => {
+  //     if (allowedFields.includes(key) && updateData[key] !== undefined) {
+  //       fieldsToUpdate.push(`${key} = $${paramCount}`);
+  //       values.push(updateData[key]);
+  //       paramCount++;
+  //     }
+  //   });
+
+  //   if (fieldsToUpdate.length === 0) {
+  //     throw new Error('No valid fields to update');
+  //   }
+
+  //   values.push(userId); // Add userId as last parameter
+
+  //   const query = `
+  //     UPDATE users 
+  //     SET ${fieldsToUpdate.join(', ')}, updated_at = NOW()
+  //     WHERE id = $${paramCount} AND is_active = true
+  //     RETURNING id, email, role, first_name, last_name, phone,
+  //               avatar_url, date_of_birth, gender, address, city, country,
+  //               is_email_verified, updated_at
+  //   `;
+
+  //   try {
+  //     const result = await pool.query(query, values);
+      
+  //     if (result.rows.length === 0) {
+  //       throw new Error('User not found or inactive');
+  //     }
+      
+  //     return result.rows[0];
+  //   } catch (error) {
+  //     throw new Error(`Error updating user profile: ${error.message}`);
+  //   }
+  // }
+
+  // server/src/models/userModel.js
+
   static async updateProfile(userId, updateData) {
     const allowedFields = [
       'first_name', 'last_name', 'phone', 'avatar_url', 
       'date_of_birth', 'gender', 'address', 'city', 'country'
     ];
     
+    // ✅ FIX: Sanitize data
+    const sanitizedData = {};
+    
+    Object.keys(updateData).forEach(key => {
+      if (allowedFields.includes(key) && updateData[key] !== undefined) {
+        // Convert empty string to null
+        sanitizedData[key] = updateData[key] === '' ? null : updateData[key];
+      }
+    });
+    
+    console.log('🔄 Sanitized data:', sanitizedData); // Debug
+    
+    if (Object.keys(sanitizedData).length === 0) {
+      throw new Error('No valid fields to update');
+    }
+    
+    // Build dynamic query
     const fieldsToUpdate = [];
     const values = [];
     let paramCount = 1;
 
-    // Build dynamic query
-    Object.keys(updateData).forEach(key => {
-      if (allowedFields.includes(key) && updateData[key] !== undefined) {
-        fieldsToUpdate.push(`${key} = $${paramCount}`);
-        values.push(updateData[key]);
-        paramCount++;
-      }
+    Object.keys(sanitizedData).forEach(key => {
+      fieldsToUpdate.push(`${key} = $${paramCount}`);
+      values.push(sanitizedData[key]);
+      paramCount++;
     });
-
-    if (fieldsToUpdate.length === 0) {
-      throw new Error('No valid fields to update');
-    }
 
     values.push(userId); // Add userId as last parameter
 
@@ -467,15 +526,22 @@ class UserModel {
     `;
 
     try {
+      console.log('📤 Query:', query);
+      console.log('📤 Values:', values);
+      
       const result = await pool.query(query, values);
       
       if (result.rows.length === 0) {
         throw new Error('User not found or inactive');
       }
       
+      console.log('✅ Profile updated successfully');
       return result.rows[0];
     } catch (error) {
-      throw new Error(`Error updating user profile: ${error.message}`);
+      console.error('❌ Database error:', error.message);
+      console.error('❌ Query:', query);
+      console.error('❌ Values:', values);
+      throw new Error(`Error updating user profile: ${error. message}`);
     }
   }
 
