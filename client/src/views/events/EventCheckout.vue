@@ -42,6 +42,9 @@ const slotExpiryTime = ref(null)
 const timeRemaining = ref(null)
 const countdownInterval = ref(null)
 
+const existingOrder = ref(null)
+const checkingExistingOrder = ref(false)
+
 const event = computed(() => cartStore.event)
 const session = computed(() => cartStore.session)
 const tickets = computed(() => cartStore.items)
@@ -49,6 +52,99 @@ const tickets = computed(() => cartStore.items)
 const isCartValid = computed(() => {
   return event.value && session.value && cartStore.items.length > 0
 })
+
+const checkExistingOrder = async () => {
+  checkingExistingOrder.value = true
+  try {
+    const response = await ordersAPI.getUserOrders({
+      session_id: session.value.id,
+      status: 'pending'
+    })
+
+    const orders = response.data.orders || []
+    
+    // Find pending order for this session
+    const pendingOrder = orders.find(o => 
+      o.session_id === session.value.id && 
+      o.status === 'pending' &&
+      new Date(o.reserved_until) > new Date()
+    )
+
+    if (pendingOrder) {
+      console.log('⚠️ Found existing pending order:', pendingOrder.order_number)
+      existingOrder.value = pendingOrder
+      
+      // Confirm to continue with existing order
+      const confirmed = confirm(
+        `You already have a pending order (${pendingOrder.order_number}) for this session.\n\n` +
+        `Would you like to continue with this order instead of creating a new one?`
+      )
+      
+      if (confirmed) {
+        // Use existing order
+        createdOrder.value = pendingOrder
+        
+        // Start timer from existing reserved_until
+        startSlotCountdown(pendingOrder.reserved_until)
+        
+        // Auto-fill customer info from existing order
+        if (pendingOrder.customer_info) {
+          customerInfo.value = {
+            first_name: pendingOrder.customer_info.first_name || '',
+            last_name: pendingOrder.customer_info.last_name || '',
+            email: pendingOrder.customer_info.email || '',
+            phone: pendingOrder.customer_info.phone || ''
+          }
+        }
+        
+        // Skip to payment step
+        currentStep.value = 2
+        
+        return true
+      } else {
+        // User wants new order → Must cancel old one first
+        const cancelConfirm = confirm(
+          'To create a new order, you must cancel the existing one first.\n\n' +
+          'Do you want to cancel the existing order now?'
+        )
+        
+        if (cancelConfirm) {
+          await cancelExistingOrder(pendingOrder.id)
+          return false
+        } else {
+          // User cancelled → Go back
+          router.push({
+            name: 'EventDetail',
+            params: { slug: route.params.slug }
+          })
+          return true
+        }
+      }
+    }
+    
+    return false
+  } catch (error) {
+    console.error('Failed to check existing order:', error)
+    return false
+  } finally {
+    checkingExistingOrder.value = false
+  }
+}
+
+// ✅ Cancel existing order
+const cancelExistingOrder = async (orderId) => {
+  try {
+    await ordersAPI.cancelOrder(orderId)
+    console.log('✅ Cancelled existing order')
+    existingOrder.value = null
+    return true
+  } catch (error) {
+    console.error('Failed to cancel order:', error)
+    alert('Failed to cancel existing order. Please try again.')
+    return false
+  }
+}
+
 
 const formatPrice = (price) => {
   return new Intl.NumberFormat('vi-VN', {
@@ -353,8 +449,13 @@ onMounted(async () => {
     }
   }
 
-  // Check queue status và start timer
-  await checkQueueStatusAndStartTimer()
+  // Kiểm tra order cũ
+  const hasExistingOrder = await checkExistingOrder()
+  
+  if (!hasExistingOrder) {
+    // Không có order cũ hoặc đã cancel → Check queue status
+    await checkQueueStatusAndStartTimer()
+  }
 })
 
 onBeforeUnmount(() => {
@@ -531,11 +632,28 @@ onBeforeUnmount(() => {
                   </label>
 
                   <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500 transition"
-                         :class="paymentMethod === 'bank_transfer' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
+                        :class="paymentMethod === 'momo' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
                     <input
                       type="radio"
                       v-model="paymentMethod"
-                      value="bank_transfer"
+                      value="momo"
+                      class="mt-1 mr-3"
+                    />
+                    <div class="flex-1">
+                      <div class="flex items-center">
+                        <span class="font-medium text-gray-900">MoMo</span>
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Mock</span>
+                      </div>
+                      <p class="text-sm text-gray-600 mt-1">Pay via MoMo e-wallet (Simulated)</p>
+                    </div>
+                  </label>
+
+                  <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500 transition"
+                         :class="paymentMethod === 'banking' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
+                    <input
+                      type="radio"
+                      v-model="paymentMethod"
+                      value="banking"
                       class="mt-1 mr-3"
                     />
                     <div class="flex-1">
@@ -544,6 +662,23 @@ onBeforeUnmount(() => {
                         <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Mock</span>
                       </div>
                       <p class="text-sm text-gray-600 mt-1">Pay via bank transfer (Simulated)</p>
+                    </div>
+                  </label>
+                  
+                  <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500 transition"
+                        :class="paymentMethod === 'cash' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
+                    <input
+                      type="radio"
+                      v-model="paymentMethod"
+                      value="cash"
+                      class="mt-1 mr-3"
+                    />
+                    <div class="flex-1">
+                      <div class="flex items-center">
+                        <span class="font-medium text-gray-900">Cash</span>
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Mock</span>
+                      </div>
+                      <p class="text-sm text-gray-600 mt-1">Pay in cash at venue (Simulated)</p>
                     </div>
                   </label>
                 </div>
