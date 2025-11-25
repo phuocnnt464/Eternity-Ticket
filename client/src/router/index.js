@@ -17,6 +17,7 @@ const Home = () => import('@/views/Home.vue')
 const EventList = () => import('@/views/events/EventList.vue')
 const EventDetail = () => import('@/views/events/EventDetail.vue')
 const EventCheckout = () => import('@/views/events/EventCheckout.vue')
+const PaymentGateway = () => import('@/views/participant/PaymentGateway.vue')
 const AboutUs = () => import('@/views/AboutUs.vue')
 const ContactUs = () => import('@/views/ContactUs.vue')
 
@@ -129,6 +130,18 @@ const routes = [
           title: 'Checkout - Eternity Ticket',
           requiresAuth: true 
         }
+      },
+      {
+        path: 'participant/payment/mock',
+        name: 'PaymentGateway', 
+        component: PaymentGateway,
+        meta: { requiresAuth: true },
+        props: route => ({
+          orderId: route.query.orderId,
+          orderNumber: route.query.order,
+          amount: parseFloat(route.query.amount),
+          orderType: route.query.type || 'order'
+        })
       },
       {
         path: 'about',
@@ -260,7 +273,7 @@ const routes = [
           public: true,
           requiresAuth: true
         }
-      }
+      },
     ]
   },
 

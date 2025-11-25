@@ -40,7 +40,7 @@ const handlePayment = async (success = true) => {
       clearInterval(timer)
       
       try {
-        const transactionId = `MOCK-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        const transactionId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         
         // ✅ Call real payment API với mock flag
         if (props.orderType === 'membership') {

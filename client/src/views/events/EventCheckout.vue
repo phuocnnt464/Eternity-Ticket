@@ -169,11 +169,11 @@ const handleCheckout = async () => {
   loading.value = true
   try {
     const response = await ordersAPI.createOrder(orderData)
-    const orderResult = response.data
+    // const orderResult = .data
 
-    const orderId = orderResult.order.id
-    const orderNumber = orderResult.order.order_number
-    const totalAmount = orderResult.order.total_amount
+    const orderId = response.order.id
+    const orderNumber = response.order.order_number
+    const totalAmount = response.order.total_amount
 
     console.log('✅ Order created:', { id: orderId, number: orderNumber })
 
@@ -181,7 +181,7 @@ const handleCheckout = async () => {
     cartStore.clear()
     
     router.push({
-      name: 'MockPaymentGateway',
+      name: 'PaymentGateway',
       query: {
         orderId: orderId,          
         order: orderNumber,         
