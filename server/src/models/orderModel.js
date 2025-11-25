@@ -43,6 +43,33 @@ class OrderModel {
     try {
       await client.query('BEGIN');
 
+      const QueueModel = require('./queueModel');
+      const activeSlot = await QueueModel.getActiveUser(orderData.session_id, userId);
+      
+      if (!activeSlot) {
+        throw new Error('You must be in an active purchase slot to create an order. Please join the queue first.');
+      }
+
+      if (activeSlot.status !== 'active') {
+        throw new Error(`Your queue status is "${activeSlot.status}". Only active users can create orders.`);
+      }
+
+      // ✅ Verify expiry time
+      const now = new Date();
+      const expiresAt = new Date(activeSlot.expires_at);
+
+      if (now >= expiresAt) {
+        // Mark as expired in database
+        await QueueModel.updateQueueStatus(userId, orderData.session_id, 'expired');
+        throw new Error('Your purchase time has expired. Please join the queue again.');
+      }
+
+      const timeRemaining = Math.floor((expiresAt - now) / 1000);
+      console.log(`⏰ Time remaining for user ${userId}: ${timeRemaining}s`);
+
+      // ✅ Use expires_at from queue slot (NOT create new timer)
+      const reservedUntil = expiresAt;
+
        //  CHECK EXISTING PENDING ORDER
       const pendingOrderCheck = await client.query(`
         SELECT id, order_number, created_at, reserved_until
@@ -300,25 +327,23 @@ class OrderModel {
       const vatAmount = (subtotal - membershipDiscount - couponDiscount) * 0.10;
       const totalAmount = subtotal - membershipDiscount - couponDiscount + vatAmount;
 
-       // ✅ LẤY expires_at TỪ QUEUE (không tính mới!)
-      const QueueModel = require('./queueModel');
-      const activeSlot = await QueueModel.getActiveUser(orderData.session_id, userId);
+       
       
-      let reservedUntil;
-      if (activeSlot && activeSlot.expires_at) {
-        // ✅ Dùng expires_at từ queue slot
-        reservedUntil = new Date(activeSlot.expires_at);
-        console.log(`✅ Using queue slot expiry: ${reservedUntil}`);
-      } else {
-        // ⚠️ Fallback nếu không có waiting room (15 phút mới)
-        reservedUntil = new Date(Date.now() + 15 * 60 * 1000);
-        console.log(`⚠️ No active slot, creating new expiry: ${reservedUntil}`);
-      }
+      // let reservedUntil;
+      // if (activeSlot && activeSlot.expires_at) {
+      //   // ✅ Dùng expires_at từ queue slot
+      //   reservedUntil = new Date(activeSlot.expires_at);
+      //   console.log(`✅ Using queue slot expiry: ${reservedUntil}`);
+      // } else {
+      //   // ⚠️ Fallback nếu không có waiting room (15 phút mới)
+      //   reservedUntil = new Date(Date.now() + 15 * 60 * 1000);
+      //   console.log(`⚠️ No active slot, creating new expiry: ${reservedUntil}`);
+      // }
 
-      // ✅ KIỂM TRA xem còn thời gian không
-      if (new Date() >= reservedUntil) {
-        throw new Error('Your purchase time has expired. Please join the queue again.');
-      }
+      // // ✅ KIỂM TRA xem còn thời gian không
+      // if (new Date() >= reservedUntil) {
+      //   throw new Error('Your purchase time has expired. Please join the queue again.');
+      // }
 
       // Generate order number
       const orderNumber = generateOrderNumber();
@@ -516,9 +541,11 @@ class OrderModel {
       console.log(`Order created: ${orderNumber} for user: ${userId}, total: ${totalAmount}`);
 
       return {
-        order,
+        order: orderResult.rows[0],
         tickets: createdTickets,
-        order_items: ticketDetails
+        // order_items: ticketDetails
+        expires_at: reservedUntil,
+        time_remaining_seconds: timeRemaining
       };
 
     } catch (error) {

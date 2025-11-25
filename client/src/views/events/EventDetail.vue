@@ -3,12 +3,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
 import { sessionsAPI } from '@/api/sessions.js'
+import { queueAPOI } from '@/api/queue.js'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import Badge from '@/components/common/Badge.vue'
 import Button from '@/components/common/Button.vue'
 import Spinner from '@/components/common/Spinner.vue'
 import TicketSelector from '@/components/features/TicketSelector.vue'
+import WaitingRoom from '@/components/features/WaitingRoom.vue' 
 import {
   CalendarIcon,
   MapPinIcon,
@@ -31,6 +33,10 @@ const ticketTypes = ref([])
 const selectedTickets = ref([])
 const loading = ref(true)
 const loadingTickets = ref(false)
+
+const showWaitingRoom = ref(false) 
+const queuePosition = ref(null)
+const joiningQueue = ref(false)
 
 const eventDate = computed(() => {
   if (!event.value?.start_date) return ''
@@ -112,13 +118,20 @@ const handlePurchase = () => {
     return
   }
 
+   if (!selectedTickets.value || selectedTickets.value.length === 0) {
+    alert('Please select at least one ticket')
+    return
+  }
+
+  joiningQueue.value = true
+
   // Add to cart
   try {
     // Validate selected tickets
-    if (!selectedTickets.value || selectedTickets.value.length === 0) {
-      alert('Please select at least one ticket')
-      return
-    }
+    // if (!selectedTickets.value || selectedTickets.value.length === 0) {
+    //   alert('Please select at least one ticket')
+    //   return
+    // }
 
     // ✅ 1. Clear cart items TRƯỚC (không xóa event/session nếu chưa có)
     if (cartStore.items.length > 0) {
@@ -152,21 +165,76 @@ const handlePurchase = () => {
       })
     })
 
-    console.log('✅ Cart after adding:', {
-      event: cartStore.event,
-      session: cartStore.session,
-      items: cartStore.items
+    console.log('✅ Cart prepared:', cartStore.items)
+
+    // ✅ 2. JOIN QUEUE
+    const response = await queueAPI.joinQueue({
+      session_id: selectedSession.value.id
     })
+    
+    const data = response.data.data
+    console.log('🔍 Queue response:', data)
+
+    // console.log('✅ Cart after adding:', {
+    //   event: cartStore.event,
+    //   session: cartStore.session,
+    //   items: cartStore.items
+    // })
+
+    if (!data.waiting_room_enabled) {
+      // Không có waiting room → Vào checkout ngay
+      console.log('✅ No waiting room, proceed to checkout')
+      router.push({
+        name: 'EventCheckout',
+        params: { slug: route.params.slug }
+      })
+      return
+    }
+
+    if (data.can_purchase) {
+      // ✅ Có active slot ngay → Vào checkout
+      console.log('✅ Active slot available, proceed to checkout')
+      router.push({
+        name: 'EventCheckout',
+        params: { slug: route.params.slug }
+      })
+    } else {
+      // ✅ Phải chờ trong queue
+      console.log(`⏳ In queue at position ${data.queue_position}`)
+      showWaitingRoom.value = true
+      queuePosition.value = data.queue_position
+    }
 
     // Go to checkout
-    router.push({
-      name: 'EventCheckout',
-      params: { slug: route.params.slug }
-    })
+    // router.push({
+    //   name: 'EventCheckout',
+    //   params: { slug: route.params.slug }
+    // })
   } catch (error) {
-    console.error('Failed to handle purchase:', error)
-    alert(error.message || 'Failed to add tickets to cart')
+    console.error('Failed to join queue:', error)
+    alert(error.response?.data?.message || 'Failed to join waiting room. Please try again.')
+  } finally {
+    joiningQueue.value = false
   }
+}
+
+
+// ✅ Callback khi waiting room ready
+const handleWaitingRoomReady = () => {
+  console.log('✅ Your turn! Proceeding to checkout...')
+  showWaitingRoom.value = false
+  
+  router.push({
+    name: 'EventCheckout',
+    params: { slug: route.params.slug }
+  })
+}
+
+// ✅ Callback khi waiting room error/expired
+const handleWaitingRoomError = (message) => {
+  console.error('Waiting room error:', message)
+  showWaitingRoom.value = false
+  alert(message || 'Your session has expired. Please try again.')
 }
 
 const handleShare = async () => {
@@ -203,6 +271,15 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-gray-50">
+    <!-- WAITING ROOM MODAL -->
+    <WaitingRoom
+      v-if="showWaitingRoom"
+      :session-id="selectedSession?.id"
+      @ready="handleWaitingRoomReady"
+      @error="handleWaitingRoomError"
+      @expired="handleWaitingRoomError"
+    />
+
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center items-center py-20">
       <Spinner size="xl" />
@@ -343,11 +420,12 @@ onMounted(() => {
                         variant="primary"
                         size="lg"
                         full-width
-                        :disabled="!canPurchase"
+                        :disabled="!canPurchase || joiningQueue"
                         @click="handlePurchase"
                       >
-                        <TicketIcon class="w-5 h-5" />
-                        Continue to Checkout
+                        <Spinner v-if="joiningQueue" size="sm" class="mr-2" />
+                        <TicketIcon v-else class="w-5 h-5" />
+                        {{ joiningQueue ? 'Joining Queue...' : 'Buy Tickets' }}
                       </Button>
 
                       <div class="flex space-x-2">

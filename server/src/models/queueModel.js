@@ -281,6 +281,58 @@ class QueueModel {
   }
 
   /**
+   * Update queue status
+   */
+  static async updateQueueStatus(userId, sessionId, newStatus) {
+    try {
+      const query = `
+        UPDATE waiting_queue
+        SET status = $3,
+            updated_at = NOW()
+        WHERE user_id = $1 
+          AND session_id = $2
+        RETURNING *
+      `;
+
+      const result = await pool.query(query, [userId, sessionId, newStatus]);
+      return result.rows[0] || null;
+
+    } catch (error) {
+      throw new Error(`Failed to update queue status: ${error.message}`);
+    }
+  }
+
+  /**
+   * Expire user slot
+   */
+  static async expireUser(userId, sessionId) {
+    try {
+      const query = `
+        UPDATE waiting_queue
+        SET status = 'expired',
+            completed_at = NOW()
+        WHERE user_id = $1 
+          AND session_id = $2 
+          AND status = 'active'
+        RETURNING *
+      `;
+
+      const result = await pool.query(query, [userId, sessionId]);
+      
+      // Remove from Redis active set
+      const redis = redisService.getClient();
+      if (redis) {
+        await redis.zrem(`active:${sessionId}`, userId);
+      }
+
+      return result.rows[0] || null;
+
+    } catch (error) {
+      throw new Error(`Failed to expire user: ${error.message}`);
+    }
+  }
+
+  /**
    * Leave queue (cancel)
    */
   static async leaveQueue(userId, sessionId) {

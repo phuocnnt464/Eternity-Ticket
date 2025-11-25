@@ -1,38 +1,38 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useCartStore } from '@/stores/cart'
-import { useAuthStore } from '@/stores/auth'
+import { useRoute, useRouter } from 'vue-router'
 import { ordersAPI } from '@/api/orders.js'
-import { eventsAPI } from '@/api/events.js'
-import { queueAPI } from '@/api'
-import CheckoutForm from '@/components/features/CheckoutForm.vue'
+import { queueAPI } from '@/api/queue.js'
+import { useAuthStore } from '@/stores/auth'
+import { useCartStore } from '@/stores/cart'
 import OrderSummary from '@/components/features/OrderSummary.vue'
-import WaitingRoom from '@/components/features/WaitingRoom.vue'
 import Button from '@/components/common/Button.vue'
+import Input from '@/components/common/Input.vue'
 import Spinner from '@/components/common/Spinner.vue'
-import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, CreditCardIcon, ClockIcon } from '@heroicons/vue/24/outline'
+import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
 
-const router = useRouter()
 const route = useRoute()
-const cartStore = useCartStore()
+const router = useRouter()
 const authStore = useAuthStore()
+const cartStore = useCartStore()
 
 const loading = ref(false)
-const showWaitingRoom = ref(false)
-const sessionId = ref(null)
-const customerInfo = ref({})
-const couponDiscount = ref(0)
+const currentStep = ref(1) // ✅ 1 = Customer Info, 2 = Payment
+const customerInfo = ref({
+  first_name: '',
+  last_name: '',
+  email: '',
+  phone: ''
+})
 const couponCode = ref('')
+const couponDiscount = ref(0)
 
-// ✅ Payment step states
-const currentStep = ref(1)
+// ✅ Order state
 const createdOrder = ref(null)
 const paymentMethod = ref('cash')
 const processingPayment = ref(false)
-const paymentCountdown = ref(3)
 
-// ✅ Purchase slot countdown (15 phút từ khi active trong queue)
+// ✅ Timer state (15 phút từ queue active slot)
 const slotExpiryTime = ref(null)
 const timeRemaining = ref(null)
 const countdownInterval = ref(null)
@@ -44,19 +44,6 @@ const tickets = computed(() => cartStore.items)
 const isCartValid = computed(() => {
   return event.value && session.value && cartStore.items.length > 0
 })
-
-const membershipDiscount = computed(() => {
-  if (!authStore.isPremium) return 0
-  const subtotal = tickets.value.reduce((sum, item) => sum + item.subtotal, 0)
-  return subtotal * 0.1
-})
-
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }).format(price)
-}
 
 const formatTimeRemaining = (seconds) => {
   if (!seconds || seconds <= 0) return '00:00'
@@ -84,7 +71,6 @@ const startSlotCountdown = (expiryTime) => {
       clearInterval(countdownInterval.value)
       alert('⏰ Your purchase time has expired! Please join the queue again.')
       
-      // Clear everything
       createdOrder.value = null
       cartStore.clear()
       
@@ -105,7 +91,7 @@ const startSlotCountdown = (expiryTime) => {
 const checkQueueStatusAndStartTimer = async () => {
   try {
     const response = await queueAPI.getStatus(session.value.id)
-    const data = response.data
+    const data = response.data.data
     
     console.log('🔍 Queue status check:', data)
     
@@ -122,41 +108,42 @@ const checkQueueStatusAndStartTimer = async () => {
       })
       return false
     } else {
-      console.log('❌ No active slot, need to join queue')
-      return false
+      console.warn('⚠️ No active queue slot found')
+      // Nếu không có waiting room, cho phép tiếp tục
+      return true
     }
   } catch (error) {
-    console.error('❌ Failed to check queue status:', error)
-    return false
+    console.error('Failed to check queue status:', error)
+    // Nếu lỗi, vẫn cho phép tiếp tục (fallback)
+    return true
   }
 }
 
-const validateCoupon = async (code) => {
-  try {
-    const response = await eventsAPI.validateCoupon({
-      event_id: event.value.event_id,
-      coupon_code: code
-    })
-    
-    couponCode.value = code
-    couponDiscount.value = response.data.discount_amount
-  } catch (error) {
-    throw new Error(error.response?.data?.error?.message || 'Invalid coupon')
+// ✅ STEP 1: Submit customer info (KHÔNG tạo order)
+const handleSubmitCustomerInfo = () => {
+  // Validate
+  if (!customerInfo.value.first_name || !customerInfo.value.last_name || 
+      !customerInfo.value.email || !customerInfo.value.phone) {
+    alert('Please fill in all required fields')
+    return
   }
+
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(customerInfo.value.email)) {
+    alert('Please enter a valid email address')
+    return
+  }
+
+  // ✅ Chỉ chuyển sang step 2, KHÔNG tạo order
+  console.log('✅ Customer info valid, moving to payment step')
+  currentStep.value = 2
 }
 
-const handleWaitingRoomReady = async () => {
-  console.log('✅ Waiting room ready, checking active slot')
-  showWaitingRoom.value = false
-  
-  // Check queue status và start timer
-  await checkQueueStatusAndStartTimer()
-}
-
-// ✅ TẠO ORDER (giữ nguyên logic)
-const handleCheckout = async () => {
-  // Kiểm tra còn thời gian không
-  if (!slotExpiryTime.value || new Date() >= new Date(slotExpiryTime.value)) {
+// ✅ STEP 2: Create order và process payment
+const handleCreateOrderAndPay = async () => {
+  // ✅ Kiểm tra còn thời gian không
+  if (slotExpiryTime.value && new Date() >= new Date(slotExpiryTime.value)) {
     alert('⏰ Your purchase time has expired! Please join the queue again.')
     router.push({
       name: 'EventDetail',
@@ -167,6 +154,7 @@ const handleCheckout = async () => {
 
   loading.value = true
   try {
+    // ✅ BÂY GIỜ MỚI TẠO ORDER (sau khi chọn payment method)
     const orderData = {
       event_id: event.value.id,
       session_id: session.value.id,
@@ -180,171 +168,71 @@ const handleCheckout = async () => {
         email: customerInfo.value.email,
         phone: customerInfo.value.phone
       },
-      coupon_code: couponCode.value || undefined
+      coupon_code: couponCode.value || null
     }
 
     console.log('📦 Creating order:', orderData)
-
-    const response = await ordersAPI.createOrder(orderData)
-    const orderResult = response.data.order
-
-    createdOrder.value = {
-      id: orderResult.id,
-      order_number: orderResult.order_number,
-      total_amount: orderResult.total_amount
-    }
-
-    console.log('✅ Order created:', createdOrder.value)
     
-    // Move to payment step
-    currentStep.value = 2
-
+    const result = await ordersAPI.createOrder(orderData)
+    
+    if (result.success) {
+      createdOrder.value = result.data.order
+      console.log('✅ Order created:', createdOrder.value.order_number)
+      
+      // ✅ Proceed to payment
+      await processPayment()
+    }
   } catch (error) {
-    console.error('❌ Order creation error:', error)
-    const errorMsg = error.response?.data?.error?.message || 
-                     error.response?.data?.message || 
-                     'Order creation failed'
-    alert(errorMsg)
+    console.error('Order creation failed:', error)
+    alert(error.response?.data?.message || 'Failed to create order. Please try again.')
   } finally {
     loading.value = false
   }
 }
 
-// ✅ STEP 2: Process Payment (giữ nguyên)
-const handlePayment = async (success = true) => {
+const processPayment = async () => {
   processingPayment.value = true
-  paymentCountdown.value = 3
-
-  const timer = setInterval(async () => {
-    paymentCountdown.value--
-    if (paymentCountdown.value === 0) {
-      clearInterval(timer)
-
-      try {
-        const transactionId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-
-        const response = await ordersAPI.processPayment(createdOrder.value.id, {
-          payment_method: paymentMethod.value,
-          payment_data: {
-            mock: true,
-            success: success,
-            transaction_id: transactionId,
-            payment_time: new Date().toISOString()
-          }
-        })
-
-        if (response.success) {
-          console.log('✅ Payment successful')
-          
-          // Clear countdown
-          if (countdownInterval.value) {
-            clearInterval(countdownInterval.value)
-          }
-          
-          // Clear cart
-          cartStore.clear()
-
-          // Redirect to success page
-          router.push({
-            path: '/participant/payment/result',
-            query: {
-              status: 'success',
-              order: createdOrder.value.order_number,
-              txn: transactionId
-            }
-          })
-        } else {
-          throw new Error('Payment failed')
-        }
-      } catch (error) {
-        console.error('❌ Payment error:', error)
-        alert('Payment failed. Please try again.')
-        processingPayment.value = false
-      }
-    }
-  }, 1000)
-}
-
-const handleBackToInfo = () => {
-  if (confirm('Go back to customer information?')) {
-    currentStep.value = 1
-  }
-}
-
-// ✅ Check waiting room
-const checkWaitingRoom = async () => {
+  
   try {
-    const response = await queueAPI.getStatus(session.value.id)
-    
-    console.log('🔍 Queue response:', response)
-    
-    if (response.data?.waiting_room_enabled) {
-      console.log('⏳ Waiting room enabled')
-      showWaitingRoom.value = true
-      sessionId.value = session.value.id
-      return true
+    if (paymentMethod.value === 'vnpay') {
+      // Redirect to VNPay
+      const response = await ordersAPI.getVNPayURL(createdOrder.value.id)
+      window.location.href = response.data.payment_url
     } else {
-      console.log('✅ No waiting room required')
-      return false
+      // Mock payment
+      router.push({
+        name: 'PaymentGateway',
+        query: {
+          orderId: createdOrder.value.id,
+          orderNumber: createdOrder.value.order_number
+        }
+      })
     }
   } catch (error) {
-    console.log('ℹ️ No waiting room config found:', error.message)
-    return false
+    console.error('Payment failed:', error)
+    alert('Failed to process payment. Please try again.')
+    processingPayment.value = false
   }
 }
 
 onMounted(async () => {
-  if (!isCartValid.value) {
-    router.push({
-      name: 'EventDetail',
-      params: { slug: route.params.slug }
-    })
-    return
-  }
-
-  console.log('🎪 Session config:', session.value)
-  
-  // ✅ Check waiting room first
-  const hasWaitingRoom = await checkWaitingRoom()
-  
-  if (!hasWaitingRoom) {
-    // Pre-fill customer info
-    if (authStore.user) {
-      customerInfo.value = {
-        first_name: authStore.user.first_name || '',
-        last_name: authStore.user.last_name || '',
-        email: authStore.user.email,
-        phone: authStore.user.phone || ''
-      }
-    }
-    
-    // ✅ Check active slot và start timer
-    const hasActiveSlot = await checkQueueStatusAndStartTimer()
-    
-    if (!hasActiveSlot) {
-      alert('You need to join the waiting room first.')
-      router.push({
-        name: 'EventDetail',
-        params: { slug: route.params.slug }
-      })
-    }
-  }
-})
-
-onBeforeUnmount(() => {
-  if (countdownInterval.value) {
-    clearInterval(countdownInterval.value)
-  }
-})
-
-watch(showWaitingRoom, (isShowing) => {
-  if (!isShowing && authStore.user) {
+  // Load user info
+  if (authStore.user) {
     customerInfo.value = {
       first_name: authStore.user.first_name || '',
       last_name: authStore.user.last_name || '',
       email: authStore.user.email,
       phone: authStore.user.phone || ''
     }
+  }
+
+  // ✅ Check queue status và start timer
+  await checkQueueStatusAndStartTimer()
+})
+
+onBeforeUnmount(() => {
+  if (countdownInterval.value) {
+    clearInterval(countdownInterval.value)
   }
 })
 </script>
@@ -358,37 +246,145 @@ watch(showWaitingRoom, (isShowing) => {
         class="flex items-center text-gray-600 hover:text-gray-900 mb-6"
       >
         <ArrowLeftIcon class="w-5 h-5 mr-2" />
-        Back to Event
+        Back
       </button>
 
       <!-- ✅ COUNTDOWN TIMER - Hiển thị 15 phút từ queue slot -->
-      <div v-if="timeRemaining !== null && !showWaitingRoom" class="mb-6">
+      <div v-if="timeRemaining !== null" class="mb-6">
         <div class="flex justify-center">
-          <div :class="[
-            'flex items-center gap-3 px-6 py-3 rounded-lg shadow-lg text-lg font-bold transition-all',
-            timeRemaining < 120 ? 'bg-red-100 text-red-700 animate-pulse ring-2 ring-red-300' : 
-            timeRemaining < 300 ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-300' : 
-            'bg-blue-100 text-blue-700 ring-2 ring-blue-300'
-          ]">
-            <ClockIcon class="w-6 h-6" />
-            <div class="flex flex-col">
-              <span class="text-xs font-normal opacity-75">
-                Complete purchase within
-              </span>
-              <span class="text-2xl font-bold">{{ formatTimeRemaining(timeRemaining) }}</span>
+          <div class="bg-orange-100 border-2 border-orange-500 rounded-lg px-6 py-4">
+            <div class="flex items-center space-x-3">
+              <div class="text-orange-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-sm text-orange-700 font-medium">Complete your purchase in</p>
+                <p class="text-3xl font-bold text-orange-600">
+                  {{ formatTimeRemaining(timeRemaining) }}
+                </p>
+              </div>
             </div>
           </div>
         </div>
-        
-        <div v-if="timeRemaining < 180" class="mt-2 text-center">
-          <p class="text-sm text-red-600 font-semibold animate-pulse">
-            ⚠️ Hurry! Your slot will expire soon!
-          </p>
-        </div>
       </div>
 
-      <!-- Progress Steps, Waiting Room, Form, Payment... (giữ nguyên) -->
-      
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left: Checkout Form -->
+        <div class="lg:col-span-2">
+          <div class="card">
+            <h1 class="text-2xl font-bold mb-6">Checkout</h1>
+
+            <!-- ✅ STEP 1: CUSTOMER INFO -->
+            <div v-if="currentStep === 1">
+              <h2 class="text-lg font-semibold mb-4">1. Customer Information</h2>
+              
+              <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                  <Input
+                    v-model="customerInfo.first_name"
+                    label="First Name"
+                    placeholder="John"
+                    required
+                  />
+                  <Input
+                    v-model="customerInfo.last_name"
+                    label="Last Name"
+                    placeholder="Doe"
+                    required
+                  />
+                </div>
+
+                <Input
+                  v-model="customerInfo.email"
+                  type="email"
+                  label="Email"
+                  placeholder="john@example.com"
+                  required
+                />
+
+                <Input
+                  v-model="customerInfo.phone"
+                  type="tel"
+                  label="Phone Number"
+                  placeholder="+84 123 456 789"
+                  required
+                />
+
+                <Button
+                  variant="primary"
+                  size="lg"
+                  full-width
+                  @click="handleSubmitCustomerInfo"
+                >
+                  Continue to Payment
+                </Button>
+              </div>
+            </div>
+
+            <!-- ✅ STEP 2: PAYMENT -->
+            <div v-else-if="currentStep === 2">
+              <h2 class="text-lg font-semibold mb-4">2. Payment Method</h2>
+              
+              <div class="space-y-4">
+                <!-- Payment method selection -->
+                <div class="space-y-3">
+                  <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500"
+                         :class="paymentMethod === 'vnpay' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
+                    <input
+                      type="radio"
+                      v-model="paymentMethod"
+                      value="vnpay"
+                      class="mr-3"
+                    />
+                    <span class="font-medium">VNPay</span>
+                  </label>
+
+                  <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500"
+                         :class="paymentMethod === 'cash' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
+                    <input
+                      type="radio"
+                      v-model="paymentMethod"
+                      value="cash"
+                      class="mr-3"
+                    />
+                    <span class="font-medium">Cash / Bank Transfer (Mock)</span>
+                  </label>
+                </div>
+
+                <div class="flex space-x-3">
+                  <Button
+                    variant="secondary"
+                    @click="currentStep = 1"
+                  >
+                    Back
+                  </Button>
+                  
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    full-width
+                    :disabled="loading || processingPayment"
+                    @click="handleCreateOrderAndPay"
+                  >
+                    <Spinner v-if="loading || processingPayment" size="sm" class="mr-2" />
+                    {{ loading ? 'Creating Order...' : processingPayment ? 'Processing...' : 'Confirm & Pay' }}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Order Summary -->
+        <div class="lg:col-span-1">
+          <OrderSummary
+            :items="tickets"
+            :show-details="true"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>
