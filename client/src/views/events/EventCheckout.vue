@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount  } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
@@ -10,7 +10,7 @@ import OrderSummary from '@/components/features/OrderSummary.vue'
 import WaitingRoom from '@/components/features/WaitingRoom.vue'
 import Button from '@/components/common/Button.vue'
 import Spinner from '@/components/common/Spinner.vue'
-import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, CreditCardIcon  } from '@heroicons/vue/24/outline'
+import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, CreditCardIcon, ClockIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
 const route = useRoute()
@@ -30,6 +30,11 @@ const createdOrder = ref(null)
 const paymentMethod = ref('cash')
 const processingPayment = ref(false)
 const paymentCountdown = ref(3)
+
+// ✅ Order expiry countdown
+const orderExpiryTime = ref(null)
+const timeRemaining = ref(null)
+const countdownInterval = ref(null)
 
 const event = computed(() => cartStore.event)
 const session = computed(() => cartStore.session)
@@ -51,6 +56,41 @@ const formatPrice = (price) => {
     style: 'currency',
     currency: 'VND'
   }).format(price)
+}
+
+const formatTimeRemaining = (seconds) => {
+  if (!seconds || seconds <= 0) return '00:00'
+  const minutes = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+}
+
+// ✅ Start countdown timer
+const startCountdown = (expiryTime) => {
+  orderExpiryTime.value = expiryTime
+  
+  // Clear existing interval
+  if (countdownInterval.value) {
+    clearInterval(countdownInterval.value)
+  }
+  
+  const updateTimeRemaining = () => {
+    const now = new Date()
+    const expiry = new Date(expiryTime)
+    const diff = Math.floor((expiry - now) / 1000)
+    
+    if (diff <= 0) {
+      timeRemaining.value = 0
+      clearInterval(countdownInterval.value)
+      alert('Order has expired! Please create a new order.')
+      router.push({ name: 'EventDetail', params: { slug: route.params.slug } })
+    } else {
+      timeRemaining.value = diff
+    }
+  }
+  
+  updateTimeRemaining()
+  countdownInterval.value = setInterval(updateTimeRemaining, 1000)
 }
 
 const validateCoupon = async (code) => {
@@ -201,11 +241,23 @@ const handleCheckout = async () => {
     const response = await ordersAPI.createOrder(orderData)
     const orderResult = response.data
 
-    const orderId = orderResult.order.id
-    const orderNumber = orderResult.order.order_number
-    const totalAmount = orderResult.order.total_amount
+    // const orderId = orderResult.order.id
+    // const orderNumber = orderResult.order.order_number
+    // const totalAmount = orderResult.order.total_amount
 
-    console.log('✅ Order created:', { id: orderId, number: orderNumber })
+    createdOrder.value = {
+      id: orderResult.order.id,
+      order_number: orderResult.order.order_number,
+      total_amount: orderResult.order.total_amount,
+      reserved_until: orderResult.reserved_until
+    }
+
+    console.log('✅ Order created:', createdOrder.value)
+
+    // ✅ Start countdown timer
+    startCountdown(createdOrder.value.reserved_until)
+    
+    // console.log('✅ Order created:', { id: orderId, number: orderNumber })
 
     // ✅ Clear cart and redirect to Payment Gateway
     // cartStore.clear()
@@ -333,6 +385,13 @@ onMounted(() => {
     }
   }
 })
+
+onBeforeUnmount(() => {
+  // Clear countdown on component unmount
+  if (countdownInterval.value) {
+    clearInterval(countdownInterval.value)
+  }
+})
 </script>
 
 <template>
@@ -375,6 +434,19 @@ onMounted(() => {
               2
             </div>
             <span class="ml-2 text-sm font-medium">Payment</span>
+          </div>
+        </div>
+
+        <!-- ✅ Countdown Timer -->
+        <div v-if="currentStep === 2 && timeRemaining !== null" class="mt-4 flex justify-center">
+          <div :class="[
+            'flex items-center gap-2 px-4 py-2 rounded-lg',
+            timeRemaining < 120 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+          ]">
+            <ClockIcon class="w-5 h-5" />
+            <span class="font-semibold">
+              Time remaining: {{ formatTimeRemaining(timeRemaining) }}
+            </span>
           </div>
         </div>
       </div>
