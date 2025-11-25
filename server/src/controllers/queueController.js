@@ -172,11 +172,11 @@ class QueueController {
       const { sessionId } = req.params;
       const userId = req.user.id;
 
-      // Check if active in Redis
-      const activeData = await QueueModel.getActiveUser(sessionId, userId);
-
       const config = await QueueModel.getWaitingRoomConfig(sessionId);
       const hasWaitingRoom = !!config;
+
+      // Check if active in Redis
+      const activeData = await QueueModel.getActiveUser(sessionId, userId);
 
       if (activeData) {
         return res.json(createResponse(
@@ -198,7 +198,7 @@ class QueueController {
       const position = await QueueModel.getRedisQueuePosition(sessionId, userId);
 
       if (position) {
-        const config = await QueueModel.getWaitingRoomConfig(sessionId);
+        // const config = await QueueModel.getWaitingRoomConfig(sessionId);
         const estimatedWait = config 
           ? Math.ceil(position * config.queue_timeout_minutes / config.concurrent_purchase_limit)
           : 0;
@@ -237,7 +237,7 @@ class QueueController {
 
       res.json(createResponse(
         true,
-        'Not in queue',
+        hasWaitingRoom ? 'Waiting room available' : 'Not in queue',
         {
           in_queue: false,
           status: null,

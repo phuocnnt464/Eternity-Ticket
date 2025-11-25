@@ -190,22 +190,7 @@ class OrderModel {
 
       if (coupon_code) {
         console.log(`Applying coupon code: ${coupon_code}`);
-
-        // GET COUPON WITH USAGE COUNTS
-        // const couponQuery = await client.query(`
-        //   SELECT 
-        //     c.*,
-        //     (SELECT COUNT(*) FROM coupon_usages WHERE coupon_id = c.id) as total_uses,
-        //     (SELECT COUNT(*) FROM coupon_usages WHERE coupon_id = c.id AND user_id = $2) as user_uses
-        //   FROM coupons c
-        //   WHERE c.code = $1 
-        //     AND c.is_active = true
-        //     AND c.valid_from <= NOW()
-        //     AND c.valid_until >= NOW()
-        //     AND (c.event_id IS NULL OR c.event_id = $3)
-        //   FOR UPDATE  -- ✅ Lock coupon row
-        // `, [coupon_code, userId, event_id]);
-
+       
         // ✅ 1. GET AND LOCK COUPON
         const couponQuery = await client.query(`
           SELECT c.*
@@ -315,6 +300,26 @@ class OrderModel {
       const vatAmount = (subtotal - membershipDiscount - couponDiscount) * 0.10;
       const totalAmount = subtotal - membershipDiscount - couponDiscount + vatAmount;
 
+       // ✅ LẤY expires_at TỪ QUEUE (không tính mới!)
+      const QueueModel = require('./queueModel');
+      const activeSlot = await QueueModel.getActiveUser(orderData.session_id, userId);
+      
+      let reservedUntil;
+      if (activeSlot && activeSlot.expires_at) {
+        // ✅ Dùng expires_at từ queue slot
+        reservedUntil = new Date(activeSlot.expires_at);
+        console.log(`✅ Using queue slot expiry: ${reservedUntil}`);
+      } else {
+        // ⚠️ Fallback nếu không có waiting room (15 phút mới)
+        reservedUntil = new Date(Date.now() + 15 * 60 * 1000);
+        console.log(`⚠️ No active slot, creating new expiry: ${reservedUntil}`);
+      }
+
+      // ✅ KIỂM TRA xem còn thời gian không
+      if (new Date() >= reservedUntil) {
+        throw new Error('Your purchase time has expired. Please join the queue again.');
+      }
+
       // Generate order number
       const orderNumber = generateOrderNumber();
 
@@ -328,12 +333,14 @@ class OrderModel {
         RETURNING *
       `;
 
-      const reservedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+      // const reservedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
 
       const orderResult = await client.query(orderQuery, [
         orderNumber, userId, event_id, session_id,
         subtotal, membershipDiscount, couponDiscount, vatAmount, totalAmount,
-        'pending', reservedUntil, JSON.stringify(customer_info), coupon_code
+        'pending', reservedUntil, 
+        JSON.stringify(customer_info),
+        orderData.coupon_code || null
       ]);
 
       const order = orderResult.rows[0];

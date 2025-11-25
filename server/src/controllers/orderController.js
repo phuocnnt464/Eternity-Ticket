@@ -26,7 +26,7 @@ class OrderController {
         return res.status(403).json(
           createResponse(
             false,
-            'You must join the waiting room first. You are not in an active purchase slot.',
+            'You must join the waiting room first.',
             {
               action_required: 'join_queue',
               waiting_room_enabled: true

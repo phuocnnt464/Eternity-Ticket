@@ -474,6 +474,12 @@ class QueueModel {
         expires_at: expiresAt.toISOString()
       });
 
+      // const activeData = {
+      //   user_id: userId,
+      //   activated_at: new Date().toISOString(),
+      //   expires_at: expiresAt.toISOString() // ✅ Lưu expires_at
+      // };
+
       // await redis.setEx(activeKey, timeoutMinutes * 60, data);
 
       // Pipeline to atomic operations
