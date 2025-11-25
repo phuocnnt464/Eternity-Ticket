@@ -83,7 +83,7 @@ const handleDownloadTickets = async (orderId) => {
     const url = window.URL.createObjectURL(new Blob([response.data]))
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `tickets-${orderId}.pdf`)
+    link.setAttribute('download', `eternity-tickets-${orderId}.pdf`)
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -196,7 +196,7 @@ onMounted(() => {
               v-if="order.status === 'paid'"
               variant="primary"
               size="sm"
-              @click="handleDownloadTickets(order.order_id)"
+              @click="handleDownloadTickets(order.id)"
             >
               <ArrowDownTrayIcon class="w-4 h-4" />
               Download Tickets
@@ -206,7 +206,7 @@ onMounted(() => {
               v-if="order.status === 'pending'"
               variant="danger"
               size="sm"
-              @click="handleCancelOrder(order.order_id)"
+              @click="handleCancelOrder(order.id)"
             >
               Cancel Order
             </Button>
