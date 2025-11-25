@@ -22,7 +22,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'validate-coupon', 'submit'])
 
 const form = ref({
-  full_name: props.modelValue.full_name || '',
+  first_name: props.modelValue.first_name || '',
+  last_name: props.modelValue.last_name || '',
   email: props.modelValue.email || '',
   phone: props.modelValue.phone || '',
   coupon_code: props.modelValue.coupon_code || ''
@@ -35,8 +36,12 @@ const couponValidating = ref(false)
 const validateForm = () => {
   errors.value = {}
   
-  if (!form.value.full_name) {
-    errors.value.full_name = 'Full name is required'
+  if (!form.value.first_name) {
+    errors.value.first_name = 'First name is required'
+  }
+
+  if (!form.value.last_name) {
+    errors.value.last_name = 'Last name is required'
   }
   
   if (!form.value.email) {
@@ -47,23 +52,25 @@ const validateForm = () => {
   
   if (!form.value.phone) {
     errors.value.phone = 'Phone number is required'
-  } else if (!/^[0-9]{10,11}$/.test(form.value.phone)) {
-    errors.value.phone = 'Invalid phone number'
   }
   
   return Object.keys(errors.value).length === 0
 }
 
 const validateCoupon = async () => {
-  if (!form.value.coupon_code.trim()) return
+  if (!form.value.coupon_code) {
+    errors.value.coupon_code = 'Please enter a coupon code'
+    return
+  }
   
   couponValidating.value = true
+  errors.value.coupon_code = ''
+  
   try {
     await emit('validate-coupon', form.value.coupon_code)
     couponApplied.value = true
   } catch (error) {
-    errors.value.coupon_code = error.message || 'Invalid coupon code'
-    couponApplied.value = false
+    errors.value.coupon_code = error.message
   } finally {
     couponValidating.value = false
   }
@@ -93,15 +100,26 @@ const updateValue = () => {
     <h3 class="text-lg font-semibold mb-4">Customer Information</h3>
 
     <form @submit.prevent="handleSubmit" class="space-y-4">
-      <!-- Full Name -->
-      <Input
-        v-model="form.full_name"
-        label="Full Name"
-        placeholder="Enter your full name"
-        :error="errors.full_name"
-        required
-        @blur="updateValue"
-      />
+      <!-- First Name & Last Name -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input
+          v-model="form.first_name"
+          label="First Name"
+          placeholder="John"
+          :error="errors.first_name"
+          required
+          @blur="updateValue"
+        />
+        
+        <Input
+          v-model="form.last_name"
+          label="Last Name"
+          placeholder="Doe"
+          :error="errors.last_name"
+          required
+          @blur="updateValue"
+        />
+      </div>
 
       <!-- Email -->
       <Input
@@ -120,7 +138,7 @@ const updateValue = () => {
         v-model="form.phone"
         type="tel"
         label="Phone Number"
-        placeholder="0123456789"
+        placeholder="+84 xxx xxx xxx"
         :error="errors.phone"
         required
         @blur="updateValue"
@@ -128,56 +146,51 @@ const updateValue = () => {
 
       <!-- Coupon Code -->
       <div v-if="allowCoupon">
-        <label class="label">Coupon Code (Optional)</label>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Discount Coupon (Optional)
+        </label>
         
-        <div v-if="!couponApplied" class="flex space-x-2">
+        <div class="flex gap-2">
           <div class="flex-1">
             <Input
               v-model="form.coupon_code"
               placeholder="Enter coupon code"
               :error="errors.coupon_code"
-              @blur="updateValue"
-            />
+              :disabled="couponApplied"
+            >
+              <template #prefix>
+                <TagIcon class="w-5 h-5 text-gray-400" />
+              </template>
+            </Input>
           </div>
+          
           <Button
+            v-if="!couponApplied"
             type="button"
             variant="secondary"
             :loading="couponValidating"
-            :disabled="!form.coupon_code.trim()"
             @click="validateCoupon"
           >
             Apply
           </Button>
-        </div>
-
-        <div v-else class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
-          <div class="flex items-center space-x-2 text-green-800">
-            <TagIcon class="w-5 h-5" />
-            <span class="font-medium">{{ form.coupon_code }}</span>
-            <span class="text-sm">applied</span>
-          </div>
-          <button
+          
+          <Button
+            v-else
             type="button"
+            variant="danger"
             @click="removeCoupon"
-            class="text-green-600 hover:text-green-800"
           >
             <XMarkIcon class="w-5 h-5" />
-          </button>
+          </Button>
         </div>
+        
+        <p v-if="couponApplied" class="text-sm text-green-600 mt-1">
+          ✓ Coupon applied successfully
+        </p>
       </div>
 
-      <!-- Submit -->
-      <slot name="actions" :submit="handleSubmit" :loading="loading">
-        <Button
-          type="submit"
-          variant="primary"
-          :loading="loading"
-          full-width
-          size="lg"
-        >
-          Proceed to Payment
-        </Button>
-      </slot>
+      <!-- Actions Slot -->
+      <slot name="actions" :submit="handleSubmit" :loading="loading" />
     </form>
   </div>
 </template>

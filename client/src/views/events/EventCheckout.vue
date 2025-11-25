@@ -10,7 +10,7 @@ import OrderSummary from '@/components/features/OrderSummary.vue'
 import WaitingRoom from '@/components/features/WaitingRoom.vue'
 import Button from '@/components/common/Button.vue'
 import Spinner from '@/components/common/Spinner.vue'
-import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
+import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, CreditCardIcon  } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
 const route = useRoute()
@@ -23,6 +23,13 @@ const sessionId = ref(null)
 const customerInfo = ref({})
 const couponDiscount = ref(0)
 const couponCode = ref('')
+
+// ✅ Payment step states
+const currentStep = ref(1) // 1 = Customer Info, 2 = Payment
+const createdOrder = ref(null)
+const paymentMethod = ref('cash')
+const processingPayment = ref(false)
+const paymentCountdown = ref(3)
 
 const event = computed(() => cartStore.event)
 const session = computed(() => cartStore.session)
@@ -38,6 +45,13 @@ const membershipDiscount = computed(() => {
   const subtotal = tickets.value.reduce((sum, item) => sum + item.subtotal, 0)
   return subtotal * 0.1 // 10% discount for premium members
 })
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price)
+}
 
 const validateCoupon = async (code) => {
   try {
@@ -196,15 +210,8 @@ const handleCheckout = async () => {
     // ✅ Clear cart and redirect to Payment Gateway
     cartStore.clear()
     
-    router.push({
-      name: 'PaymentGateway',
-      query: {
-        orderId: orderId,          
-        order: orderNumber,         
-        amount: totalAmount,
-        type: 'order'
-      }
-    })
+    // ✅ Move to payment step
+    currentStep.value = 2
 
   } catch (error) {
     console.error('❌ Order creation error:', error)
@@ -214,36 +221,90 @@ const handleCheckout = async () => {
   }
 }
 
-const processOrder = async () => {
-  loading.value = true
+// const processOrder = async () => {
+//   loading.value = true
 
-  try {
-    const orderData = {
-      session_id: session.value.session_id,
-      tickets: tickets.value.map(t => ({
-        ticket_type_id: t.ticket_type_id,
-        quantity: t.quantity
-      })),
-      customer_info: customerInfo.value,
-      coupon_code: couponCode.value || undefined
+//   try {
+//     const orderData = {
+//       session_id: session.value.session_id,
+//       tickets: tickets.value.map(t => ({
+//         ticket_type_id: t.ticket_type_id,
+//         quantity: t.quantity
+//       })),
+//       customer_info: customerInfo.value,
+//       coupon_code: couponCode.value || undefined
+//     }
+
+//     const response = await ordersAPI.createOrder(orderData)
+//     const order = response.data.order
+
+//     // Redirect to payment
+//     router.push({
+//       name: 'MyOrders',
+//       params: { orderId: order.order_id }
+//     })
+
+//     // Clear cart
+//     cartStore.clearCart()
+//   } catch (error) {
+//     alert(error.response?.data?.error?.message || 'Order creation failed')
+//   } finally {
+//     loading.value = false
+//   }
+// }
+
+// ✅ STEP 2: Process Payment
+const handlePayment = async (success = true) => {
+  processingPayment.value = true
+  paymentCountdown.value = 3
+
+  const timer = setInterval(async () => {
+    paymentCountdown.value--
+    if (paymentCountdown.value === 0) {
+      clearInterval(timer)
+
+      try {
+        const transactionId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+        const response = await ordersAPI.processPayment(createdOrder.value.id, {
+          payment_method: paymentMethod.value,
+          payment_data: {
+            mock: true,
+            success: success,
+            transaction_id: transactionId,
+            payment_time: new Date().toISOString()
+          }
+        })
+
+        if (response.success) {
+          console.log('✅ Payment successful')
+          
+          // Clear cart
+          cartStore.clear()
+
+          // Redirect to success page
+          router.push({
+            path: '/participant/payment/result',
+            query: {
+              status: 'success',
+              order: createdOrder.value.order_number,
+              txn: transactionId
+            }
+          })
+        } else {
+          throw new Error('Payment failed')
+        }
+      } catch (error) {
+        console.error('❌ Payment error:', error)
+        alert('Payment failed. Please try again.')
+        processingPayment.value = false
+      }
     }
+  }, 1000)
+}
 
-    const response = await ordersAPI.createOrder(orderData)
-    const order = response.data.order
-
-    // Redirect to payment
-    router.push({
-      name: 'MyOrders',
-      params: { orderId: order.order_id }
-    })
-
-    // Clear cart
-    cartStore.clearCart()
-  } catch (error) {
-    alert(error.response?.data?.error?.message || 'Order creation failed')
-  } finally {
-    loading.value = false
-  }
+const handleBackToInfo = () => {
+  currentStep.value = 1
 }
 
 onMounted(() => {
@@ -285,6 +346,38 @@ onMounted(() => {
         Back to Event
       </button>
 
+      <!-- Progress Steps -->
+      <div v-if="!showWaitingRoom && isCartValid" class="mb-8">
+        <div class="flex items-center justify-center space-x-4">
+          <div class="flex items-center">
+            <div :class="[
+              'w-10 h-10 rounded-full flex items-center justify-center font-semibold',
+              currentStep >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'
+            ]">
+              1
+            </div>
+            <span class="ml-2 text-sm font-medium">Customer Info</span>
+          </div>
+          
+          <div class="w-16 h-1 bg-gray-200">
+            <div :class="[
+              'h-full transition-all',
+              currentStep >= 2 ? 'bg-primary-600' : 'bg-gray-200'
+            ]" />
+          </div>
+          
+          <div class="flex items-center">
+            <div :class="[
+              'w-10 h-10 rounded-full flex items-center justify-center font-semibold',
+              currentStep >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'
+            ]">
+              2
+            </div>
+            <span class="ml-2 text-sm font-medium">Payment</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Waiting Room -->
       <div v-if="showWaitingRoom">
         <WaitingRoom
@@ -294,9 +387,8 @@ onMounted(() => {
         />
       </div>
 
-      <!-- Checkout Form -->
-      <div v-else-if="isCartValid" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Left Column - Customer Info -->
+      <!-- STEP 1: Customer Info -->
+      <div v-else-if="isCartValid && currentStep === 1" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div class="lg:col-span-2">
           <!-- Event Info -->
           <div class="card mb-6">
@@ -312,9 +404,6 @@ onMounted(() => {
                 <p class="text-gray-600 text-sm mb-2">{{ event.venue_name }}</p>
                 <p class="text-gray-600 text-sm">
                   {{ new Date(event.start_date).toLocaleString() }}
-                </p>
-                <p v-if="session" class="text-primary-600 text-sm mt-2">
-                  Session: {{ session.name }}
                 </p>
               </div>
             </div>
@@ -342,7 +431,6 @@ onMounted(() => {
           </CheckoutForm>
         </div>
 
-        <!-- Right Column - Order Summary -->
         <div class="lg:col-span-1">
           <OrderSummary
             :items="tickets"
@@ -353,7 +441,110 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Invalid Cart -->
+      <!-- STEP 2: Payment -->
+      <div v-else-if="isCartValid && currentStep === 2" class="max-w-2xl mx-auto">
+        <!-- Processing -->
+        <div v-if="processingPayment" class="card text-center space-y-6">
+          <div class="flex justify-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div>
+          </div>
+          
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">
+              Processing Payment...
+            </h2>
+            <p class="text-gray-600">
+              Please wait {{ paymentCountdown }} seconds
+            </p>
+          </div>
+          
+          <div class="bg-blue-50 p-4 rounded-lg">
+            <p class="text-sm text-blue-800">
+              🎭 <strong>Mock Payment Gateway</strong><br>
+              This is a simulated payment for testing purposes
+            </p>
+          </div>
+        </div>
+
+        <!-- Payment Form -->
+        <div v-else class="card space-y-6">
+          <div class="text-center border-b pb-4">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">
+              Complete Your Payment
+            </h2>
+            <p class="text-sm text-gray-600">
+              Testing Mode - Choose payment outcome
+            </p>
+          </div>
+
+          <!-- Order Summary -->
+          <div class="bg-gray-50 p-4 rounded-lg space-y-2">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Order Number:</span>
+              <span class="font-semibold">{{ createdOrder.order_number }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Amount:</span>
+              <span class="font-bold text-lg text-primary-600">
+                {{ formatPrice(createdOrder.total_amount) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Payment Method -->
+          <div class="space-y-3">
+            <label class="block text-sm font-medium text-gray-700">
+              Select Payment Method
+            </label>
+            
+            <div class="space-y-2">
+              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <input type="radio" v-model="paymentMethod" value="cash" class="mr-3">
+                <span>💵 Cash</span>
+              </label>
+              
+              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <input type="radio" v-model="paymentMethod" value="credit_card" class="mr-3">
+                <CreditCardIcon class="w-6 h-6 mr-2 text-gray-600 inline" />
+                <span>Credit Card</span>
+              </label>
+              
+              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <input type="radio" v-model="paymentMethod" value="bank_transfer" class="mr-3">
+                <span>🏦 Bank Transfer</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Test Buttons -->
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p class="text-sm font-semibold text-yellow-800 mb-3">
+              🧪 Test Payment Outcome:
+            </p>
+            
+            <div class="space-y-2">
+              <Button variant="primary" full-width @click="handlePayment(true)">
+                ✅ Simulate Successful Payment
+              </Button>
+              
+              <Button variant="danger" full-width @click="handlePayment(false)">
+                ❌ Simulate Failed Payment
+              </Button>
+            </div>
+          </div>
+
+          <div class="text-center">
+            <button 
+              @click="handleBackToInfo"
+              class="text-sm text-gray-600 hover:text-gray-900"
+            >
+              ← Back to customer information
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty Cart -->
       <div v-else class="text-center py-12">
         <Spinner v-if="loading" size="xl" />
         <div v-else>
