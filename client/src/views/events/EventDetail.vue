@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
 import { sessionsAPI } from '@/api/sessions.js'
-import { queueAPOI } from '@/api/queue.js'
+import { queueAPI } from '@/api/queue.js'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import Badge from '@/components/common/Badge.vue'
@@ -172,7 +172,7 @@ const handlePurchase = async () => {
       session_id: selectedSession.value.id
     })
     
-    const data = response.data.data
+    const data = response.data
     console.log('🔍 Queue response:', data)
 
     // console.log('✅ Cart after adding:', {
