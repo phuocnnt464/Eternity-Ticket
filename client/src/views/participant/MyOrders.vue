@@ -110,9 +110,6 @@ const handleRetryPayment = async (order) => {
     name: 'EventDetail',
     params: { slug: order.event_slug }
   })
-  
-  // Option 2: Reopen payment modal
-  // alert('Redirect to payment page for order: ' + order.order_number)
 }
 
 const formatPrice = (price) => {

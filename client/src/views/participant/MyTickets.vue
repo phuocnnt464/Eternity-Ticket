@@ -33,8 +33,9 @@ const pagination = ref({
 const statusOptions = [
   { value: 'all', label: 'All Tickets' },
   { value: 'valid', label: 'Valid' },
-  { value: 'checked_in', label: 'Checked In' },
-  { value: 'expired', label: 'Expired' }
+  { value: 'used', label: 'Checked In' },
+  { value: 'canceled', label: 'Canceled' },
+  { value: 'refunded', label: 'Refunded' }
 ]
 
 const filteredTickets = computed(() => {
@@ -57,11 +58,13 @@ const filteredTickets = computed(() => {
       
       switch (selectedStatus.value) {
         case 'valid':
-          return ticket.checkin_status !== 'checked_in' && eventDate > now
-        case 'checked_in':
-          return ticket.checkin_status === 'checked_in'
-        case 'expired':
-          return eventDate < now && ticket.checkin_status !== 'checked_in'
+          return ticket.checkin_status !== 'used' && eventDate > now
+        case 'used':
+          return ticket.checkin_status === 'used'
+        case 'canceled':
+          return ticket.status === 'canceled'
+        case 'refunded':
+          return ticket.status === 'refunded'
         default:
           return true
       }
