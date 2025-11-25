@@ -190,8 +190,8 @@ const handleCheckout = async () => {
         quantity: t.quantity
       })),
       customer_info: {
-        first_name: firstName,          
-        last_name: lastName,              
+        first_name: customerInfo.value.first_name, 
+        last_name: customerInfo.value.last_name,              
         email: customerInfo.value.email,
         phone: customerInfo.value.phone
       },
@@ -326,7 +326,8 @@ onMounted(() => {
   // Pre-fill customer info from auth
   if (authStore.user) {
     customerInfo.value = {
-      full_name: authStore.fullName,
+      first_name: authStore.user.first_name || '',
+      last_name: authStore.user.last_name || '',
       email: authStore.user.email,
       phone: authStore.user.phone || ''
     }
