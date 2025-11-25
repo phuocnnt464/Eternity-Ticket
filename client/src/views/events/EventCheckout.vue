@@ -207,7 +207,7 @@ const checkQueueStatusAndStartTimer = async () => {
     console.log('🔍 API Response:', apiResponse)
     
     if (!apiResponse.success) {
-      console.warn('Queue status check failed:', apiResponse.message)
+      console.warn('Queue status check failed:', apiResponse.message || 'Unknown error')
       // Không có waiting room → Tạo timer 15 phút
       const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
       startSlotCountdown(expiryTime)
@@ -221,7 +221,9 @@ const checkQueueStatusAndStartTimer = async () => {
       console.log('✅ Active slot found, expires at:', data.expires_at)
       startSlotCountdown(data.expires_at)
       return true
-    } else if (data?.status === 'waiting') {
+    } 
+    
+    if (data?.status === 'waiting') {
       console.log('⏳ Still in queue, position:', data.queue_position)
       alert('You are still in the waiting queue. Please wait for your turn.')
       router.push({
@@ -229,12 +231,34 @@ const checkQueueStatusAndStartTimer = async () => {
         params: { slug: route.params.slug }
       })
       return false
-    } else {
-      // Không có waiting room → Tạo timer 15 phút
-      console.warn('⚠️ No active queue slot, creating 15-minute timer')
+    } 
+    // else {
+    //   // Không có waiting room → Tạo timer 15 phút
+    //   console.warn('⚠️ No active queue slot, creating 15-minute timer')
+    //   const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
+    //   startSlotCountdown(expiryTime)
+    //   return true
+    // }
+
+     // in_queue = false, waiting_room_enabled = false
+    // → Không có waiting room, cho phép checkout với timer 15 phút
+    if (!data?.in_queue && !data?.waiting_room_enabled) {
+      console.log('⚠️ No waiting room for this session, creating 15-minute timer')
       const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
       startSlotCountdown(expiryTime)
       return true
+    }
+    
+    // in_queue = false, waiting_room_enabled = true
+    // → Có waiting room nhưng user chưa join → Redirect back
+    if (!data?.in_queue && data?.waiting_room_enabled) {
+      console.warn('⚠️ Waiting room enabled but user not in queue')
+      alert('Please join the waiting room first.')
+      router.push({
+        name: 'EventDetail',
+        params: { slug: route.params.slug }
+      })
+      return false
     }
   } catch (error) {
     console.error('Failed to check queue status:', error)
@@ -409,7 +433,7 @@ const completeMockPayment = async () => {
         
         // Redirect to success page
         router.push({
-          name: 'PaymentResult',
+          name: 'OrderPaymentResult',
           query: {
             status: 'success',
             order: createdOrder.value.order_number,
@@ -664,7 +688,7 @@ onBeforeUnmount(() => {
                       <p class="text-sm text-gray-600 mt-1">Pay via bank transfer (Simulated)</p>
                     </div>
                   </label>
-                  
+
                   <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500 transition"
                         :class="paymentMethod === 'cash' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
                     <input
