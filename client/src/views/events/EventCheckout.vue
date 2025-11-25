@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ordersAPI } from '@/api/orders.js'
 import { queueAPI } from '@/api/queue.js'
@@ -9,7 +9,7 @@ import OrderSummary from '@/components/features/OrderSummary.vue'
 import Button from '@/components/common/Button.vue'
 import Input from '@/components/common/Input.vue'
 import Spinner from '@/components/common/Spinner.vue'
-import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
+import { ArrowLeftIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,7 +17,7 @@ const authStore = useAuthStore()
 const cartStore = useCartStore()
 
 const loading = ref(false)
-const currentStep = ref(1) // ✅ 1 = Customer Info, 2 = Payment
+const currentStep = ref(1) // 1 = Customer Info, 2 = Payment, 3 = Processing
 const customerInfo = ref({
   first_name: '',
   last_name: '',
@@ -26,21 +26,21 @@ const customerInfo = ref({
 })
 const couponCode = ref('')
 const couponDiscount = ref(0)
-
-// ✅ Order state
-const createdOrder = ref(null)
-const paymentMethod = ref('cash')
-const processingPayment = ref(false)
-
-// ✅ Timer state (15 phút từ queue active slot)
-const slotExpiryTime = ref(null)
-const timeRemaining = ref(null)
-const countdownInterval = ref(null)
-
 const couponApplied = ref(false)
 const validatingCoupon = ref(false)
 const couponError = ref('')
 
+// Order state
+const createdOrder = ref(null)
+const paymentMethod = ref('vnpay') // vnpay hoặc bank_transfer
+const processingPayment = ref(false)
+const paymentCountdown = ref(3) // Countdown giả lập payment
+const paymentSuccess = ref(false)
+
+// Timer state (15 phút)
+const slotExpiryTime = ref(null)
+const timeRemaining = ref(null)
+const countdownInterval = ref(null)
 
 const event = computed(() => cartStore.event)
 const session = computed(() => cartStore.session)
@@ -49,6 +49,13 @@ const tickets = computed(() => cartStore.items)
 const isCartValid = computed(() => {
   return event.value && session.value && cartStore.items.length > 0
 })
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price)
+}
 
 const formatTimeRemaining = (seconds) => {
   if (!seconds || seconds <= 0) return '00:00'
@@ -74,15 +81,18 @@ const startSlotCountdown = (expiryTime) => {
     if (diff <= 0) {
       timeRemaining.value = 0
       clearInterval(countdownInterval.value)
-      alert('⏰ Your purchase time has expired! Please join the queue again.')
       
-      createdOrder.value = null
-      cartStore.clear()
-      
-      router.push({
-        name: 'EventDetail',
-        params: { slug: route.params.slug }
-      })
+      if (!paymentSuccess.value) {
+        alert('⏰ Your purchase time has expired! Please join the queue again.')
+        
+        createdOrder.value = null
+        cartStore.clear()
+        
+        router.push({
+          name: 'EventDetail',
+          params: { slug: route.params.slug }
+        })
+      }
     } else {
       timeRemaining.value = diff
     }
@@ -96,19 +106,19 @@ const startSlotCountdown = (expiryTime) => {
 const checkQueueStatusAndStartTimer = async () => {
   try {
     const response = await queueAPI.getStatus(session.value.id)
-    const successResponse = response.data
+    const apiResponse = response.data
     
-    console.log('🔍 Queue status check:', successResponse)
-
-    if (!successResponse.success) {
-      console.warn('Queue status check failed:', successResponse.message)
-      // ✅ Không có waiting room → Tạo timer 15 phút
+    console.log('🔍 API Response:', apiResponse)
+    
+    if (!apiResponse.success) {
+      console.warn('Queue status check failed:', apiResponse.message)
+      // Không có waiting room → Tạo timer 15 phút
       const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
       startSlotCountdown(expiryTime)
       return true
     }
-
-    const data = successResponse.data
+    
+    const data = apiResponse.data
     console.log('🔍 Queue status check:', data)
     
     if (data?.status === 'active' && data?.expires_at) {
@@ -124,50 +134,22 @@ const checkQueueStatusAndStartTimer = async () => {
       })
       return false
     } else {
-      console.warn('⚠️ No active queue slot found')
-      // Nếu không có waiting room, cho phép tiếp tục
+      // Không có waiting room → Tạo timer 15 phút
+      console.warn('⚠️ No active queue slot, creating 15-minute timer')
       const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
       startSlotCountdown(expiryTime)
       return true
     }
   } catch (error) {
     console.error('Failed to check queue status:', error)
-    // Nếu lỗi, vẫn cho phép tiếp tục (fallback)
+    // Fallback: Tạo timer 15 phút
     const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
     startSlotCountdown(expiryTime)
     return true
   }
 }
 
-// ✅ STEP 1: Submit customer info (KHÔNG tạo order)
-const handleSubmitCustomerInfo = () => {
-  // Validate
-  if (!customerInfo.value.first_name || !customerInfo.value.last_name || 
-      !customerInfo.value.email || !customerInfo.value.phone) {
-    alert('Please fill in all required fields')
-    return
-  }
-
-  // Email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(customerInfo.value.email)) {
-    alert('Please enter a valid email address')
-    return
-  }
-
-  // ✅ Chỉ chuyển sang step 2, KHÔNG tạo order
-  console.log('✅ Customer info valid, moving to payment step')
-  currentStep.value = 2
-}
-
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }).format(price)
-}
-
-// Validate coupon
+// ✅ Validate coupon
 const handleValidateCoupon = async () => {
   if (!couponCode.value || couponCode.value.trim() === '') {
     return
@@ -177,7 +159,6 @@ const handleValidateCoupon = async () => {
   couponError.value = ''
 
   try {
-    // Calculate subtotal
     const subtotal = tickets.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
 
     const response = await ordersAPI.validateCoupon({
@@ -196,13 +177,12 @@ const handleValidateCoupon = async () => {
   } catch (error) {
     console.error('Coupon validation error:', error)
     couponError.value = error.response?.data?.message || 'Invalid coupon code'
-    couponCode.value = ''
   } finally {
     validatingCoupon.value = false
   }
 }
 
-// Remove coupon
+// ✅ Remove coupon
 const handleRemoveCoupon = () => {
   couponCode.value = ''
   couponDiscount.value = 0
@@ -210,9 +190,29 @@ const handleRemoveCoupon = () => {
   couponError.value = ''
 }
 
-// ✅ STEP 2: Create order và process payment
+// ✅ STEP 1: Submit customer info
+const handleSubmitCustomerInfo = () => {
+  // Validate
+  if (!customerInfo.value.first_name || !customerInfo.value.last_name || 
+      !customerInfo.value.email || !customerInfo.value.phone) {
+    alert('Please fill in all required fields')
+    return
+  }
+
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(customerInfo.value.email)) {
+    alert('Please enter a valid email address')
+    return
+  }
+
+  console.log('✅ Customer info valid, moving to payment step')
+  currentStep.value = 2
+}
+
+// ✅ STEP 2: Create order và process payment (MOCK)
 const handleCreateOrderAndPay = async () => {
-  // ✅ Kiểm tra còn thời gian không
+  // Check còn thời gian không
   if (slotExpiryTime.value && new Date() >= new Date(slotExpiryTime.value)) {
     alert('⏰ Your purchase time has expired! Please join the queue again.')
     router.push({
@@ -224,7 +224,7 @@ const handleCreateOrderAndPay = async () => {
 
   loading.value = true
   try {
-    // ✅ BÂY GIỜ MỚI TẠO ORDER (sau khi chọn payment method)
+    // ✅ Tạo order
     const orderData = {
       event_id: event.value.id,
       session_id: session.value.id,
@@ -249,39 +249,96 @@ const handleCreateOrderAndPay = async () => {
       createdOrder.value = result.data.order
       console.log('✅ Order created:', createdOrder.value.order_number)
       
-      // ✅ Proceed to payment
-      await processPayment()
+      loading.value = false
+      
+      // ✅ Chuyển sang step 3: Processing payment (mock)
+      currentStep.value = 3
+      processMockPayment()
     }
   } catch (error) {
     console.error('Order creation failed:', error)
     alert(error.response?.data?.message || 'Failed to create order. Please try again.')
-  } finally {
     loading.value = false
   }
 }
 
-const processPayment = async () => {
+// ✅ MOCK PAYMENT: Giả lập thanh toán
+const processMockPayment = async () => {
   processingPayment.value = true
-  
+  paymentCountdown.value = 3
+
+  // Countdown 3 giây
+  const countdownTimer = setInterval(() => {
+    paymentCountdown.value--
+    
+    if (paymentCountdown.value <= 0) {
+      clearInterval(countdownTimer)
+      completeMockPayment()
+    }
+  }, 1000)
+}
+
+// ✅ Complete mock payment
+const completeMockPayment = async () => {
   try {
-    if (paymentMethod.value === 'vnpay') {
-      // Redirect to VNPay
-      const response = await ordersAPI.getVNPayURL(createdOrder.value.id)
-      window.location.href = response.data.payment_url
+    // Giả lập transaction ID
+    const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    
+    // Call API để complete payment
+    const response = await ordersAPI.processPayment(createdOrder.value.id, {
+      payment_method: paymentMethod.value,
+      payment_data: {
+        mock: true,
+        success: true,
+        transaction_id: transactionId,
+        payment_time: new Date().toISOString()
+      }
+    })
+
+    console.log('✅ Payment response:', response)
+
+    if (response.success || response.data.success) {
+      paymentSuccess.value = true
+      processingPayment.value = false
+      
+      // Stop timer
+      if (countdownInterval.value) {
+        clearInterval(countdownInterval.value)
+      }
+
+      // Wait 2 seconds then redirect
+      setTimeout(() => {
+        // Clear cart
+        cartStore.clear()
+        
+        // Redirect to success page
+        router.push({
+          name: 'PaymentResult',
+          query: {
+            status: 'success',
+            order: createdOrder.value.order_number,
+            txn: transactionId
+          }
+        })
+      }, 2000)
     } else {
-      // Mock payment
-      router.push({
-        name: 'PaymentGateway',
-        query: {
-          orderId: createdOrder.value.id,
-          orderNumber: createdOrder.value.order_number
-        }
-      })
+      throw new Error('Payment failed')
     }
   } catch (error) {
-    console.error('Payment failed:', error)
-    alert('Failed to process payment. Please try again.')
+    console.error('Payment error:', error)
     processingPayment.value = false
+    alert('Payment failed. Please try again or contact support.')
+    
+    // Quay lại step 2
+    currentStep.value = 2
+  }
+}
+
+// ✅ Cancel payment
+const handleCancelPayment = () => {
+  if (confirm('Are you sure you want to cancel this payment?')) {
+    processingPayment.value = false
+    currentStep.value = 2
   }
 }
 
@@ -296,7 +353,7 @@ onMounted(async () => {
     }
   }
 
-  // ✅ Check queue status và start timer
+  // Check queue status và start timer
   await checkQueueStatusAndStartTimer()
 })
 
@@ -312,6 +369,7 @@ onBeforeUnmount(() => {
     <div class="container-custom">
       <!-- Back Button -->
       <button
+        v-if="currentStep < 3"
         @click="router.back()"
         class="flex items-center text-gray-600 hover:text-gray-900 mb-6"
       >
@@ -319,8 +377,8 @@ onBeforeUnmount(() => {
         Back
       </button>
 
-      <!-- ✅ COUNTDOWN TIMER - Hiển thị 15 phút từ queue slot -->
-      <div v-if="timeRemaining !== null" class="mb-6">
+      <!-- ✅ COUNTDOWN TIMER -->
+      <div v-if="timeRemaining !== null && !paymentSuccess" class="mb-6">
         <div class="flex justify-center">
           <div class="bg-orange-100 border-2 border-orange-500 rounded-lg px-6 py-4">
             <div class="flex items-center space-x-3">
@@ -344,13 +402,13 @@ onBeforeUnmount(() => {
         <!-- Left: Checkout Form -->
         <div class="lg:col-span-2">
           <div class="card">
-            <h1 class="text-2xl font-bold mb-6">Checkout</h1>
-
-            <!-- ✅ STEP 1: CUSTOMER INFO -->
+            <!-- ✅ STEP 1: CUSTOMER INFO + COUPON -->
             <div v-if="currentStep === 1">
+              <h1 class="text-2xl font-bold mb-6">Checkout</h1>
               <h2 class="text-lg font-semibold mb-4">1. Customer Information</h2>
               
               <div class="space-y-4">
+                <!-- Customer Info -->
                 <div class="grid grid-cols-2 gap-4">
                   <Input
                     v-model="customerInfo.first_name"
@@ -371,6 +429,7 @@ onBeforeUnmount(() => {
                   type="email"
                   label="Email"
                   placeholder="john@example.com"
+                  help-text="Tickets will be sent to this email"
                   required
                 />
 
@@ -382,10 +441,10 @@ onBeforeUnmount(() => {
                   required
                 />
 
-                 <!-- ✅ COUPON CODE INPUT -->
+                <!-- ✅ COUPON CODE INPUT -->
                 <div class="mt-6 pt-6 border-t">
                   <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Discount Coupon (Optional)
+                    Discount Coupon <span class="text-gray-500">(Optional)</span>
                   </label>
                   
                   <div class="flex gap-2">
@@ -424,8 +483,9 @@ onBeforeUnmount(() => {
                     </Button>
                   </div>
                   
-                  <p v-if="couponApplied" class="text-sm text-green-600 mt-2">
-                    ✓ Coupon applied successfully! You saved {{ formatPrice(couponDiscount) }}
+                  <p v-if="couponApplied" class="text-sm text-green-600 mt-2 flex items-center">
+                    <CheckCircleIcon class="w-4 h-4 mr-1" />
+                    Coupon applied! You saved {{ formatPrice(couponDiscount) }}
                   </p>
                   
                   <p v-if="couponError" class="text-sm text-red-600 mt-2">
@@ -438,43 +498,64 @@ onBeforeUnmount(() => {
                   size="lg"
                   full-width
                   @click="handleSubmitCustomerInfo"
+                  class="mt-6"
                 >
                   Continue to Payment
                 </Button>
               </div>
             </div>
 
-            <!-- ✅ STEP 2: PAYMENT -->
+            <!-- ✅ STEP 2: PAYMENT METHOD -->
             <div v-else-if="currentStep === 2">
+              <h1 class="text-2xl font-bold mb-6">Checkout</h1>
               <h2 class="text-lg font-semibold mb-4">2. Payment Method</h2>
               
               <div class="space-y-4">
                 <!-- Payment method selection -->
                 <div class="space-y-3">
-                  <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500"
+                  <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500 transition"
                          :class="paymentMethod === 'vnpay' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
                     <input
                       type="radio"
                       v-model="paymentMethod"
                       value="vnpay"
-                      class="mr-3"
+                      class="mt-1 mr-3"
                     />
-                    <span class="font-medium">VNPay</span>
+                    <div class="flex-1">
+                      <div class="flex items-center">
+                        <span class="font-medium text-gray-900">VNPay</span>
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Mock</span>
+                      </div>
+                      <p class="text-sm text-gray-600 mt-1">Pay via VNPay payment gateway (Simulated)</p>
+                    </div>
                   </label>
 
-                  <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500"
-                         :class="paymentMethod === 'cash' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
+                  <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500 transition"
+                         :class="paymentMethod === 'bank_transfer' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
                     <input
                       type="radio"
                       v-model="paymentMethod"
-                      value="cash"
-                      class="mr-3"
+                      value="bank_transfer"
+                      class="mt-1 mr-3"
                     />
-                    <span class="font-medium">Cash / Bank Transfer (Mock)</span>
+                    <div class="flex-1">
+                      <div class="flex items-center">
+                        <span class="font-medium text-gray-900">Bank Transfer</span>
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Mock</span>
+                      </div>
+                      <p class="text-sm text-gray-600 mt-1">Pay via bank transfer (Simulated)</p>
+                    </div>
                   </label>
                 </div>
 
-                <div class="flex space-x-3">
+                <!-- Info box -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p class="text-sm text-blue-800">
+                    <span class="font-medium">Note:</span> This is a simulated payment for testing purposes. No real money will be charged.
+                  </p>
+                </div>
+
+                <div class="flex space-x-3 mt-6">
                   <Button
                     variant="secondary"
                     @click="currentStep = 1"
@@ -486,12 +567,74 @@ onBeforeUnmount(() => {
                     variant="primary"
                     size="lg"
                     full-width
-                    :disabled="loading || processingPayment"
+                    :disabled="loading"
                     @click="handleCreateOrderAndPay"
                   >
-                    <Spinner v-if="loading || processingPayment" size="sm" class="mr-2" />
-                    {{ loading ? 'Creating Order...' : processingPayment ? 'Processing...' : 'Confirm & Pay' }}
+                    <Spinner v-if="loading" size="sm" class="mr-2" />
+                    {{ loading ? 'Creating Order...' : 'Confirm & Pay' }}
                   </Button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ✅ STEP 3: PROCESSING PAYMENT (MOCK) -->
+            <div v-else-if="currentStep === 3">
+              <div class="text-center py-12">
+                <!-- Processing -->
+                <div v-if="processingPayment && !paymentSuccess">
+                  <div class="flex justify-center mb-6">
+                    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div>
+                  </div>
+                  
+                  <h2 class="text-2xl font-bold text-gray-900 mb-2">
+                    Processing Payment...
+                  </h2>
+                  <p class="text-gray-600 mb-4">
+                    Please wait {{ paymentCountdown }} seconds
+                  </p>
+                  
+                  <div class="max-w-md mx-auto bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-sm text-blue-800">
+                      🔒 Your payment is being processed securely via {{ paymentMethod === 'vnpay' ? 'VNPay' : 'Bank Transfer' }}
+                    </p>
+                  </div>
+
+                  <Button
+                    variant="secondary"
+                    class="mt-6"
+                    @click="handleCancelPayment"
+                  >
+                    Cancel Payment
+                  </Button>
+                </div>
+
+                <!-- Success -->
+                <div v-else-if="paymentSuccess">
+                  <div class="flex justify-center mb-6">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircleIcon class="w-10 h-10 text-green-600" />
+                    </div>
+                  </div>
+                  
+                  <h2 class="text-2xl font-bold text-gray-900 mb-2">
+                    Payment Successful!
+                  </h2>
+                  <p class="text-gray-600 mb-4">
+                    Your order has been confirmed
+                  </p>
+                  
+                  <div class="max-w-md mx-auto bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-green-800 font-medium">
+                      Order #{{ createdOrder.order_number }}
+                    </p>
+                    <p class="text-sm text-green-700 mt-1">
+                      Tickets will be sent to {{ customerInfo.email }}
+                    </p>
+                  </div>
+
+                  <p class="text-sm text-gray-500">
+                    Redirecting to confirmation page...
+                  </p>
                 </div>
               </div>
             </div>
@@ -503,6 +646,8 @@ onBeforeUnmount(() => {
           <OrderSummary
             :items="tickets"
             :show-details="true"
+            :coupon-discount="couponDiscount"
+            :coupon-code="couponApplied ? couponCode : ''"
           />
         </div>
       </div>
