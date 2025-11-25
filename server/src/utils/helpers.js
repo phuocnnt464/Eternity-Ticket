@@ -12,7 +12,7 @@ const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 // Validate JWT secrets on startup
 if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
-  console.error('❌ CRITICAL: JWT_SECRET or JWT_REFRESH_SECRET is not set in environment variables!');
+  console.error('JWT_SECRET or JWT_REFRESH_SECRET is not set in environment variables!');
   process.exit(1);
 }
 

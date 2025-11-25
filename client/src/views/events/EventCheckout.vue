@@ -222,13 +222,6 @@ const checkQueueStatusAndStartTimer = async () => {
       })
       return false
     } 
-    // else {
-    //   // Không có waiting room → Tạo timer 15 phút
-    //   console.warn('⚠️ No active queue slot, creating 15-minute timer')
-    //   const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
-    //   startSlotCountdown(expiryTime)
-    //   return true
-    // }
 
      // in_queue = false, waiting_room_enabled = false
     // → Không có waiting room, cho phép checkout với timer 15 phút

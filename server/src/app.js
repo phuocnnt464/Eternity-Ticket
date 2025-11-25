@@ -9,6 +9,7 @@ const path = require('path');
 const cron = require('node-cron'); 
 
 const { autoCompleteEvents } = require('./utils/helpers');
+const OrderCron = require('./utils/orderCron');
 
 const app = express();
 
@@ -264,6 +265,12 @@ cron.schedule('5 0 * * *', async () => {
 
 console.log('✅ Cron jobs initialized (runs daily at 00:05 UTC)');
 
+
+OrderCron.initialize();
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 // =============================================
 // ROOT ENDPOINT
 // =============================================
