@@ -208,7 +208,7 @@ const handleCheckout = async () => {
     console.log('✅ Order created:', { id: orderId, number: orderNumber })
 
     // ✅ Clear cart and redirect to Payment Gateway
-    cartStore.clear()
+    // cartStore.clear()
     
     // ✅ Move to payment step
     currentStep.value = 2
