@@ -17,7 +17,8 @@ const Home = () => import('@/views/Home.vue')
 const EventList = () => import('@/views/events/EventList.vue')
 const EventDetail = () => import('@/views/events/EventDetail.vue')
 const EventCheckout = () => import('@/views/events/EventCheckout.vue')
-const PaymentGateway = () => import('@/views/participant/PaymentGateway.vue')
+const OrderPaymentResult = () => import('@/views/events/OrderPaymentResult.vue')
+const MembershipPaymentResult = () => import('@/views/events/MembershipPaymentResult.vue')
 const AboutUs = () => import('@/views/AboutUs.vue')
 const ContactUs = () => import('@/views/ContactUs.vue')
 
@@ -37,10 +38,10 @@ const AcceptInvitation = () => import('@/views/auth/AcceptInvitation.vue')
 const ParticipantProfile = () => import('@/views/participant/Profile.vue')
 const MyTickets = () => import('@/views/participant/MyTickets.vue')
 const MyOrders = () => import('@/views/participant/MyOrders.vue')
+const OrderDetails = () => import('@/views/participant/OrderDetails.vue')
 const Membership = () => import('@/views/participant/Membership.vue')
 const Notifications = () => import('@/views/participant/Notifications.vue')
-const OrderPaymentResult = () => import('@/views/participant/OrderPaymentResult.vue')
-const MembershipPaymentResult = () => import('@/views/participant/MembershipPaymentResult.vue') 
+
 // ==========================================
 // ORGANIZER PAGES
 // ==========================================
@@ -131,18 +132,7 @@ const routes = [
           requiresAuth: true 
         }
       },
-      {
-        path: 'participant/payment/mock',
-        name: 'PaymentGateway', 
-        component: PaymentGateway,
-        meta: { requiresAuth: true },
-        props: route => ({
-          orderId: route.query.orderId,
-          orderNumber: route.query.order,
-          amount: parseFloat(route.query.amount),
-          orderType: route.query.type || 'order'
-        })
-      },
+     
       {
         path: 'about',
         name: 'AboutUs',
@@ -170,6 +160,25 @@ const routes = [
           public: true
         }
       },
+      {
+        path: 'events/payment/result',  
+        name: 'OrderPaymentResult',
+        component: OrderPaymentResult,
+        meta: { 
+          title: 'Payment Result - Eternity Ticket',
+          public: true 
+        }
+      },
+      {
+        path: 'events/membership/payment/result',  
+        name: 'MembershipPaymentResult',
+        component: MembershipPaymentResult,
+        meta: { 
+          title: 'Membership Payment Result - Eternity Ticket',
+          public: true,
+          requiresAuth: true
+        }
+      }
     ]
   },
 
@@ -244,6 +253,12 @@ const routes = [
         meta: { title: 'My Orders - Eternity Ticket' }
       },
       {
+        path: 'orders/:id',
+        name: 'OrderDetails',
+        component: OrderDetails,
+        meta: { title: 'Order Details - Eternity Ticket' }
+      },
+      {
         path: 'membership',
         name: 'Membership',
         component: Membership,
@@ -254,26 +269,7 @@ const routes = [
         name: 'ParticipantNotifications',
         component: Notifications,
         meta: { title: 'Notifications - Eternity Ticket' }
-      },
-      {
-        path: 'payment/result',  
-        name: 'OrderPaymentResult',
-        component: OrderPaymentResult,
-        meta: { 
-          title: 'Payment Result - Eternity Ticket',
-          public: true 
-        }
-      },
-      {
-        path: 'membership/payment/result',  
-        name: 'MembershipPaymentResult',
-        component: MembershipPaymentResult,
-        meta: { 
-          title: 'Membership Payment Result - Eternity Ticket',
-          public: true,
-          requiresAuth: true
-        }
-      },
+      }
     ]
   },
 

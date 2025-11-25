@@ -14,6 +14,9 @@ import {
   ArrowDownTrayIcon
 } from '@heroicons/vue/24/outline'
 
+import { useRouter } from 'vue-router'
+const router = useRouter()
+
 const authStore = useAuthStore()
 
 const orders = ref([])
@@ -72,8 +75,10 @@ const fetchOrders = async () => {
 }
 
 const handleViewDetails = (order) => {
-  // Navigate to order details (can be a modal or separate page)
-  alert(`View order details: ${order.order_number}`)
+  router.push({
+    name: 'OrderDetail',
+    params: { orderId: order.id }
+  })
 }
 
 const handleDownloadTickets = async (orderId) => {
