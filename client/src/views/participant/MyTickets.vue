@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { usersAPI } from '@/api/users.js'
+import { ordersAPI } from '@/api/orders.js'
 import TicketCard from '@/components/features/TicketCard.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import Spinner from '@/components/common/Spinner.vue'
@@ -38,6 +39,26 @@ const statusOptions = [
   { value: 'refunded', label: 'Refunded' }
 ]
 
+// ✅ FIX: Stats
+const stats = computed(() => {
+  const now = new Date()
+  return {
+    total: tickets.value.length,
+    valid: tickets.value.filter(t => 
+      t.order_status === 'paid' &&
+      t.status !== 'cancelled' && 
+      !t.is_checked_in && 
+      new Date(t.start_time) > now
+    ).length,
+    checkedIn: tickets.value.filter(t => t.is_checked_in).length,
+    cancelled: tickets.value.filter(t => t.status === 'cancelled').length,
+    expired: tickets.value.filter(t => 
+      new Date(t.start_time) < now && !t.is_checked_in
+    ).length
+  }
+})
+
+// ✅ FIX: Filtered tickets
 const filteredTickets = computed(() => {
   let result = tickets.value
 
@@ -46,23 +67,27 @@ const filteredTickets = computed(() => {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(ticket =>
       ticket.event_title?.toLowerCase().includes(query) ||
-      ticket.ticket_code?.toLowerCase().includes(query)
+      ticket.ticket_code?.toLowerCase().includes(query) ||
+      ticket.ticket_type?.toLowerCase().includes(query)
     )
   }
 
-  // Filter by status
+  // ✅ FIX: Filter by status
   if (selectedStatus.value !== 'all') {
     result = result.filter(ticket => {
       const now = new Date()
-      const eventDate = new Date(ticket.event_start_date)
+      const eventDate = new Date(ticket.start_time)
       
       switch (selectedStatus.value) {
         case 'valid':
-          return ticket.checkin_status !== 'used' && eventDate > now
+          return ticket.order_status === 'paid' &&
+                 ticket.status !== 'cancelled' &&
+                 !ticket.is_checked_in &&
+                 eventDate > now
         case 'used':
-          return ticket.checkin_status === 'used'
+          return ticket.is_checked_in
         case 'canceled':
-          return ticket.status === 'canceled'
+          return ticket.status === 'cancelled'
         case 'refunded':
           return ticket.status === 'refunded'
         default:
@@ -81,6 +106,13 @@ const fetchTickets = async () => {
     const response = await usersAPI.getTicketHistory(userId, {
       page: pagination.value.currentPage,
       limit: pagination.value.perPage
+    })
+    
+    console.log('📦 Fetched tickets:', response.data.tickets)
+    console.log('📊 Tickets stats:', {
+      total: response.data.tickets.length,
+      cancelled: response.data.tickets.filter(t => t.status === 'cancelled').length,
+      pending_orders: response.data.tickets.filter(t => t.order_status === 'pending').length
     })
     
     tickets.value = response.data.tickets || []
@@ -113,6 +145,7 @@ const handleDownload = async (ticket) => {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (error) {
+    console.error('Download error:', error)
     alert('Failed to download ticket')
   }
 }
