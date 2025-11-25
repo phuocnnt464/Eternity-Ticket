@@ -109,7 +109,7 @@ const selectSession = async (session) => {
   }
 }
 
-const handlePurchase = () => {
+const handlePurchase = async () => {
   if (!authStore.isAuthenticated) {
     router.push({
       name: 'Login',
