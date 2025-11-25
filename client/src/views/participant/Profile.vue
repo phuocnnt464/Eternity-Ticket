@@ -139,8 +139,8 @@ const validateProfile = () => {
   
   if (!form.value.phone) {
     errors.value.phone = 'Phone number is required'
-  } else if (!/^[0-9]{10,11}$/.test(form.value.phone)) {
-    errors.value.phone = 'Invalid phone number'
+  } else if (!/^[\d\s+()-]{10,20}$/.test(form.value.phone)) { 
+    errors.value.phone = 'Invalid phone number (10-20 digits, can include spaces, +, -, ())'
   }
   
   return Object.keys(errors.value).length === 0
@@ -289,6 +289,10 @@ onMounted(() => {
 
       <div v-if="errors.general" class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4 text-sm">
         {{ errors.general }}
+
+        <p v-if="errors.general. includes('Too many')" class="mt-2 text-xs">
+          Please wait a few minutes before trying again. 
+        </p>
       </div>
 
       <form @submit.prevent="handleUpdateProfile" class="space-y-4">
