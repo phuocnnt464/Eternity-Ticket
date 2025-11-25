@@ -81,7 +81,8 @@ const loadProfile = async () => {
         avatarPreview.value = user.avatar_url
       } else {
         // Prepend API base URL
-        avatarPreview.value = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${user.avatar_url}`
+        const baseUrl =  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+        avatarPreview.value = `${baseUrl}${user.avatar_url}` 
       }
     } else {
       avatarPreview.value = null
@@ -337,13 +338,13 @@ onMounted(() => {
           
           <Button
             v-if="avatarFile"
-            variant="primary"
+            variant="success"
             size="sm"
             :loading="loading"
             @click="uploadAvatar"
             class="mt-2"
           >
-            Upload Avatar
+            Save Avatar
           </Button>
         </div>
       </div>
