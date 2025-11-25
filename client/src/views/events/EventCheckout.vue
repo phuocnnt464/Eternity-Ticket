@@ -494,20 +494,28 @@ watch(showWaitingRoom, (isShowing) => {
             </label>
             
             <div class="space-y-2">
+              <!-- ✅ Cash -->
               <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
                 <input type="radio" v-model="paymentMethod" value="cash" class="mr-3">
                 <span>💵 Cash</span>
               </label>
               
+              <!-- ✅ VNPay -->
               <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                <input type="radio" v-model="paymentMethod" value="credit_card" class="mr-3">
-                <CreditCardIcon class="w-6 h-6 mr-2 text-gray-600 inline" />
-                <span>Credit Card</span>
+                <input type="radio" v-model="paymentMethod" value="vnpay" class="mr-3">
+                <span>🏦 VNPay</span>
               </label>
               
+              <!-- ✅ MoMo -->
               <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                <input type="radio" v-model="paymentMethod" value="bank_transfer" class="mr-3">
-                <span>🏦 Bank Transfer</span>
+                <input type="radio" v-model="paymentMethod" value="momo" class="mr-3">
+                <span>📱 MoMo</span>
+              </label>
+              
+              <!-- ✅ Banking -->
+              <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <input type="radio" v-model="paymentMethod" value="banking" class="mr-3">
+                <span>🏛️ Bank Transfer</span>
               </label>
             </div>
           </div>
