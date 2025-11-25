@@ -12,7 +12,8 @@ import Button from '@/components/common/Button.vue'
 import { 
   FunnelIcon,
   TicketIcon,
-  MagnifyingGlassIcon 
+  MagnifyingGlassIcon,
+  ArrowDownTrayIcon 
 } from '@heroicons/vue/24/outline'
 
 const authStore = useAuthStore()
@@ -247,85 +248,98 @@ onMounted(() => {
 
     <!-- QR Code Modal -->
     <Modal
-      v-model="showQRModal"
-      title="Ticket QR Code"
-      size="md"
-    >
-      <div v-if="selectedTicket" class="text-center space-y-4">
-        <div 
-          v-if="selectedTicket.status === 'cancelled'"
-          class="bg-orange-50 border border-orange-200 rounded-lg p-3"
-        >
-          <p class="text-orange-800 text-sm font-semibold">
-            ⚠️ This ticket has been cancelled and is no longer valid
-          </p>
-        </div>
-
-        <div 
-          v-if="selectedTicket.is_checked_in"
-          class="bg-green-50 border border-green-200 rounded-lg p-3"
-        >
-          <p class="text-green-800 text-sm">
-            ✅ This ticket was checked in on {{ new Date(selectedTicket.checked_in_at).toLocaleString() }}
-          </p>
-        </div>
-        
-        <QRCode
-          :value="selectedTicket.qr_code_data || selectedTicket.ticket_code"
-          :size="300"
-          class="mx-auto mb-4"
-        />
-        
-        <div class="bg-gray-50 rounded-lg p-4 mb-4">
-          <p class="text-sm text-gray-600 mb-1">Ticket Code</p>
-          <p class="font-mono font-semibold text-lg select-all">{{ selectedTicket.ticket_code }}</p>
-        </div>
-
-        <div class="text-left space-y-2 text-sm bg-gray-50 rounded-lg p-4">
-          <div class="flex justify-between">
-            <span class="text-gray-600">Event:</span>
-            <span class="font-medium text-right">{{ selectedTicket.event_title }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Type:</span>
-            <span class="font-medium">{{ selectedTicket.ticket_type }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Session:</span>
-            <span class="font-medium text-right">{{ selectedTicket.session_title }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Date:</span>
-            <span class="font-medium">
-              {{ new Date(selectedTicket.start_time).toLocaleString() }}
-            </span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Holder:</span>
-            <span class="font-medium">{{ selectedTicket.holder_name }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Order:</span>
-            <span class="font-mono text-xs">{{ selectedTicket.order_number }}</span>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex space-x-3">
-          <Button variant="secondary" @click="showQRModal = false" full-width>
-            Close
-          </Button>
-          <Button 
-            v-if="selectedTicket?.order_status === 'paid' && selectedTicket?.status !== 'cancelled'"
-            variant="primary" 
-            @click="handleDownload(selectedTicket)" 
-            full-width
+        v-model="showQRModal"
+        title="Ticket QR Code"
+        size="md"
+      >
+        <div v-if="selectedTicket" class="space-y-4">
+          <!-- Status warnings -->
+          <div 
+            v-if="selectedTicket.status === 'cancelled'"
+            class="bg-orange-50 border border-orange-200 rounded-lg p-3"
           >
-            Download PDF
-          </Button>
+            <p class="text-orange-800 text-sm font-semibold">
+              ⚠️ This ticket has been cancelled
+            </p>
+          </div>
+          
+          <div 
+            v-if="selectedTicket.is_checked_in"
+            class="bg-green-50 border border-green-200 rounded-lg p-3"
+          >
+            <p class="text-green-800 text-sm">
+              ✅ Checked in: {{ new Date(selectedTicket.checked_in_at).toLocaleString() }}
+            </p>
+          </div>
+          
+          <!-- Main content: Side by side -->
+          <div class="flex flex-col sm:flex-row gap-4">
+            <!-- QR Code -->
+            <div class="flex-shrink-0 flex flex-col items-center">
+              <QRCode
+                :value="selectedTicket.qr_code_data || selectedTicket.ticket_code"
+                :size="200"
+                class="mb-3"
+              />
+              <div class="bg-gray-100 rounded px-3 py-2">
+                <p class="font-mono text-sm font-semibold text-center">
+                  {{ selectedTicket.ticket_code }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Ticket Info -->
+            <div class="flex-1 space-y-2 text-sm">
+              <div class="pb-2 border-b">
+                <p class="text-gray-600 text-xs">Event</p>
+                <p class="font-semibold text-gray-900">{{ selectedTicket.event_title }}</p>
+              </div>
+              
+              <div class="space-y-1.5">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Type:</span>
+                  <span class="font-medium">{{ selectedTicket.ticket_type }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Session:</span>
+                  <span class="font-medium">{{ selectedTicket.session_title }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Date:</span>
+                  <span class="font-medium">
+                    {{ new Date(selectedTicket.start_time).toLocaleDateString() }}
+                  </span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Time:</span>
+                  <span class="font-medium">
+                    {{ new Date(selectedTicket.start_time).toLocaleTimeString() }}
+                  </span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Holder:</span>
+                  <span class="font-medium">{{ selectedTicket.holder_name }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </template>
-    </Modal>
+
+        <template #footer>
+          <div class="flex justify-end space-x-3">
+            <Button variant="secondary" @click="showQRModal = false">
+              Close
+            </Button>
+            <Button 
+              v-if="selectedTicket?.order_status === 'paid' && selectedTicket?.status !== 'cancelled'"
+              variant="primary" 
+              @click="handleDownload(selectedTicket)"
+            >
+              <ArrowDownTrayIcon class="w-5 h-5 mr-2" />
+              Download PDF
+            </Button>
+          </div>
+        </template>
+      </Modal>
   </div>
 </template>
