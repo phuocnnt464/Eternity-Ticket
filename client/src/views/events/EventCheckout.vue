@@ -168,16 +168,32 @@ const handleWaitingRoomReady = () => {
 const handleCheckout = async () => {
   loading.value = true
   try {
-    const response = await ordersAPI.createOrder(orderData)
-    // const orderResult = .data
+    const orderData = {
+      event_id: event.value.id,           
+      session_id: session.value.id,       
+      tickets: tickets.value.map(t => ({
+        ticket_type_id: t.ticket_type_id,
+        quantity: t.quantity
+      })),
+      customer_info: {
+        first_name: firstName,          
+        last_name: lastName,              
+        email: customerInfo.value.email,
+        phone: customerInfo.value.phone
+      },
+      coupon_code: couponCode.value || undefined
+    }
 
-    const orderId = response.order.id
-    const orderNumber = response.order.order_number
-    const totalAmount = response.order.total_amount
+    const response = await ordersAPI.createOrder(orderData)
+    const orderResult = response.data
+
+    const orderId = orderResult.order.id
+    const orderNumber = orderResult.order.order_number
+    const totalAmount = orderResult.order.total_amount
 
     console.log('✅ Order created:', { id: orderId, number: orderNumber })
 
-    // ✅ Clear cart and redirect to Mock Payment Gateway
+    // ✅ Clear cart and redirect to Payment Gateway
     cartStore.clear()
     
     router.push({
