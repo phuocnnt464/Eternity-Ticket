@@ -94,7 +94,8 @@ const fetchMembershipData = async () => {
   loading.value = true
   try {
     const response = await membershipAPI.getMembershipStatus()
-    membershipData.value = response.data.data
+    membershipData.value = response.data.membership
+    console.log('Fetched membership data:', membershipData.value)
   } catch (error) {
     console.error('Failed to fetch membership data:', error)
   } finally {
