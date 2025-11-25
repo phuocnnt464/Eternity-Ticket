@@ -175,6 +175,9 @@ class QueueController {
       // Check if active in Redis
       const activeData = await QueueModel.getActiveUser(sessionId, userId);
 
+      const config = await QueueModel.getWaitingRoomConfig(sessionId);
+      const hasWaitingRoom = !!config;
+
       if (activeData) {
         return res.json(createResponse(
           true,
@@ -185,7 +188,8 @@ class QueueController {
             can_purchase: true,
             queue_position: 0,
             expires_at: activeData.expires_at,
-            estimated_wait_minutes: 0
+            estimated_wait_minutes: 0,
+            waiting_room_enabled: hasWaitingRoom 
           }
         ));
       }
@@ -207,7 +211,8 @@ class QueueController {
             status: 'waiting',
             can_purchase: false,
             queue_position: position,
-            estimated_wait_minutes: estimatedWait
+            estimated_wait_minutes: estimatedWait,
+            waiting_room_enabled: hasWaitingRoom
           }
         ));
       }
@@ -224,7 +229,8 @@ class QueueController {
             status: dbStatus.status,
             can_purchase: false,
             queue_position: null,
-            estimated_wait_minutes: 0
+            estimated_wait_minutes: 0,
+            waiting_room_enabled: hasWaitingRoom
           }
         ));
       }
@@ -235,8 +241,9 @@ class QueueController {
         {
           in_queue: false,
           status: null,
-          can_purchase: false,
-          queue_position: null
+          can_purchase:  !hasWaitingRoom,
+          queue_position: null,
+          waiting_room_enabled: hasWaitingRoom
         }
       ));
 
