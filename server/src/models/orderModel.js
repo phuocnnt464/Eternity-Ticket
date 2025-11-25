@@ -44,31 +44,49 @@ class OrderModel {
       await client.query('BEGIN');
 
       const QueueModel = require('./queueModel');
-      const activeSlot = await QueueModel.getActiveUser(orderData.session_id, userId);
+      const config = await QueueModel.getWaitingRoomConfig(session_id);
       
-      if (!activeSlot) {
-        throw new Error('You must be in an active purchase slot to create an order. Please join the queue first.');
+      let reservedUntil;
+      
+      if (config && config.is_enabled) {
+        // ===================================
+        // CÓ WAITING ROOM → Validate active slot
+        // ===================================
+        console.log(`✅ Waiting room enabled for session ${session_id}`);
+        const activeSlot = await QueueModel.getActiveUser(orderData.session_id, userId);
+      
+        if (!activeSlot) {
+          throw new Error('You must be in an active purchase slot to create an order. Please join the queue first.');
+        }
+
+        if (activeSlot.status !== 'active') {
+          throw new Error(`Your queue status is "${activeSlot.status}". Only active users can create orders.`);
+        }
+
+        // ✅ Verify expiry time
+        const now = new Date();
+        const expiresAt = new Date(activeSlot.expires_at);
+
+        if (now >= expiresAt) {
+          // Mark as expired in database
+          await QueueModel.updateQueueStatus(userId, orderData.session_id, 'expired');
+          throw new Error('Your purchase time has expired. Please join the queue again.');
+        }
+
+        const timeRemaining = Math.floor((expiresAt - now) / 1000);
+        console.log(`⏰ Time remaining for user ${userId}: ${timeRemaining}s`);
+
+        // ✅ Use expires_at from queue slot (NOT create new timer)
+        reservedUntil = expiresAt;
+      } else {
+        // ===================================
+        // KHÔNG CÓ WAITING ROOM → Timer 15 phút
+        // ===================================
+        console.log(`⚠️ No waiting room for session ${session_id}, creating 15-minute timer`);
+        reservedUntil = new Date(Date.now() + 15 * 60 * 1000);
       }
 
-      if (activeSlot.status !== 'active') {
-        throw new Error(`Your queue status is "${activeSlot.status}". Only active users can create orders.`);
-      }
-
-      // ✅ Verify expiry time
-      const now = new Date();
-      const expiresAt = new Date(activeSlot.expires_at);
-
-      if (now >= expiresAt) {
-        // Mark as expired in database
-        await QueueModel.updateQueueStatus(userId, orderData.session_id, 'expired');
-        throw new Error('Your purchase time has expired. Please join the queue again.');
-      }
-
-      const timeRemaining = Math.floor((expiresAt - now) / 1000);
-      console.log(`⏰ Time remaining for user ${userId}: ${timeRemaining}s`);
-
-      // ✅ Use expires_at from queue slot (NOT create new timer)
-      const reservedUntil = expiresAt;
+      console.log(`📅 Order will be reserved until: ${reservedUntil.toISOString()}`);
 
        //  CHECK EXISTING PENDING ORDER
       const pendingOrderCheck = await client.query(`
@@ -326,8 +344,6 @@ class OrderModel {
       // Calculate VAT (10%)
       const vatAmount = (subtotal - membershipDiscount - couponDiscount) * 0.10;
       const totalAmount = subtotal - membershipDiscount - couponDiscount + vatAmount;
-
-       
       
       // let reservedUntil;
       // if (activeSlot && activeSlot.expires_at) {
@@ -537,6 +553,8 @@ class OrderModel {
       }
 
       await client.query('COMMIT');
+
+      const timeRemaining = Math.floor((reservedUntil - new Date()) / 1000);
 
       console.log(`Order created: ${orderNumber} for user: ${userId}, total: ${totalAmount}`);
 
