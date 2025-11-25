@@ -846,17 +846,24 @@ class OrderModel {
 
       // Find expired pending orders
       const expiredOrdersQuery = `
-        SELECT id FROM orders 
+        SELECT id, user_id, session_id, order_number
+        FROM orders 
         WHERE status = 'pending' AND reserved_until < NOW()
       `;
 
       const expiredResult = await client.query(expiredOrdersQuery);
-      const expiredOrderIds = expiredResult.rows.map(row => row.id);
+      const expiredOrders = expiredResult.rows;
 
-      if (expiredOrderIds.length === 0) {
+      if (expiredOrders.length === 0) {
         await client.query('COMMIT');
+        console.log('✅ No expired orders found');
         return 0;
       }
+
+      const expiredOrderIds = expiredOrders.map(o => o.id);
+
+      console.log(`🔄 Cancelling ${expiredOrderIds.length} expired orders:`, 
+      expiredOrders.map(o => o.order_number).join(', '));
 
       // Cancel expired orders
       await client.query(`
@@ -880,17 +887,19 @@ class OrderModel {
         WHERE order_id = ANY($1)
       `, [expiredOrderIds]);
 
+      const userIds = expiredOrders.map(o => o.user_id);
+      const sessionIds = expiredOrders.map(o => o.session_id);
+
       // ✅ NEW: Release queue slots and mark as expired
-      await client.query(`
-        UPDATE waiting_queue
-        SET status = 'expired', completed_at = NOW()
-        WHERE user_id = ANY($1) 
-          AND session_id = ANY($2)
-          AND status = 'active'
-      `, [
-        expiredOrders.map(o => o.user_id),
-        expiredOrders.map(o => o.session_id)
-      ]);
+      if (userIds.length > 0 && sessionIds.length > 0) {
+        await client.query(`
+          UPDATE waiting_queue
+          SET status = 'expired', completed_at = NOW()
+          WHERE user_id = ANY($1) 
+            AND session_id = ANY($2)
+            AND status = 'active'
+        `, [userIds, sessionIds]);
+      }
 
       await client.query('COMMIT');
 

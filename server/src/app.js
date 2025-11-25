@@ -267,10 +267,6 @@ console.log('✅ Cron jobs initialized (runs daily at 00:05 UTC)');
 
 
 OrderCron.initialize();
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
 // =============================================
 // ROOT ENDPOINT
 // =============================================

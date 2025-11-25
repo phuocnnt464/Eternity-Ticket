@@ -28,7 +28,7 @@ const form = ref({
 const passwordForm = ref({
   current_password: '',
   new_password: '',
-  new_password_confirmation: ''
+  confirm_password: ''
 })
 
 const errors = ref({})
@@ -177,8 +177,8 @@ const validatePassword = () => {
     passwordErrors.value.new_password = 'Password must be at least 8 characters'
   }
   
-  if (passwordForm.value.new_password !== passwordForm.value.new_password_confirmation) {
-    passwordErrors.value.new_password_confirmation = 'Passwords do not match'
+  if (passwordForm.value.new_password !== passwordForm.value.confirm_password) {
+    passwordErrors.value.confirm_password = 'Passwords do not match'
   }
   
   return Object.keys(passwordErrors.value).length === 0
@@ -195,7 +195,7 @@ const handleChangePassword = async () => {
     passwordForm.value = {
       current_password: '',
       new_password: '',
-      new_password_confirmation: ''
+      confirm_password: ''
     }
     showPasswordForm.value = false
     alert('Password changed successfully!')
@@ -414,11 +414,11 @@ onMounted(() => {
           />
 
           <Input
-            v-model="passwordForm.new_password_confirmation"
+            v-model="passwordForm.confirm_password"
             type="password"
             label="Confirm New Password"
             placeholder="Re-enter new password"
-            :error="passwordErrors.new_password_confirmation"
+            :error="passwordErrors.confirm_password"
             required
           />
 
