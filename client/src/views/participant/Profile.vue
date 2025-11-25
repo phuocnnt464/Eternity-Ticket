@@ -74,7 +74,20 @@ const loadProfile = async () => {
       address: user.address || ''
     }
     
-    avatarPreview.value = user.avatar_url
+    // Add API base URL if needed
+    if (user.avatar_url) {
+      // Check if it's a relative or absolute URL
+      if (user. avatar_url.startsWith('http')) {
+        avatarPreview.value = user.avatar_url
+      } else {
+        // Prepend API base URL
+        avatarPreview.value = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${user.avatar_url}`
+      }
+    } else {
+      avatarPreview.value = null
+    }
+
+    console.log('✅ Profile loaded, avatar:', avatarPreview.value)
   } catch (error) {
     console.error('Failed to load profile:', error)
     console.error('Error response:', error.response?.data)
@@ -108,23 +121,75 @@ const handleAvatarChange = (event) => {
 }
 
 const uploadAvatar = async () => {
-  if (!avatarFile.value) return
+  if (!avatarFile. value) {
+    errors.value.avatar = 'Please select an image first'
+    return
+  }
+  
+  console.log('📤 Uploading avatar...')
   
   loading.value = true
   try {
     const userId = authStore.user?.id
-    await usersAPI.uploadAvatar(userId, avatarFile.value)
     
-    // Reload user data
+    if (! userId) {
+      throw new Error('User ID not found')
+    }
+    
+    // 1. Upload avatar
+    const uploadResponse = await usersAPI.uploadAvatar(userId, avatarFile. value)
+    console.log('✅ Upload response:', uploadResponse. data)
+    
+    // 2. Get new avatar URL from response
+    const newAvatarUrl = uploadResponse.data.avatar_url
+    
+    // 3. Update preview immediately
+    if (newAvatarUrl) {
+      avatarPreview.value = newAvatarUrl
+      
+      // 4. Update auth store immediately (without fetching)
+      authStore.updateUser({ avatar_url: newAvatarUrl })
+    }
+    
+    // 5. Optionally fetch full profile to ensure sync
     await authStore.fetchProfile()
+    
+    // 6. Reset file input AFTER everything completes
     avatarFile.value = null
+    errors.value.avatar = ''
+    
+    console.log('✅ Avatar updated successfully')
     alert('Avatar updated successfully!')
+    
   } catch (error) {
+    console.error('❌ Upload avatar error:', error)
+    console.error('❌ Error details:', error.response?.data)
+    
     errors.value.avatar = error.response?.data?.error?.message || 'Failed to upload avatar'
   } finally {
     loading.value = false
   }
 }
+
+const handleImageError = (e) => {
+  console.error('❌ Failed to load avatar image:', avatarPreview.value)
+  // Fallback to default avatar
+  avatarPreview.value = null
+}
+
+// ✅ THÊM: Computed để build full avatar URL
+const avatarUrl = computed(() => {
+  if (!avatarPreview. value) return null
+  
+  // If already absolute URL
+  if (avatarPreview. value.startsWith('http')) {
+    return avatarPreview. value
+  }
+  
+  // Build full URL
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+  return `${baseUrl}${avatarPreview.value}`
+})
 
 const validateProfile = () => {
   errors.value = {}
@@ -246,6 +311,7 @@ onMounted(() => {
               :src="avatarPreview"
               alt="Avatar"
               class="w-full h-full object-cover"
+              @error="handleImageError"
             />
             <div v-else class="w-full h-full flex items-center justify-center bg-primary-100">
               <UserIcon class="w-16 h-16 text-primary-600" />
@@ -265,7 +331,7 @@ onMounted(() => {
 
         <div class="flex-1">
           <p class="text-sm text-gray-600 mb-2">
-            Upload a profile picture. Max size: 2MB. Formats: JPG, PNG.
+            Upload a profile picture.  Max size: 2MB.  Formats: JPG, PNG. 
           </p>
           <p v-if="errors.avatar" class="error-text">{{ errors.avatar }}</p>
           
