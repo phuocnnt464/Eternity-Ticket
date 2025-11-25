@@ -389,7 +389,7 @@ onMounted(() => {
 
   console.log('🎪 Session config:', session.value)
 
-  await checkWaitingRoom()
+  checkWaitingRoom()
   
   // if (session.value?.enable_waiting_room) {
   //   console.log('⏳ Entering waiting room...')
