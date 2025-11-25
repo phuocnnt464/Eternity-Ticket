@@ -37,6 +37,11 @@ const slotExpiryTime = ref(null)
 const timeRemaining = ref(null)
 const countdownInterval = ref(null)
 
+const couponApplied = ref(false)
+const validatingCoupon = ref(false)
+const couponError = ref('')
+
+
 const event = computed(() => cartStore.event)
 const session = computed(() => cartStore.session)
 const tickets = computed(() => cartStore.items)
@@ -91,8 +96,19 @@ const startSlotCountdown = (expiryTime) => {
 const checkQueueStatusAndStartTimer = async () => {
   try {
     const response = await queueAPI.getStatus(session.value.id)
-    const data = response.data.data
+    const successResponse = response.data
     
+    console.log('🔍 Queue status check:', successResponse)
+
+    if (!successResponse.success) {
+      console.warn('Queue status check failed:', successResponse.message)
+      // ✅ Không có waiting room → Tạo timer 15 phút
+      const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
+      startSlotCountdown(expiryTime)
+      return true
+    }
+
+    const data = successResponse.data
     console.log('🔍 Queue status check:', data)
     
     if (data?.status === 'active' && data?.expires_at) {
@@ -110,11 +126,15 @@ const checkQueueStatusAndStartTimer = async () => {
     } else {
       console.warn('⚠️ No active queue slot found')
       // Nếu không có waiting room, cho phép tiếp tục
+      const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
+      startSlotCountdown(expiryTime)
       return true
     }
   } catch (error) {
     console.error('Failed to check queue status:', error)
     // Nếu lỗi, vẫn cho phép tiếp tục (fallback)
+    const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
+    startSlotCountdown(expiryTime)
     return true
   }
 }
@@ -138,6 +158,56 @@ const handleSubmitCustomerInfo = () => {
   // ✅ Chỉ chuyển sang step 2, KHÔNG tạo order
   console.log('✅ Customer info valid, moving to payment step')
   currentStep.value = 2
+}
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price)
+}
+
+// Validate coupon
+const handleValidateCoupon = async () => {
+  if (!couponCode.value || couponCode.value.trim() === '') {
+    return
+  }
+
+  validatingCoupon.value = true
+  couponError.value = ''
+
+  try {
+    // Calculate subtotal
+    const subtotal = tickets.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+
+    const response = await ordersAPI.validateCoupon({
+      code: couponCode.value.trim(),
+      event_id: event.value.id,
+      order_amount: subtotal
+    })
+
+    const data = response.data.data
+
+    if (data && data.discount_amount) {
+      couponDiscount.value = data.discount_amount
+      couponApplied.value = true
+      console.log('✅ Coupon applied:', couponCode.value, 'Discount:', couponDiscount.value)
+    }
+  } catch (error) {
+    console.error('Coupon validation error:', error)
+    couponError.value = error.response?.data?.message || 'Invalid coupon code'
+    couponCode.value = ''
+  } finally {
+    validatingCoupon.value = false
+  }
+}
+
+// Remove coupon
+const handleRemoveCoupon = () => {
+  couponCode.value = ''
+  couponDiscount.value = 0
+  couponApplied.value = false
+  couponError.value = ''
 }
 
 // ✅ STEP 2: Create order và process payment
@@ -311,6 +381,57 @@ onBeforeUnmount(() => {
                   placeholder="+84 123 456 789"
                   required
                 />
+
+                 <!-- ✅ COUPON CODE INPUT -->
+                <div class="mt-6 pt-6 border-t">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Discount Coupon (Optional)
+                  </label>
+                  
+                  <div class="flex gap-2">
+                    <div class="flex-1">
+                      <Input
+                        v-model="couponCode"
+                        placeholder="Enter coupon code"
+                        :disabled="couponApplied"
+                      >
+                        <template #prefix>
+                          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                          </svg>
+                        </template>
+                      </Input>
+                    </div>
+                    
+                    <Button
+                      v-if="!couponApplied"
+                      type="button"
+                      variant="secondary"
+                      :loading="validatingCoupon"
+                      :disabled="!couponCode || couponCode.trim() === ''"
+                      @click="handleValidateCoupon"
+                    >
+                      Apply
+                    </Button>
+                    
+                    <Button
+                      v-else
+                      type="button"
+                      variant="danger"
+                      @click="handleRemoveCoupon"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  
+                  <p v-if="couponApplied" class="text-sm text-green-600 mt-2">
+                    ✓ Coupon applied successfully! You saved {{ formatPrice(couponDiscount) }}
+                  </p>
+                  
+                  <p v-if="couponError" class="text-sm text-red-600 mt-2">
+                    {{ couponError }}
+                  </p>
+                </div>
 
                 <Button
                   variant="primary"
