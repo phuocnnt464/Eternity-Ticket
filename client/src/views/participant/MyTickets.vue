@@ -139,7 +139,7 @@ const handleDownload = async (ticket) => {
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `ticket-${ticket.ticket_code}.pdf`
+    link.download = `eternity-ticket-${ticket.ticket_code}.pdf`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)

@@ -238,6 +238,7 @@ class UserController {
           es.end_time,
           tt.name as ticket_type,
           tt.price,
+          o.id as order_id, 
           o.order_number,
           o.status as order_status,
           o.total_amount
