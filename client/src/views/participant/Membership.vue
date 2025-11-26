@@ -26,6 +26,13 @@ const showUpgradeModal = ref(false)
 const selectedPlan = ref(null)
 const upgrading = ref(false)
 
+const currentStep = ref(1) // 1 = Confirm, 2 = Processing
+const paymentMethod = ref('vnpay')
+const processingPayment = ref(false)
+const paymentCountdown = ref(3)
+const paymentSuccess = ref(false)
+const createdOrder = ref(null)
+
 const membershipTiers = [
   {
     name: 'Basic',
@@ -98,7 +105,7 @@ const canUpgrade = (tierValue) => {
 const fetchMembershipData = async () => {
   loading.value = true
   try {
-    const response = await membershipAPI.getCurrentMembership()  // ✅ FIX
+    const response = await membershipAPI.getCurrentMembership() 
     membershipData.value = response.data. membership
     console.log('✅ Fetched membership data:', membershipData.value)
   } catch (error) {
@@ -120,6 +127,8 @@ const handleUpgrade = (tier) => {
   
   selectedPlan.value = tier
   showUpgradeModal.value = true
+  currentStep.value = 1
+  paymentMethod.value = 'vnpay'
 }
 
 // ✅ FIX: Thêm tier vào request
@@ -128,11 +137,11 @@ const confirmUpgrade = async () => {
   
   upgrading.value = true
   try {
-    console.log('📤 Creating membership order for tier:', selectedPlan.value. value)
+    console.log('📤 Creating membership order for tier:', selectedPlan.value)
     
     // Step 1: Create membership order
     const orderResponse = await membershipAPI.createOrder({
-      tier: selectedPlan.value.value,  // ✅ FIX: Thêm tier
+      tier: selectedPlan.value.value, 
       billing_period: 'monthly',
       return_url: window.location.origin + '/membership/payment/result'
     })
@@ -142,7 +151,7 @@ const confirmUpgrade = async () => {
     const orderData = orderResponse.data
     
     // If free tier (no payment required)
-    if (! orderData.payment_required) {
+    if (!orderData.payment_required) {
       toast.success('Membership activated successfully!', {
         position: 'top-right',
         autoClose: 3000
@@ -153,19 +162,13 @@ const confirmUpgrade = async () => {
       upgrading.value = false
       return
     }
+
+     createdOrder.value = orderData. order
     
-    // Step 2: Redirect to Payment Gateway UI
-    showUpgradeModal.value = false
+    // Move to step 2: Processing payment
     upgrading.value = false
-    
-    router.push({
-      name: 'PaymentGateway',
-      query: {
-        order: orderData.order. order_number,
-        amount: orderData.order.total_amount,
-        type: 'membership'
-      }
-    })
+    currentStep.value = 2
+    processMockPayment()
     
   } catch (error) {
     console.error('❌ Order creation error:', error)
@@ -180,6 +183,87 @@ const confirmUpgrade = async () => {
     upgrading.value = false
   }
 }
+
+// ✅ STEP 2: Process mock payment (GIỐNG EVENT CHECKOUT)
+const processMockPayment = async () => {
+  processingPayment.value = true
+  paymentCountdown.value = 3
+
+  // Countdown 3 giây
+  const countdownTimer = setInterval(() => {
+    paymentCountdown.value--
+    
+    if (paymentCountdown. value <= 0) {
+      clearInterval(countdownTimer)
+      completeMockPayment()
+    }
+  }, 1000)
+}
+
+// ✅ STEP 3: Complete mock payment (CALL processPayment API)
+const completeMockPayment = async () => {
+  try {
+    // Giả lập transaction ID
+    const transactionId = `TXN-MEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    
+    // ✅ Call processPayment API (GIỐNG ORDER)
+    const response = await membershipAPI.processPayment(createdOrder.value.order_number, {
+      payment_method: paymentMethod.value,
+      payment_data: {
+        mock: true,
+        success: true,
+        transaction_id: transactionId,
+        payment_time: new Date().toISOString()
+      }
+    })
+
+    console.log('✅ Payment response:', response)
+
+    if (response.success || response.data?. success) {
+      paymentSuccess.value = true
+      processingPayment.value = false
+      
+      toast.success('Payment successful! Membership activated.')
+
+      // Wait 2 seconds then redirect
+      setTimeout(async () => {
+        showUpgradeModal.value = false
+        
+        // Refresh profile
+        await authStore.fetchProfile()
+        await fetchMembershipData()
+        
+        // Redirect to result page
+        router.push({
+          path: '/events/membership/payment/result',
+          query: {
+            status: 'success',
+            order: createdOrder.value.order_number,
+            txn: transactionId
+          }
+        })
+      }, 2000)
+    } else {
+      throw new Error('Payment failed')
+    }
+  } catch (error) {
+    console.error('❌ Payment error:', error)
+    processingPayment.value = false
+    toast.error('Payment failed.  Please try again.')
+    
+    // Quay lại step 1
+    currentStep.value = 1
+  }
+}
+
+const handleCancelPayment = () => {
+  if (confirm('Are you sure you want to cancel this payment?')) {
+    processingPayment.value = false
+    currentStep.value = 1
+    showUpgradeModal.value = false
+  }
+}
+
 
 const handleCancelMembership = async () => {
   if (!confirm('Are you sure you want to cancel your membership?  You will lose all premium benefits.')) {
@@ -415,32 +499,138 @@ onMounted(() => {
     <!-- Upgrade Confirmation Modal -->
     <Modal
       v-model="showUpgradeModal"
-      title="Confirm Upgrade"
+      :title="currentStep === 1 ? 'Upgrade Membership' : 'Processing Payment'"
       size="md"
     >
-      <div v-if="selectedPlan">
-        <p class="mb-4">You are about to upgrade to:</p>
-        
-        <div class="bg-primary-50 border border-primary-200 rounded-lg p-4 mb-4">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xl font-bold">{{ selectedPlan.name }}</h3>
-            <Badge variant="primary">{{ selectedPlan.name }}</Badge>
+      <!-- STEP 1: CONFIRM -->
+      <div v-if="currentStep === 1" class="space-y-4">
+        <div v-if="selectedPlan" class="bg-gray-50 rounded-lg p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="font-semibold text-lg">{{ selectedPlan.name }}</h3>
+              <p class="text-sm text-gray-600 capitalize">{{ selectedPlan.period }}</p>
+            </div>
+            <p class="text-2xl font-bold text-primary-600">
+              {{ formatPrice(selectedPlan.price) }}
+            </p>
           </div>
-          <p class="text-2xl font-bold text-primary-600">
-            {{ formatPrice(selectedPlan.price) }}
-            <span class="text-sm font-normal text-gray-600">/ {{ selectedPlan.period }}</span>
-          </p>
+
+          <div class="space-y-2">
+            <p class="text-sm font-medium text-gray-700">Benefits:</p>
+            <ul class="space-y-1">
+              <li
+                v-for="(feature, idx) in selectedPlan.features. filter(f => f.included)"
+                :key="idx"
+                class="flex items-start text-sm text-gray-600"
+              >
+                <CheckCircleIcon class="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                <span>{{ feature. text }}</span>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <!-- Payment Method Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Payment Method
+          </label>
+          <div class="space-y-2">
+            <label class="flex items-center p-3 border-2 rounded-lg cursor-pointer"
+                   :class="paymentMethod === 'vnpay' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
+              <input
+                type="radio"
+                v-model="paymentMethod"
+                value="vnpay"
+                class="mr-3"
+              />
+              <div>
+                <span class="font-medium">VNPay</span>
+                <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Mock</span>
+              </div>
+            </label>
+
+            <label class="flex items-center p-3 border-2 rounded-lg cursor-pointer"
+                   :class="paymentMethod === 'banking' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
+              <input
+                type="radio"
+                v-model="paymentMethod"
+                value="banking"
+                class="mr-3"
+              />
+              <div>
+                <span class="font-medium">Bank Transfer</span>
+                <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Mock</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p class="text-sm text-blue-800">
-            <strong>Note:</strong> You will be redirected to the payment page. 
-            Your membership benefits will be activated immediately after successful payment.
+            <strong>Note:</strong> This is a simulated payment.  Your membership will be activated immediately after confirmation.
           </p>
         </div>
       </div>
 
-      <template #footer>
+      <!-- STEP 2: PROCESSING PAYMENT -->
+      <div v-else-if="currentStep === 2" class="py-8">
+        <!-- Processing -->
+        <div v-if="processingPayment && ! paymentSuccess" class="text-center">
+          <div class="flex justify-center mb-6">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div>
+          </div>
+          
+          <h3 class="text-xl font-bold text-gray-900 mb-2">
+            Processing Payment... 
+          </h3>
+          <p class="text-gray-600 mb-4">
+            Please wait {{ paymentCountdown }} seconds
+          </p>
+          
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-sm mx-auto">
+            <p class="text-sm text-blue-800">
+              🔒 Your payment is being processed securely
+            </p>
+          </div>
+
+          <Button
+            variant="secondary"
+            class="mt-6"
+            @click="handleCancelPayment"
+          >
+            Cancel Payment
+          </Button>
+        </div>
+
+        <!-- Success -->
+        <div v-else-if="paymentSuccess" class="text-center">
+          <div class="flex justify-center mb-6">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircleIcon class="w-10 h-10 text-green-600" />
+            </div>
+          </div>
+          
+          <h3 class="text-xl font-bold text-gray-900 mb-2">
+            Payment Successful!
+          </h3>
+          <p class="text-gray-600 mb-4">
+            Your membership has been activated
+          </p>
+          
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4 max-w-sm mx-auto">
+            <p class="text-sm text-green-800 font-medium">
+              Order #{{ createdOrder.order_number }}
+            </p>
+          </div>
+
+          <p class="text-sm text-gray-500 mt-4">
+            Redirecting... 
+          </p>
+        </div>
+      </div>
+
+      <template #footer v-if="currentStep === 1">
         <div class="flex space-x-3">
           <Button
             variant="secondary"
@@ -455,8 +645,8 @@ onMounted(() => {
             @click="confirmUpgrade"
             full-width
           >
-            <CreditCardIcon class="w-5 h-5" />
-            Proceed to Payment
+            <CreditCardIcon class="w-5 h-5 mr-2" />
+            Confirm & Pay
           </Button>
         </div>
       </template>
