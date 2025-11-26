@@ -52,18 +52,19 @@ const deactivatePassword = ref('')
 const deactivateLoading = ref(false)
 const deactivateError = ref('')
 
-const membershipTier = computed(() => {
-  return authStore.user?.tier || 'basic'
-})
+const membershipTier = computed(() => authStore.membershipTier || 'basic')
 
 const membershipBadge = computed(() => {
+  const tier = membershipTier.value
   const badges = {
     basic: { variant: 'secondary', text: 'Basic' },
     advanced: { variant: 'warning', text: 'Advanced' }, 
     premium: { variant: 'primary', text: 'Premium' }  
   }
-  return badges[membershipTier.value] || badges.basic
+  return badges[tier] || badges.basic
 })
+
+const membershipData = computed(() => authStore.user?.membership || null)
 
 const loadProfile = async () => {
   try {
@@ -410,15 +411,20 @@ onMounted(() => {
               {{ membershipBadge.text }}
             </Badge>
             
-            <!-- ✅ Show membership details if not basic -->
-            <span v-if="membershipTier !== 'basic' && authStore.user?.membership" class="text-xs text-gray-600">
-              {{ authStore.user.membership.is_active ? 'Active' : 'Expired' }}
+            <!-- ✅ FIX: Use membershipData computed -->
+            <span v-if="membershipTier !== 'basic' && membershipData?. is_active" class="text-xs text-gray-600">
+              {{ membershipData.is_active ? 'Active' : 'Expired' }}
             </span>
           </div>
           
-          <!-- ✅ Show expiry date if exists -->
-          <p v-if="membershipTier !== 'basic' && authStore.user?.membership?.end_date" class="text-xs text-gray-600 mt-1">
-            Expires: {{ new Date(authStore.user.membership.end_date).toLocaleDateString() }}
+          <!-- ✅ FIX: Show expiry date from membershipData -->
+          <p v-if="membershipTier !== 'basic' && membershipData?.end_date" class="text-xs text-gray-600 mt-1">
+            Expires: {{ new Date(membershipData.end_date).toLocaleDateString('vi-VN') }}
+          </p>
+          
+          <!-- ✅ ADD: Show start date -->
+          <p v-if="membershipTier !== 'basic' && membershipData?.start_date" class="text-xs text-gray-500 mt-0.5">
+            Started: {{ new Date(membershipData.start_date).toLocaleDateString('vi-VN') }}
           </p>
         </div>
         
@@ -430,7 +436,7 @@ onMounted(() => {
         </RouterLink>
       </div>
     </div>
-
+    
     <!-- Avatar -->
     <div class="card">
       <h2 class="text-lg font-semibold mb-4">Profile Picture</h2>
