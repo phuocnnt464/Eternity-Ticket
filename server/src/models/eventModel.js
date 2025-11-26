@@ -922,24 +922,49 @@ static async update(eventId, updateData, userId) {
     const query = `
       SELECT 
         e.title, e.status, e.view_count,
-        (SELECT SUM(tt.total_quantity) FROM ticket_types tt WHERE tt.event_id = e.id) as total_tickets,
+        (SELECT COALESCE(SUM(tt.total_quantity), 0) 
+          FROM ticket_types tt 
+          WHERE tt.event_id = e.id AND tt.is_active = true
+        ) as total_tickets,
+
         (SELECT COALESCE(SUM(oi.quantity), 0)
-          FROM order_items oi
-          JOIN orders o ON oi.order_id = o.id
-          JOIN ticket_types tt ON oi.ticket_type_id = tt.id
-          WHERE tt.event_id = e.id AND o.status = 'paid'
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.id
+        JOIN ticket_types tt ON oi. ticket_type_id = tt. id
+        WHERE tt.event_id = e.id 
+          AND o.status = 'paid'
+          AND tt.is_active = true
         ) as sold_tickets,
-        COUNT(DISTINCT o.id) FILTER (WHERE o.status = 'paid') as paid_orders,
-        COUNT(DISTINCT o.id) FILTER (WHERE o.status = 'pending') as pending_orders,
-        COALESCE(SUM(o.total_amount) FILTER (WHERE o.status = 'paid'), 0) as total_revenue,
-        COALESCE(AVG(o.total_amount) FILTER (WHERE o.status = 'paid'), 0) as avg_order_value,
-        COUNT(DISTINCT t.id) FILTER (WHERE t.is_checked_in) as checked_in_count,
-        COUNT(DISTINCT o.user_id) FILTER (WHERE o.status = 'paid') as unique_customers
+
+        (SELECT COUNT(DISTINCT o.id)
+        FROM orders o
+        WHERE o.event_id = e. id AND o.status = 'paid'
+        ) as paid_orders,
+        (SELECT COUNT(DISTINCT o.id)
+        FROM orders o
+        WHERE o.event_id = e.id AND o.status = 'pending'
+        ) as pending_orders,
+        (SELECT COALESCE(SUM(o.total_amount), 0)
+        FROM orders o
+        WHERE o.event_id = e.id AND o.status = 'paid'
+        ) as total_revenue,
+        (SELECT COALESCE(AVG(o.total_amount), 0)
+        FROM orders o
+        WHERE o.event_id = e.id AND o.status = 'paid'
+        ) as avg_order_value,
+        (SELECT COUNT(DISTINCT t.id)
+        FROM tickets t
+        JOIN orders o ON t.order_id = o.id
+        WHERE t.event_id = e.id 
+          AND t.is_checked_in = true
+          AND o.status = 'paid'
+        ) as checked_in_count,
+        (SELECT COUNT(DISTINCT o.user_id)
+        FROM orders o
+        WHERE o.event_id = e.id AND o.status = 'paid'
+        ) as unique_customers
       FROM events e
-      LEFT JOIN orders o ON e.id = o.event_id
-      LEFT JOIN tickets t ON o.id = t.order_id
       WHERE e.id = $1
-      GROUP BY e.id
     `;
     
     const result = await pool.query(query, [eventId]);
