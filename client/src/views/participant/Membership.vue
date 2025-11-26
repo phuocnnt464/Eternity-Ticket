@@ -287,9 +287,7 @@ const handleCancelMembership = async () => {
     return
   }
 
-  const cancelLoading = toast.loading('Cancelling membership... ', {
-    position: 'top-right'
-  })
+  const cancelling = ref(true)
   
   try {
     const response = await membershipAPI.cancelMembership()
@@ -297,8 +295,6 @@ const handleCancelMembership = async () => {
 
     await authStore.fetchProfile()
     await fetchMembershipData()
-
-    toast.dismiss(cancelLoading)
     
     toast.success('Membership cancelled successfully', {
       position: 'top-right',
@@ -309,8 +305,7 @@ const handleCancelMembership = async () => {
 
     console.error('❌ Error response:', error.response?.data)
     console.error('❌ Error status:', error.response?.status)
-    
-    toast.dismiss(cancelLoading)
+  
     
     // const errorMsg = error.response?.data?.error?.message || 'Failed to cancel membership'
     let errorMsg = 'Failed to cancel membership'

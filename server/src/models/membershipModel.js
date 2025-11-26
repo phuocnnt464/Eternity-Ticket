@@ -37,7 +37,12 @@ class MembershipModel {
   static async getUserMembership(userId) {
     try {
       const query = `
-        SELECT m.*, mp.features, mp.description
+        SELECT m.*, 
+          mp.features, 
+          mp.description,
+          m.auto_renewal,      
+          m.cancelled_at,      
+          m.cancellation_reason
         FROM memberships m
         LEFT JOIN membership_pricing mp ON m.tier = mp.tier
         WHERE m.user_id = $1 
@@ -58,7 +63,10 @@ class MembershipModel {
       return {
         ...membership,
         payment_amount: membership.payment_amount ? parseFloat(membership.payment_amount) : null,
-        features: typeof membership.features === 'string' ? JSON.parse(membership.features) : membership.features
+        features: typeof membership.features === 'string' ? JSON.parse(membership.features) : membership.features,
+        auto_renewal: membership.auto_renewal !== false, 
+        cancelled_at: membership.cancelled_at,
+        cancellation_reason: membership.cancellation_reason
       };
     } catch (error) {
       throw new Error(`Failed to get user membership: ${error.message}`);
