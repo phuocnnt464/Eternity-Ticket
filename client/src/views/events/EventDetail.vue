@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeMount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
 import { sessionsAPI } from '@/api/sessions.js'
@@ -9,6 +9,7 @@ import { useCartStore } from '@/stores/cart'
 import Badge from '@/components/common/Badge.vue'
 import Button from '@/components/common/Button.vue'
 import Spinner from '@/components/common/Spinner.vue'
+import Alert from '@/components/common/Alert.vue'
 import TicketSelector from '@/components/features/TicketSelector.vue'
 import WaitingRoom from '@/components/features/WaitingRoom.vue' 
 import {
@@ -18,7 +19,9 @@ import {
   UserGroupIcon,
   TicketIcon,
   ShareIcon,
-  HeartIcon
+  HeartIcon,
+  StarIcon,
+  ExclamationCircleIcon
 } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -38,6 +41,9 @@ const showWaitingRoom = ref(false)
 const queuePosition = ref(null)
 const joiningQueue = ref(false)
 
+const earlyAccessInfo = ref(null)
+const earlyAccessInterval = ref(null)
+
 const eventDate = computed(() => {
   if (!event.value?.start_date) return ''
   const date = new Date(event.value.start_date)
@@ -56,8 +62,69 @@ const eventTime = computed(() => {
   return `${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
 })
 
+const checkEarlyAccess = () => {
+  if (!ticketTypes.value || ticketTypes.value.length === 0) {
+    earlyAccessInfo.value = null
+    return
+  }
+
+  const now = new Date()
+  const userTier = authStore.membershipTier || 'basic'
+  
+  // Check each ticket type
+  for (const ticket of ticketTypes.value) {
+    if (ticket.premium_early_access_minutes && ticket.premium_early_access_minutes > 0) {
+      const saleStart = new Date(ticket.sale_start_time)
+      const earlyAccessStart = new Date(
+        saleStart.getTime() - ticket.premium_early_access_minutes * 60000
+      )
+      
+      // Check if we're in early access period
+      if (now >= earlyAccessStart && now < saleStart) {
+        const minutesRemaining = Math.ceil((saleStart - now) / 60000)
+        
+        earlyAccessInfo.value = {
+          isActive: true,
+          isPremium: userTier === 'premium',
+          ticketName: ticket.name,
+          publicSaleStart: saleStart,
+          minutesRemaining: minutesRemaining
+        }
+        
+        return
+      }
+    }
+  }
+  
+  // No early access period
+  earlyAccessInfo.value = null
+}
+
 const canPurchase = computed(() => {
-  return event.value?.status === 'approved' && selectedTickets.value.length > 0
+  // return event.value?.status === 'approved' && selectedTickets.value.length > 0
+  if (!event.value || event.value.status !== 'approved') return false
+  if (selectedTickets.value.length === 0) return false
+  
+  // ✅ Check early access blocking
+  if (earlyAccessInfo.value?. isActive && ! earlyAccessInfo.value?.isPremium) {
+    return false  // Block non-premium during early access
+  }
+  
+  return true
+})
+
+const buyButtonText = computed(() => {
+  if (joiningQueue.value) return 'Joining Queue...'
+  
+  if (earlyAccessInfo.value?.isActive) {
+    if (earlyAccessInfo.value. isPremium) {
+      return 'Premium Early Access - Buy Now'
+    } else {
+      return `Available in ${earlyAccessInfo.value.minutesRemaining} min`
+    }
+  }
+  
+  return 'Buy Tickets'
 })
 
 const fetchEventDetails = async () => {
@@ -102,6 +169,7 @@ const selectSession = async (session) => {
 
     // console.log('🎫 Ticket types received:', ticketTypes.value)
     // console.log('🔍 First ticket structure:', ticketTypes.value[0])
+    checkEarlyAccess()
   } catch (error) {
     console.error('Failed to fetch ticket types:', error)
   } finally {
@@ -110,6 +178,12 @@ const selectSession = async (session) => {
 }
 
 const handlePurchase = async () => {
+  if (earlyAccessInfo.value?.isActive && ! earlyAccessInfo.value?.isPremium) {
+    alert(`This ticket is in Premium early access period.\nPublic sale starts in ${earlyAccessInfo.value. minutesRemaining} minutes.\n\nUpgrade to Premium to buy now! `)
+    router.push('/participant/membership')
+    return
+  }
+
   if (!authStore.isAuthenticated) {
     router.push({
       name: 'Login',
@@ -266,6 +340,18 @@ const formatPrice = (price) => {
 
 onMounted(() => {
   fetchEventDetails()
+
+   earlyAccessInterval.value = setInterval(() => {
+    if (ticketTypes.value.length > 0) {
+      checkEarlyAccess()
+    }
+  }, 60000) 
+})
+
+onBeforeUnmount(() => {
+  if (earlyAccessInterval.value) {
+    clearInterval(earlyAccessInterval.value)
+  }
 })
 </script>
 
@@ -297,6 +383,14 @@ onMounted(() => {
         />
         <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
         
+        <!-- ✅ ADD: Early Access Badge (Top Right) -->
+        <div v-if="earlyAccessInfo?. isActive" class="absolute top-4 right-4 z-10">
+          <Badge v-if="earlyAccessInfo. isPremium" variant="warning" size="lg" class="animate-pulse">
+            <StarIcon class="w-5 h-5 inline mr-1" />
+            Premium Early Access Active! 
+          </Badge>
+        </div>
+
         <!-- Event Title Overlay -->
         <div class="absolute bottom-0 left-0 right-0 p-8 text-white">
           <div class="container-custom">
@@ -392,7 +486,31 @@ onMounted(() => {
 
             <!-- Sidebar - Ticket Selection -->
             <div class="lg:col-span-1">
-              <div class="sticky top-24">
+              <div class="sticky top-24 space-y-4">
+                 <Alert 
+                  v-if="earlyAccessInfo?.isActive && ! earlyAccessInfo?.isPremium"
+                  variant="warning"
+                  class="animate-pulse"
+                >
+                  <div class="flex items-start space-x-3">
+                    <ExclamationCircleIcon class="w-6 h-6 flex-shrink-0 mt-0.5" />
+                    <div class="flex-1">
+                      <p class="font-semibold mb-1">⭐ Premium Early Access Period</p>
+                      <p class="text-sm mb-2">
+                        Premium members are buying now! <br>
+                        Public sale starts in <strong>{{ earlyAccessInfo.minutesRemaining }} minutes</strong>
+                      </p>
+                      <Button 
+                        variant="warning" 
+                        size="sm"
+                        @click="router.push('/participant/membership')"
+                      >
+                        Upgrade to Premium
+                      </Button>
+                    </div>
+                  </div>
+                </Alert>
+
                 <div class="card">
                   <h2 class="text-xl font-bold mb-4">Get Tickets</h2>
 
@@ -409,6 +527,18 @@ onMounted(() => {
 
                   <!-- Ticket Selector -->
                   <div v-else-if="ticketTypes.length > 0">
+                    <div v-if="earlyAccessInfo?.isActive && earlyAccessInfo?. isPremium" class="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-300 rounded-lg">
+                      <div class="flex items-center space-x-2 text-sm">
+                        <StarIcon class="w-5 h-5 text-yellow-600" />
+                        <span class="font-semibold text-yellow-900">
+                          Premium Early Access Active!
+                        </span>
+                      </div>
+                      <p class="text-xs text-yellow-800 mt-1">
+                        You're shopping {{ earlyAccessInfo.minutesRemaining }} minutes before public sale
+                      </p>
+                    </div>
+
                     <TicketSelector
                       v-model="selectedTickets"
                       :ticket-types="ticketTypes"
@@ -427,6 +557,12 @@ onMounted(() => {
                         <TicketIcon v-else class="w-5 h-5" />
                         {{ joiningQueue ? 'Joining Queue...' : 'Buy Tickets' }}
                       </Button>
+
+                      <p v-if="! canPurchase && selectedTickets.length > 0" class="text-sm text-center text-orange-600">
+                        {{ earlyAccessInfo?. isActive && ! earlyAccessInfo?.isPremium 
+                           ? '⏰ Upgrade to Premium to buy now' 
+                           : 'Please select tickets' }}
+                      </p>
 
                       <div class="flex space-x-2">
                         <Button
