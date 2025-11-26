@@ -37,6 +37,16 @@ const salesPercentage = computed(() => {
   return ((statistics.value.tickets_sold / statistics.value.total_tickets) * 100).toFixed(1)
 })
 
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+}
+
 const statCards = computed(() => [
   {
     title: 'Total Revenue',
@@ -61,7 +71,7 @@ const statCards = computed(() => [
   },
   {
     title: 'Avg Order Value',
-    value: formatPrice(statistics.value.average_order_value),
+    value: formatPrice(statistics.value.average_order),
     icon: ChartBarIcon,
     color: 'yellow',
     description: 'Per transaction'

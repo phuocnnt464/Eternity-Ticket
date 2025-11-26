@@ -1025,7 +1025,7 @@ static async update(eventId, updateData, userId) {
       orders: {
         paid: parseInt(stats.paid_orders) || 0,
         pending: parseInt(stats.pending_orders) || 0,
-        total: stats.orders.total
+         total: paidOrders + pendingOrders 
       },
       revenue: {
         total: parseFloat(stats.total_revenue) || 0,
