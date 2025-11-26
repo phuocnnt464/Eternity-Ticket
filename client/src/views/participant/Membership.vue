@@ -217,7 +217,7 @@ const processMockPayment = async () => {
   const countdownTimer = setInterval(() => {
     paymentCountdown.value--
     
-    if (paymentCountdown. value <= 0) {
+    if (paymentCountdown.value <= 0) {
       clearInterval(countdownTimer)
       completeMockPayment()
     }
@@ -337,7 +337,7 @@ const handleCancelImmediately = async () => {
   if (! confirm(
     'Cancel your membership immediately?\n\n' +
     '⚠️ You will lose all benefits right now.\n' +
-    `⚠️ No refund for remaining ${Math.ceil((new Date(membershipData. value?. end_date) - new Date()) / (1000 * 60 * 60 * 24))} days.\n\n` +
+    `⚠️ No refund for remaining ${Math.ceil((new Date(membershipData.value?.end_date) - new Date()) / (1000 * 60 * 60 * 24))} days.\n\n` +
     'This action cannot be undone.'
   )) {
     return
@@ -369,8 +369,8 @@ const handleCancelImmediately = async () => {
     
     if (error. response?.status === 404) {
       errorMsg = 'No active membership found'
-    } else if (error.response?.data?. error?.message) {
-      errorMsg = error.response.data. error.message
+    } else if (error.response?.data?.error?.message) {
+      errorMsg = error.response.data.error.message
     }
 
     toast.error(errorMsg, {
@@ -414,7 +414,7 @@ onMounted(() => {
           <div>
             <p class="text-sm text-gray-600 mb-2">Current Plan</p>
             <div class="flex items-center space-x-3">
-              <h2 class="text-2xl font-bold text-gray-900">{{ currentPlan?. name }}</h2>
+              <h2 class="text-2xl font-bold text-gray-900">{{ currentPlan?.name }}</h2>
               <Badge :variant="currentTier === 'premium' ? 'primary' : currentTier === 'advanced' ? 'info' : 'default'">
                 {{ currentPlan?.name }}
               </Badge>
@@ -431,7 +431,7 @@ onMounted(() => {
               </div>
               <div v-if="membershipData?.end_date" class="flex items-center space-x-2">
                 <CalendarIcon class="w-4 h-4" />
-                <span>Expires: {{ new Date(membershipData. end_date).toLocaleDateString() }}</span>
+                <span>Expires: {{ new Date(membershipData.end_date).toLocaleDateString() }}</span>
               </div>
               
               <!-- ✅ FIX: Use Heroicon component instead of SVG path -->
@@ -451,7 +451,7 @@ onMounted(() => {
         <!-- Cancel button section -->
         <div v-if="currentTier !== 'basic' && ! membershipData?.cancelled_at" class="mt-4 pt-4 border-t border-primary-100">
           <p class="text-sm text-gray-600 mb-2">
-            Cancel auto-renewal.  You'll keep access until {{ membershipData?. end_date ?  new Date(membershipData.end_date).toLocaleDateString() : 'end of period' }}
+            Cancel auto-renewal. You'll keep access until {{ membershipData?.end_date ?  new Date(membershipData.end_date).toLocaleDateString() : 'end of period' }}
           </p>
           <Button 
             variant="danger" 
@@ -478,7 +478,7 @@ onMounted(() => {
                   It will not renew automatically.
                 </p>
                 <p class="text-xs text-orange-600 mt-2">
-                  Cancelled on {{ new Date(membershipData. cancelled_at).toLocaleDateString() }}
+                  Cancelled on {{ new Date(membershipData.cancelled_at).toLocaleDateString() }}
                 </p>
               </div>
             </div>
@@ -517,7 +517,7 @@ onMounted(() => {
             <div>
               <p class="text-sm font-medium text-gray-900">Membership Cancelled</p>
               <p class="text-sm text-gray-700 mt-1">
-                Your membership was cancelled on {{ new Date(membershipData. cancelled_at).toLocaleDateString() }}.
+                Your membership was cancelled on {{ new Date(membershipData.cancelled_at).toLocaleDateString() }}.
                 All benefits have been removed.
               </p>
             </div>

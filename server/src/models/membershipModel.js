@@ -355,8 +355,8 @@ class MembershipModel {
     try {
       let query;
     
-      if (cancelImmediately) {
-        // ✅ IMMEDIATE CANCEL: Set is_active = false NOW
+      if (cancelImmediately === true) {
+        // ✅ IMMEDIATE CANCEL: 
         query = `
           UPDATE memberships
           SET is_active = false,

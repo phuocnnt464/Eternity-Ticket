@@ -328,9 +328,9 @@ class MembershipController {
   static async cancelMembership(req, res, next) {
     try {
       const userId = req.user.id;
-      const { reason } = req.body || {};
+      const { reason, cancel_immediately = false } = req.body || {};
 
-      const success = await MembershipModel.cancelMembership(userId, reason);
+      const success = await MembershipModel.cancelMembership(userId, reason, cancel_immediately);
 
       if (!success) {
         return res.status(404).json({
@@ -339,9 +339,16 @@ class MembershipController {
         });
       }
 
+      const message = cancel_immediately
+      ? 'Membership cancelled immediately. All benefits have been removed.'
+      : 'Membership auto-renewal cancelled. Your membership will remain active until the end of the billing period.';
+
       res.json({
         success: true,
-        message: 'Membership auto-renewal cancelled. Your membership will remain active until the end of the billing period.'
+        message,
+        data: { 
+          cancel_immediately: cancel_immediately
+        }
       });
 
     } catch (error) {

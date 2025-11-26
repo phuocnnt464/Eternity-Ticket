@@ -27,9 +27,9 @@ export const membershipAPI = {
   },
 
   // POST /api/membership/cancel
-  cancelMembership: () => {
-    return api.post('/membership/cancel')
-  },
+  cancelMembership: (options = {}) => {  
+  return api.post('/membership/cancel', options)  
+},
 
   // GET /api/membership/payment/vnpay-return
   vnpayReturn: (params) => {
