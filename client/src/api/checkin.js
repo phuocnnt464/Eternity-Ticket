@@ -7,10 +7,10 @@ export const checkinAPI = {
   },
 
   // POST /api/checkin/:ticketCode
-  checkIn: (ticketCode) => {
-    return api.post(`/checkin/${ticketCode}`)
+  checkIn: (ticketCode, location = null) => {
+    return api.post(`/checkin/${ticketCode}`, { location })
   },
-
+  
   // POST /api/checkin/:ticketCode/undo
   undoCheckIn: (ticketCode) => {
     return api.delete(`/checkin/${ticketCode}/undo`)
