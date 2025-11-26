@@ -375,12 +375,11 @@ class MembershipModel {
         query = `
           UPDATE memberships
           SET auto_renewal = false,
-              cancelled_at = NOW(),
-              cancellation_reason = $2,
+              cancelled_at = COALESCE(cancelled_at, NOW()),  
+              cancellation_reason = COALESCE(cancellation_reason, $2),
               updated_at = NOW()
           WHERE user_id = $1 
             AND is_active = true
-            AND cancelled_at IS NULL  -- ✅ Only if not already cancelled
           RETURNING *
         `;
         

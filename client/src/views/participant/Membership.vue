@@ -435,10 +435,10 @@ onMounted(() => {
               </div>
               
               <!-- ✅ FIX: Use Heroicon component instead of SVG path -->
-              <div v-if="membershipData?.cancelled_at" class="flex items-start space-x-2 text-orange-600 font-medium pt-2">
+              <!-- <div v-if="membershipData?.cancelled_at" class="flex items-start space-x-2 text-orange-600 font-medium pt-2">
                 <ExclamationTriangleIcon class="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <span>Cancelled on {{ new Date(membershipData.cancelled_at).toLocaleDateString() }}</span>
-              </div>
+              </div> -->
             </div>
           </div>
 
