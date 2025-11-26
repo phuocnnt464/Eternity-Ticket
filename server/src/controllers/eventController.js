@@ -327,6 +327,13 @@ class EventController {
             (SELECT COALESCE(SUM(o.total_amount), 0)
             FROM orders o
             WHERE o.event_id = e.id AND o.status = 'paid') as revenue
+            (SELECT COALESCE(SUM(tt.total_quantity - tt.sold_quantity), 0)
+              FROM ticket_types tt
+              WHERE tt.event_id = e.id 
+                AND tt.is_active = true
+                AND (tt.sale_start IS NULL OR tt.sale_start <= NOW())
+                AND (tt.sale_end IS NULL OR tt.sale_end > NOW())
+            ) as available_tickets
           FROM events e
           LEFT JOIN categories c ON e.category_id = c.id
           LEFT JOIN users u ON e.organizer_id = u.id
@@ -528,13 +535,24 @@ class EventController {
       const query = `
         SELECT 
           e.id, e.title, e.slug, e.short_description, e.cover_image, e.thumbnail_image,
-          e.venue_name, e.venue_city, e.view_count, e.created_at,
+          e.venue_name, e.venue_city, 
+          e.start_date,  
+          e.end_date,  
+          e.view_count, e.created_at,
+          e.status, 
           c.name as category_name,
           c.slug as category_slug,
           u.first_name || ' ' || u.last_name as organizer_name,
           (SELECT MIN(es.start_time) FROM event_sessions es WHERE es.event_id = e.id AND es.is_active = true) as earliest_session,
           (SELECT MIN(tt.price) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as min_price,
-          (SELECT SUM(tt.total_quantity - tt.sold_quantity) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as available_tickets
+          (SELECT SUM(tt.total_quantity - tt.sold_quantity) 
+            FROM ticket_types tt WHERE tt.event_id = e.id 
+              AND tt.is_active = true
+              AND (tt. sale_start IS NULL OR tt. sale_start <= NOW())  
+            ) as available_tickets,
+          (SELECT COUNT(*) FROM tickets t
+          JOIN orders o ON t.order_id = o.id
+          WHERE t.event_id = e.id AND o.status = 'paid') as total_tickets_sold 
         FROM events e
         LEFT JOIN categories c ON e.category_id = c.id
         LEFT JOIN users u ON e.organizer_id = u.id
