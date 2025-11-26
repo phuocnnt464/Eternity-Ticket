@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import Input from '@/components/common/Input.vue'
@@ -9,6 +9,9 @@ import { EnvelopeIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+
+import { toast } from 'vue3-toastify'  
+import 'vue3-toastify/dist/index.css'
 
 const form = ref({
   email: '',
@@ -63,6 +66,20 @@ const handleSubmit = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  // Check if redirected after deactivation
+  if (route.query.deactivated === 'true') {
+    // Show info message
+    const message = route.query.message || 'Your account has been deactivated'
+    
+    // Use alert or toast
+    toast.info(message, {
+      position: 'top-right',
+      autoClose: 5000
+    })
+  }
+})
 </script>
 
 <template>

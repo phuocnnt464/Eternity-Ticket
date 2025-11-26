@@ -15,6 +15,9 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
 
+import { useRouter } from 'vue-router'
+const router = useRouter() 
+
 import { toast } from 'vue3-toastify'  
 import 'vue3-toastify/dist/index.css'
 
@@ -338,16 +341,37 @@ const confirmDeactivate = async () => {
     // Close modal
     showDeactivateModal.value = false
 
+    authStore.user = null
+    authStore.accessToken = null
+    authStore. refreshToken = null
+    
+    localStorage.clear()
+    sessionStorage.clear()
+
     // Logout and redirect
     setTimeout(async () => {
-      await authStore.logout()
-      router. push('/auth/login')
+      // await authStore.logout()
+      router.push({
+        path: '/auth/login',
+        query: { 
+          deactivated: 'true',
+          message: 'Your account has been deactivated'
+        }}
+      )
     }, 2000)
 
   } catch (error) {
     console.error('❌ Deactivate account error:', error)
-    deactivateError.value = error.response?.data?.error?. message || 'Failed to deactivate account'
+    // deactivateError.value = error.response?.data?.error?. message || 'Failed to deactivate account'
     
+    if (error.response?. status === 400) {
+      deactivateError.value = 'Incorrect password'
+    } else if (error.response?.status === 404) {
+      deactivateError.value = 'Account not found'
+    } else {
+      deactivateError.value = error.response?.data?.error?. message || 'Failed to deactivate account'
+    }
+
     toast.error(deactivateError. value, {
       position: 'top-right',
       autoClose: 5000
