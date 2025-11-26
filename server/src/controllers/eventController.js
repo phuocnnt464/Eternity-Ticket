@@ -331,8 +331,8 @@ class EventController {
               FROM ticket_types tt
               WHERE tt.event_id = e.id 
                 AND tt.is_active = true
-                AND (tt.sale_start IS NULL OR tt.sale_start <= NOW())
-                AND (tt.sale_end IS NULL OR tt.sale_end > NOW())
+                AND (tt.sale_start IS NULL OR tt.sale_start_time <= NOW())
+                AND (tt.sale_end IS NULL OR tt.sale_end_time > NOW())
             ) as available_tickets
           FROM events e
           LEFT JOIN categories c ON e.category_id = c.id
@@ -548,7 +548,8 @@ class EventController {
           (SELECT SUM(tt.total_quantity - tt.sold_quantity) 
             FROM ticket_types tt WHERE tt.event_id = e.id 
               AND tt.is_active = true
-              AND (tt. sale_start IS NULL OR tt. sale_start <= NOW())  
+              AND (tt. sale_start_time IS NULL OR tt. sale_start_time <= NOW())  
+              AND (tt. sale_end_time IS NULL OR tt.sale_end_time > NOW())
             ) as available_tickets,
           (SELECT COUNT(*) FROM tickets t
           JOIN orders o ON t.order_id = o.id
