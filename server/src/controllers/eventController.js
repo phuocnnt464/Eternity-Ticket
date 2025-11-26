@@ -319,14 +319,14 @@ class EventController {
             c.name as category_name,
             u.first_name || ' ' || u.last_name as organizer_full_name,        
             (SELECT COUNT(*) FROM tickets t
-            JOIN orders o ON t.order_id = o.id
-            WHERE t.event_id = e.id AND o.status = 'paid') as sold_tickets,
+              JOIN orders o ON t.order_id = o.id
+              WHERE t.event_id = e.id AND o.status = 'paid') as sold_tickets,
             (SELECT COALESCE(SUM(tt.total_quantity), 0)
-            FROM ticket_types tt
-            WHERE tt.event_id = e.id AND tt.is_active = true) as total_tickets,
+              FROM ticket_types tt
+              WHERE tt.event_id = e.id AND tt.is_active = true) as total_tickets,
             (SELECT COALESCE(SUM(o.total_amount), 0)
-            FROM orders o
-            WHERE o.event_id = e.id AND o.status = 'paid') as revenue
+              FROM orders o
+              WHERE o.event_id = e.id AND o.status = 'paid') as revenue
             (SELECT COALESCE(SUM(tt.total_quantity - tt.sold_quantity), 0)
               FROM ticket_types tt
               WHERE tt.event_id = e.id 
