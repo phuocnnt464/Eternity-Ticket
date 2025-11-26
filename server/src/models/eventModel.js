@@ -284,7 +284,14 @@ class EventModel {
           (SELECT MIN(tt.price) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as min_price,
           (SELECT MAX(tt.price) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as max_price,
           (SELECT SUM(tt.total_quantity) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as total_tickets,
-          (SELECT SUM(tt.sold_quantity) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as sold_tickets,
+          (SELECT COALESCE(SUM(oi.quantity), 0)
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            JOIN ticket_types tt ON oi.ticket_type_id = tt.id
+            WHERE tt.event_id = e.id 
+              AND o.status = 'paid'
+              AND tt.is_active = true
+            ) as sold_tickets,
           (SELECT COUNT(*) FROM event_sessions WHERE event_id = e.id) as session_count,
           (SELECT COUNT(*) FROM ticket_types WHERE event_id = e.id) as ticket_count
         FROM events e
@@ -785,7 +792,12 @@ static async update(eventId, updateData, userId) {
         e.venue_name, e.venue_address, e.venue_city,
         c.name as category_name,
         (SELECT COUNT(*) FROM event_sessions WHERE event_id = e.id) as session_count,
-        (SELECT SUM(tt.sold_quantity) FROM ticket_types tt WHERE tt.event_id = e.id) as tickets_sold,
+        (SELECT COALESCE(SUM(oi.quantity), 0)
+          FROM order_items oi
+          JOIN orders o ON oi.order_id = o.id
+          JOIN ticket_types tt ON oi.ticket_type_id = tt.id
+          WHERE tt.event_id = e.id AND o.status = 'paid'
+        ) as tickets_sold,
         (SELECT SUM(tt.total_quantity) FROM ticket_types tt WHERE tt.event_id = e.id) as total_tickets,
         (SELECT COALESCE(SUM(o.total_amount), 0) FROM orders o 
         WHERE o.event_id = e.id AND o.status = 'paid') as revenue
@@ -911,7 +923,12 @@ static async update(eventId, updateData, userId) {
       SELECT 
         e.title, e.status, e.view_count,
         (SELECT SUM(tt.total_quantity) FROM ticket_types tt WHERE tt.event_id = e.id) as total_tickets,
-        (SELECT SUM(tt.sold_quantity) FROM ticket_types tt WHERE tt.event_id = e.id) as sold_tickets,
+        (SELECT COALESCE(SUM(oi.quantity), 0)
+          FROM order_items oi
+          JOIN orders o ON oi.order_id = o.id
+          JOIN ticket_types tt ON oi.ticket_type_id = tt.id
+          WHERE tt.event_id = e.id AND o.status = 'paid'
+        ) as sold_tickets,
         COUNT(DISTINCT o.id) FILTER (WHERE o.status = 'paid') as paid_orders,
         COUNT(DISTINCT o.id) FILTER (WHERE o.status = 'pending') as pending_orders,
         COALESCE(SUM(o.total_amount) FILTER (WHERE o.status = 'paid'), 0) as total_revenue,
