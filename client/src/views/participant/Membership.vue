@@ -326,6 +326,7 @@ const handleCancelMembership = async () => {
     })
   } finally {
     cancellingMembership.value = false
+  }
 }
 
 const formatPrice = (price) => {
@@ -355,7 +356,6 @@ onMounted(() => {
 
     <div v-else>
       <!-- Current Membership Status -->
-      <!-- Line 354-386 - Update current membership card -->
       <div class="card bg-gradient-to-br from-primary-50 to-accent-50">
         <div class="flex items-center justify-between">
           <div>
