@@ -15,7 +15,8 @@ import {
   ArrowDownTrayIcon,
   CheckCircleIcon,
   ClockIcon,
-  XCircleIcon
+  XCircleIcon,
+  ExclamationCircleIcon
 } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -38,15 +39,19 @@ const pagination = ref({
 const statusOptions = [
   { value: 'all', label: 'All Orders' },
   { value: 'pending', label: 'Pending' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' }
+  { value: 'paid', label: 'Paid' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'refunded', label: 'Refunded' }
 ]
 
 const getStatusBadge = (status) => {
   const badges = {
     pending: { variant: 'warning', text: 'Pending', icon: ClockIcon },
-    completed: { variant: 'success', text: 'Completed', icon: CheckCircleIcon },
-    cancelled: { variant: 'danger', text: 'Cancelled', icon: XCircleIcon }
+    paid: { variant: 'success', text: 'Paid', icon: CheckCircleIcon },
+    failed: { variant: 'danger', text: 'Failed' },
+    cancelled: { variant: 'secondary', text: 'Cancelled' },
+    refunded: { variant: 'info', text: 'Refunded' }
   }
   return badges[status] || badges.pending
 }
@@ -57,9 +62,9 @@ const filteredOrders = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(order =>
-      order.order_number?.toLowerCase().includes(query) ||
-      order.customer_name?.toLowerCase().includes(query) ||
-      order.customer_email?.toLowerCase().includes(query)
+      order.first_name?.toLowerCase().includes(query) ||  
+      order.last_name?.toLowerCase().includes(query) ||  
+      order.email?.toLowerCase().includes(query)          
     )
   }
 
@@ -77,7 +82,8 @@ const fetchOrders = async () => {
       eventsAPI.getEventById(eventId.value),
       ordersAPI.getEventOrders(eventId.value, {
         page: pagination.value.currentPage,
-        limit: pagination.value.perPage
+        limit: pagination.value.perPage,
+        status: selectedStatus.value !== 'all' ? selectedStatus.value : undefined
       })
     ])
     
@@ -85,6 +91,8 @@ const fetchOrders = async () => {
     orders.value = ordersRes.data.orders || []
     pagination.value.totalItems = ordersRes.data.pagination?.total || 0
     pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
+    
+    console.log('📊 Orders data:', orders.value) 
   } catch (error) {
     console.error('Failed to fetch orders:', error)
   } finally {
@@ -105,8 +113,14 @@ const handlePageChange = (page) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+const viewOrderDetails = (orderId) => {
+  router.push(`/organizer/orders/${orderId}`)
+  // Or use console for now:
+  // console.log('View order details:', orderId)
+}
+
 const exportOrders = () => {
-  alert('Export orders feature - TODO')
+  console.log('Export orders feature - TODO')
 }
 
 onMounted(() => {
@@ -154,7 +168,7 @@ onMounted(() => {
         <!-- Status Filter -->
         <div class="flex items-center space-x-2">
           <FunnelIcon class="w-5 h-5 text-gray-400" />
-          <select v-model="selectedStatus" class="select">
+          <select v-model="selectedStatus" class="select" @change="fetchOrders">
             <option
               v-for="option in statusOptions"
               :key="option.value"
@@ -204,7 +218,7 @@ onMounted(() => {
           <tbody class="bg-white divide-y divide-gray-200">
             <tr
               v-for="order in filteredOrders"
-              :key="order.order_id"
+              :key="order.id"
               class="hover:bg-gray-50"
             >
               <td class="px-6 py-4 whitespace-nowrap">
@@ -212,12 +226,15 @@ onMounted(() => {
               </td>
               <td class="px-6 py-4">
                 <div class="text-sm">
-                  <p class="font-medium text-gray-900">{{ order.customer_name }}</p>
-                  <p class="text-gray-500">{{ order.customer_email }}</p>
+                  <!-- ✅ FIX: Update field names -->
+                  <p class="font-medium text-gray-900">
+                    {{ order.first_name }} {{ order.last_name }}
+                  </p>
+                  <p class="text-gray-500">{{ order.email }}</p>
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span class="text-sm text-gray-900">{{ order.total_quantity }} ticket(s)</span>
+                <span class="text-sm text-gray-900">{{ order.ticket_count || 0 }} ticket(s)</span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="text-sm font-medium text-gray-900">
@@ -225,7 +242,7 @@ onMounted(() => {
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <Badge :variant="getStatusBadge(order.status).variant">
+                <Badge :variant="getStatusBadge(order.status). variant">
                   <component :is="getStatusBadge(order.status).icon" class="w-4 h-4" />
                   {{ getStatusBadge(order.status).text }}
                 </Badge>
@@ -234,10 +251,11 @@ onMounted(() => {
                 {{ new Date(order.created_at).toLocaleDateString() }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">
+                <!-- ✅ FIX: Replace alert with function call -->
                 <Button
                   variant="ghost"
                   size="sm"
-                  @click="() => alert(`View order details: ${order.order_id}`)"
+                  @click="viewOrderDetails(order.id)"
                 >
                   View
                 </Button>
@@ -259,7 +277,12 @@ onMounted(() => {
 
     <!-- Empty State -->
     <Card v-else class="text-center py-12">
-      <p class="text-gray-500">No orders found</p>
+      <p class="text-gray-500">
+        {{ searchQuery || selectedStatus !== 'all' 
+          ? 'No orders match your filters' 
+          : 'No orders found for this event yet' 
+        }}
+      </p>
     </Card>
   </div>
 </template>

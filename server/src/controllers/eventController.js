@@ -326,13 +326,13 @@ class EventController {
               WHERE tt.event_id = e.id AND tt.is_active = true) as total_tickets,
             (SELECT COALESCE(SUM(o.total_amount), 0)
               FROM orders o
-              WHERE o.event_id = e.id AND o.status = 'paid') as revenue
+              WHERE o.event_id = e.id AND o.status = 'paid') as revenue,
             (SELECT COALESCE(SUM(tt.total_quantity - tt.sold_quantity), 0)
               FROM ticket_types tt
               WHERE tt.event_id = e.id 
                 AND tt.is_active = true
-                AND (tt.sale_start IS NULL OR tt.sale_start_time <= NOW())
-                AND (tt.sale_end IS NULL OR tt.sale_end_time > NOW())
+                AND (tt.sale_start_time IS NULL OR tt.sale_start_time <= NOW())
+                AND (tt.sale_end_time IS NULL OR tt.sale_end_time > NOW())
             ) as available_tickets
           FROM events e
           LEFT JOIN categories c ON e.category_id = c.id
