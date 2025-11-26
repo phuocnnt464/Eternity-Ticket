@@ -59,7 +59,7 @@ const statusBadge = computed(() => {
   const status = props.event.status
   const variants = {
     approved: { text: 'Available', variant: 'success' },
-    pending_approval: { text: 'Pending', variant: 'warning' },
+    pending: { text: 'Pending', variant: 'warning' },
     rejected: { text: 'Rejected', variant: 'danger' },
     cancelled: { text: 'Cancelled', variant: 'danger' }
   }
