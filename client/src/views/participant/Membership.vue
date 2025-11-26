@@ -16,7 +16,8 @@ import {
   CalendarIcon,
   BoltIcon,
   ExclamationTriangleIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  XCircleIcon
 } from '@heroicons/vue/24/outline'
 
 const authStore = useAuthStore()
@@ -29,6 +30,7 @@ const selectedPlan = ref(null)
 const upgrading = ref(false)
 
 const cancellingMembership = ref(false) 
+const cancellingImmediately = ref(false) 
 
 const currentStep = ref(1) // 1 = Confirm, 2 = Processing
 const paymentMethod = ref('vnpay')
@@ -331,6 +333,55 @@ const handleCancelMembership = async () => {
   }
 }
 
+const handleCancelImmediately = async () => {
+  if (! confirm(
+    'Cancel your membership immediately?\n\n' +
+    '⚠️ You will lose all benefits right now.\n' +
+    `⚠️ No refund for remaining ${Math.ceil((new Date(membershipData. value?. end_date) - new Date()) / (1000 * 60 * 60 * 24))} days.\n\n` +
+    'This action cannot be undone.'
+  )) {
+    return
+  }
+
+  cancellingImmediately.value = true
+  
+  try {
+    console.log('🔄 Cancelling membership immediately...')
+    
+    const response = await membershipAPI.cancelMembership({
+      cancel_immediately: true
+    })
+    
+    console.log('✅ Immediate cancel response:', response)
+
+    await authStore.fetchProfile()
+    await fetchMembershipData()
+    
+    toast.success('Membership cancelled immediately', {
+      position: 'top-right',
+      autoClose: 3000
+    })
+    
+  } catch (error) {
+    console.error('❌ Immediate cancel error:', error)
+    
+    let errorMsg = 'Failed to cancel membership'
+    
+    if (error. response?.status === 404) {
+      errorMsg = 'No active membership found'
+    } else if (error.response?.data?. error?.message) {
+      errorMsg = error.response.data. error.message
+    }
+
+    toast.error(errorMsg, {
+      position: 'top-right',
+      autoClose: 5000
+    })
+  } finally {
+    cancellingImmediately.value = false
+  }
+}
+
 const formatPrice = (price) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -413,8 +464,69 @@ onMounted(() => {
           </Button>
         </div>
 
+        
+        <!-- ✅ UPDATE: Show message + option to cancel immediately if already cancelled -->
+        <div v-else-if="membershipData?.cancelled_at && membershipData?.is_active" class="mt-4 pt-4 border-t space-y-3">
+          <!-- Warning message -->
+          <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <div class="flex items-start space-x-3">
+              <ExclamationTriangleIcon class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+              <div class="flex-1">
+                <p class="text-sm font-medium text-orange-900">Auto-Renewal Cancelled</p>
+                <p class="text-sm text-orange-700 mt-1">
+                  Your membership will remain active until {{ new Date(membershipData.end_date).toLocaleDateString() }}.
+                  It will not renew automatically.
+                </p>
+                <p class="text-xs text-orange-600 mt-2">
+                  Cancelled on {{ new Date(membershipData. cancelled_at).toLocaleDateString() }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ✅ ADD: Option to cancel immediately -->
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-start space-x-3">
+              <XCircleIcon class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div class="flex-1">
+                <p class="text-sm font-medium text-red-900">Want to cancel immediately?</p>
+                <p class="text-sm text-red-700 mt-1">
+                  If you need to stop access right now, you can cancel immediately.  
+                  <strong>You will lose all benefits</strong> and there will be <strong>no refund</strong> for the remaining 
+                  {{ Math.ceil((new Date(membershipData.end_date) - new Date()) / (1000 * 60 * 60 * 24)) }} days.
+                </p>
+                <Button 
+                  variant="danger" 
+                  size="sm" 
+                  class="mt-3"
+                  :loading="cancellingImmediately"
+                  :disabled="cancellingImmediately"
+                  @click="handleCancelImmediately"
+                >
+                  {{ cancellingImmediately ? 'Cancelling...' : 'Cancel Immediately' }}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ✅ Show if membership already deactivated -->
+        <div v-else-if="membershipData?.cancelled_at && !membershipData?.is_active" class="mt-4 pt-4 border-t bg-gray-50 rounded-lg p-4">
+          <div class="flex items-start space-x-3">
+            <XCircleIcon class="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p class="text-sm font-medium text-gray-900">Membership Cancelled</p>
+              <p class="text-sm text-gray-700 mt-1">
+                Your membership was cancelled on {{ new Date(membershipData. cancelled_at).toLocaleDateString() }}.
+                All benefits have been removed.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div> 
+
         <!-- ✅ FIX: Use Heroicon in warning box too -->
-        <div v-else-if="membershipData?.cancelled_at" class="mt-4 pt-4 border-t bg-orange-50 rounded-lg p-4">
+        <!-- <div v-else-if="membershipData?.cancelled_at" class="mt-4 pt-4 border-t bg-orange-50 rounded-lg p-4">
           <div class="flex items-start space-x-3">
             <ExclamationCircleIcon class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
             <div>
@@ -426,7 +538,7 @@ onMounted(() => {
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- Membership Benefits (Current Plan) -->
       <div v-if="currentTier !== 'basic'" class="card">

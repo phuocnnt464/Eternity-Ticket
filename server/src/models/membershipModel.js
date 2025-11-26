@@ -351,20 +351,55 @@ class MembershipModel {
    * @param {String} reason - Cancellation reason
    * @returns {Boolean} Success status
    */
-  static async cancelMembership(userId, reason) {
+  static async cancelMembership(userId, reason, cancelImmediately = false) {
     try {
-      const query = `
-        UPDATE memberships
-        SET auto_renewal = false,
-            cancelled_at = NOW(),
-            cancellation_reason = $2,
-            updated_at = NOW()
-        WHERE user_id = $1 AND is_active = true
-        RETURNING *
-      `;
+      let query;
+    
+      if (cancelImmediately) {
+        // ✅ IMMEDIATE CANCEL: Set is_active = false NOW
+        query = `
+          UPDATE memberships
+          SET is_active = false,
+              auto_renewal = false,
+              cancelled_at = COALESCE(cancelled_at, NOW()),  -- ✅ Keep original cancelled_at if exists
+              cancellation_reason = COALESCE(cancellation_reason, $2),
+              updated_at = NOW()
+          WHERE user_id = $1 
+            AND is_active = true  -- ✅ Only if still active
+          RETURNING *
+        `;
+        
+        console. log(`⚠️ Immediate cancellation for user: ${userId}`);
+      } else {
+        // ✅ SOFT CANCEL: Keep active until end_date
+        query = `
+          UPDATE memberships
+          SET auto_renewal = false,
+              cancelled_at = NOW(),
+              cancellation_reason = $2,
+              updated_at = NOW()
+          WHERE user_id = $1 
+            AND is_active = true
+            AND cancelled_at IS NULL  -- ✅ Only if not already cancelled
+          RETURNING *
+        `;
+        
+        console. log(`✓ Soft cancellation for user: ${userId}`);
+      }
 
       const result = await pool.query(query, [userId, reason]);
 
+      if (result.rows.length === 0) {
+        // Check if membership exists but already cancelled/inactive
+        const checkQuery = await pool.query(
+          'SELECT * FROM memberships WHERE user_id = $1 AND is_active = true',
+          [userId]
+        );
+        
+        if (checkQuery.rows.length === 0) {
+          return false;  // No active membership
+        }
+      }
       return result.rows.length > 0;
     } catch (error) {
       throw new Error(`Failed to cancel membership: ${error.message}`);
