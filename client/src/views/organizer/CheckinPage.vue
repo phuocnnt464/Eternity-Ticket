@@ -182,6 +182,27 @@ onMounted(() => {
             <p class="text-4xl font-bold text-orange-600">{{ stats.pending_checkin }}</p>
           </div>
         </Card>
+
+        <Card v-if="stats.by_ticket_type?. length > 0">
+          <h3 class="font-semibold mb-4">Check-in by Ticket Type</h3>
+          <div class="space-y-3">
+            <div
+              v-for="type in stats.by_ticket_type"
+              :key="type. ticket_type_name"
+              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+            >
+              <div>
+                <p class="font-medium">{{ type.ticket_type_name }}</p>
+                <p class="text-sm text-gray-600">
+                  {{ type.checked_in }} / {{ type.total }} checked in
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-2xl font-bold text-primary-600">{{ type.rate }}%</p>
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <!-- Progress -->
@@ -280,33 +301,50 @@ onMounted(() => {
         </Card>
 
         <!-- Recent Check-ins -->
-        <Card>
+         <Card>
           <h3 class="text-lg font-semibold mb-4">Recent Check-ins</h3>
           
           <div v-if="recentCheckIns.length > 0" class="space-y-3 max-h-96 overflow-y-auto">
             <div
               v-for="(checkin, index) in recentCheckIns"
               :key="index"
-              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+              <div class="flex items-center space-x-3 flex-1">
+                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                   <UserIcon class="w-5 h-5 text-green-600" />
                 </div>
-                <div>
-                  <!-- ✅ USE BACKEND FIELD NAME -->
-                  <p class="font-medium text-sm">{{ checkin.holder_name }}</p>
-                  <p class="text-xs text-gray-600">{{ checkin.ticket_type_name }}</p>
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-sm text-gray-900 truncate">
+                    {{ checkin.holder_name || 'Unknown' }}
+                  </p>
+                  <p class="text-xs text-gray-600 truncate">
+                    {{ checkin.ticket_type_name || 'N/A' }}
+                  </p>
+                  <p v-if="checkin.session_title" class="text-xs text-gray-500">
+                    Session: {{ checkin.session_title }}
+                  </p>
+                  <p v-if="checkin.checked_in_by_name" class="text-xs text-gray-500 truncate mt-0.5">
+                    by {{ checkin.checked_in_by_name }}
+                  </p>
                 </div>
               </div>
-              <div class="text-right">
-                <p class="text-xs text-gray-600">{{ formatTime(checkin.checked_in_at) }}</p>
+              <div class="text-right flex-shrink-0 ml-3">
+                <p class="text-xs text-gray-600 whitespace-nowrap">
+                  {{ formatTime(checkin.checked_in_at) }}
+                </p>
+                <!-- ✅ ADD: Location if available -->
+                <p v-if="checkin.check_in_location" class="text-xs text-gray-500 mt-0.5">
+                  {{ checkin.check_in_location }}
+                </p>
               </div>
             </div>
           </div>
           
           <div v-else class="text-center py-8 text-gray-500">
-            No check-ins yet
+            <UserIcon class="w-12 h-12 mx-auto mb-3 text-gray-400" />
+            <p class="font-medium">No check-ins yet</p>
+            <p class="text-sm mt-1">Start scanning tickets to see recent check-ins here</p>
           </div>
         </Card>
       </div>

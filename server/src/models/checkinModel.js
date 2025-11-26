@@ -294,10 +294,12 @@ class CheckinModel {
           t.checked_in_at,
           t.holder_name,
           tt.name as ticket_type_name,
+          es.title as session_title,
           u.first_name || ' ' || u.last_name as checked_in_by_name,
           t.check_in_location
         FROM tickets t
         JOIN ticket_types tt ON t.ticket_type_id = tt.id
+        JOIN event_sessions es ON t.session_id = es.id 
         JOIN users u ON t.checked_in_by = u.id
         WHERE t.event_id = $1 AND t.is_checked_in = true
         ORDER BY t.checked_in_at DESC
