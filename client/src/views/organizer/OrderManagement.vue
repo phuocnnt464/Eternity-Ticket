@@ -18,7 +18,7 @@ import {
   ClockIcon,
   XCircleIcon,
   ExclamationCircleIcon,
-  UserCircleIcon,
+  UserIcon,
   EnvelopeIcon,
   CreditCardIcon
 } from '@heroicons/vue/24/outline'
@@ -57,11 +57,29 @@ const getStatusBadge = (status) => {
   const badges = {
     pending: { variant: 'warning', text: 'Pending', icon: ClockIcon },
     paid: { variant: 'success', text: 'Paid', icon: CheckCircleIcon },
-    failed: { variant: 'danger', text: 'Failed' },
-    cancelled: { variant: 'secondary', text: 'Cancelled' },
-    refunded: { variant: 'info', text: 'Refunded' }
+    failed: { variant: 'danger', text: 'Failed', icon: XCircleIcon },
+    cancelled: { variant: 'danger', text: 'Cancelled', icon: XCircleIcon },
+    refunded: { variant: 'secondary', text: 'Refunded', icon: ExclamationCircleIcon }
   }
   return badges[status] || badges.pending
+}
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price)
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  return new Date(dateString).toLocaleString('vi-VN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 const filteredOrders = computed(() => {
@@ -70,6 +88,7 @@ const filteredOrders = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(order =>
+      order.order_number?.toLowerCase().includes(query) ||
       order.first_name?.toLowerCase().includes(query) ||  
       order.last_name?.toLowerCase().includes(query) ||  
       order.email?.toLowerCase().includes(query)          
@@ -97,22 +116,18 @@ const fetchOrders = async () => {
     
     event.value = eventRes.data.event
     orders.value = ordersRes.data.orders || []
-    pagination.value.totalItems = ordersRes.data.pagination?.total || 0
-    pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
-    
+
+    const paginationData = ordersRes.data. pagination || {}
+    pagination.value.totalItems = paginationData.total_count || 0
+    pagination.value.totalPages = paginationData.total_pages || 
+      Math.ceil(pagination.value.totalItems / pagination.value. perPage)
+
     console.log('📊 Orders data:', orders.value) 
   } catch (error) {
     console.error('Failed to fetch orders:', error)
   } finally {
     loading.value = false
   }
-}
-
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }).format(price)
 }
 
 const handlePageChange = (page) => {
@@ -122,19 +137,8 @@ const handlePageChange = (page) => {
 }
 
 const viewOrderDetails = async (order) => {
-  selectedOrder. value = order
+  selectedOrder.value = order
   showOrderModal.value = true
-  
-  // Optional: Fetch full order details if needed
-  loadingOrderDetails.value = true
-  try {
-    const response = await ordersAPI.getOrderById(order.id)
-    selectedOrder.value = response.data.order
-  } catch (error) {
-    console.error('Failed to fetch order details:', error)
-  } finally {
-    loadingOrderDetails.value = false
-  }
 }
 
 const closeOrderModal = () => {

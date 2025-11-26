@@ -53,9 +53,9 @@ const fetchEventData = async () => {
       checkinAPI.getRecentCheckins(eventId.value, { limit: 10 })
     ])
     
-    event.value = eventRes.data.event
-    stats.value = statsRes.data.stats
-    recentCheckIns.value = checkinsRes.data.checkIns || []
+    event.value = eventRes.data.data.event
+    stats.value = statsRes.data.data.stats
+    recentCheckIns.value = checkinsRes.data.data.checkIns || []
   } catch (error) {
     console.error('Failed to fetch event data:', error)
   } finally {
@@ -84,7 +84,7 @@ const handleCheckIn = async (ticketCode) => {
   try {
     const response = await checkinAPI.checkIn(ticketCode)
     
-    ticketResult.value = response.data.data
+    ticketResult.value = response.data.ticket
     manualCode.value = ''
     
     // Refresh stats and recent check-ins

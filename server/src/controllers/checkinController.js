@@ -88,7 +88,7 @@ class CheckinController {
     try {
       const { ticketCode } = req.params;
       const checkedInBy = req.user.id;
-      const { location } = req.body;
+      const { location } = req.body || {};
 
       console.log(`Checking in ticket: ${ticketCode} by user: ${checkedInBy}`);
 
