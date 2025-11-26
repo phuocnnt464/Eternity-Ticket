@@ -325,13 +325,13 @@ const confirmDeactivate = async () => {
   deactivateError.value = ''
 
   try {
-    const userId = authStore.user?. id
+    const userId = authStore.user?.id
 
     if (!userId) {
       throw new Error('User ID not found')
     }
 
-    await usersAPI.deactivateAccount(userId, deactivatePassword. value)
+    await usersAPI.deactivateAccount(userId, deactivatePassword.value)
 
     toast.success('Account deactivated successfully. You will be logged out. ', {
       position: 'top-right',
@@ -369,10 +369,10 @@ const confirmDeactivate = async () => {
     } else if (error.response?.status === 404) {
       deactivateError.value = 'Account not found'
     } else {
-      deactivateError.value = error.response?.data?.error?. message || 'Failed to deactivate account'
+      deactivateError.value = error.response?.data?.error?.message || 'Failed to deactivate account'
     }
 
-    toast.error(deactivateError. value, {
+    toast.error(deactivateError.value, {
       position: 'top-right',
       autoClose: 5000
     })
@@ -384,7 +384,7 @@ const confirmDeactivate = async () => {
 const cancelDeactivate = () => {
   showDeactivateModal.value = false
   deactivatePassword.value = ''
-  deactivateError. value = ''
+  deactivateError.value = ''
 }
 
 onMounted(() => {
@@ -412,12 +412,12 @@ onMounted(() => {
             
             <!-- ✅ Show membership details if not basic -->
             <span v-if="membershipTier !== 'basic' && authStore.user?.membership" class="text-xs text-gray-600">
-              {{ authStore.user. membership.is_active ? 'Active' : 'Expired' }}
+              {{ authStore.user.membership.is_active ? 'Active' : 'Expired' }}
             </span>
           </div>
           
           <!-- ✅ Show expiry date if exists -->
-          <p v-if="membershipTier !== 'basic' && authStore.user?.membership?. end_date" class="text-xs text-gray-600 mt-1">
+          <p v-if="membershipTier !== 'basic' && authStore.user?.membership?.end_date" class="text-xs text-gray-600 mt-1">
             Expires: {{ new Date(authStore.user.membership.end_date).toLocaleDateString() }}
           </p>
         </div>

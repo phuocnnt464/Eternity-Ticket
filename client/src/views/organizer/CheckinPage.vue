@@ -65,8 +65,8 @@ const fetchEventData = async () => {
       checkinAPI.getRecentCheckins(eventId.value, { limit: 20 })  // ✅ Increase limit
     ])
     
-    event.value = eventRes.data. event
-    stats.value = statsRes.data. stats
+    event.value = eventRes.data.event
+    stats.value = statsRes.data.stats
     recentCheckIns.value = checkinsRes.data.checkins || []
     
     console.log('✅ Checkin page data loaded:', {
@@ -77,7 +77,7 @@ const fetchEventData = async () => {
   } catch (error) {
     console.error('Failed to fetch event data:', error)
     event.value = null
-    stats. value = { total_tickets: 0, checked_in_tickets: 0, pending_checkin: 0 }
+    stats.value = { total_tickets: 0, checked_in_tickets: 0, pending_checkin: 0 }
     recentCheckIns.value = []
   } finally {
     loading.value = false
@@ -94,7 +94,7 @@ const handleManualCheckIn = async () => {
     return
   }
   
-  await handleCheckIn(manualCode. value. trim())
+  await handleCheckIn(manualCode.value.trim())
 }
 
 const handleCheckIn = async (ticketCode) => {
@@ -105,7 +105,7 @@ const handleCheckIn = async (ticketCode) => {
   try {
     const response = await checkinAPI.checkIn(ticketCode)
     
-    ticketResult.value = response.data. ticket
+    ticketResult.value = response.data.ticket
     manualCode.value = ''
     
     toast.success('✅ Check-in successful! ', {
@@ -121,7 +121,7 @@ const handleCheckIn = async (ticketCode) => {
       ticketResult.value = null
     }, 5000)
   } catch (error) {
-    errorMessage.value = error.response?. data?.error?. message || 'Invalid ticket or already checked in'
+    errorMessage.value = error.response?.data?.error?.message || 'Invalid ticket or already checked in'
     ticketResult.value = null
     
     toast.error(errorMessage.value, {
@@ -145,7 +145,7 @@ const handleUndoCheckin = async (ticketCode) => {
   
   undoingCheckin.value = true
   try {
-    await checkinAPI. undoCheckin(ticketCode)
+    await checkinAPI.undoCheckIn(ticketCode)
     
     toast.success('✅ Check-in undone successfully!', {
       position: 'top-right',
@@ -339,8 +339,8 @@ onMounted(() => {
             
             <div class="text-sm space-y-1 text-green-800">
               <p><strong>Ticket:</strong> {{ ticketResult.ticket_type_name }}</p>
-              <p><strong>Code:</strong> {{ ticketResult. ticket_code }}</p>
-              <p><strong>Time:</strong> {{ new Date(). toLocaleTimeString() }}</p>
+              <p><strong>Code:</strong> {{ ticketResult.ticket_code }}</p>
+              <p><strong>Time:</strong> {{ new Date().toLocaleTimeString() }}</p>
             </div>
           </div>
         </Card>
@@ -429,7 +429,7 @@ onMounted(() => {
 
           <div>
             <p class="text-sm text-gray-600 mb-1">Email</p>
-            <p class="text-sm text-gray-900 truncate">{{ selectedTicket. holder_email }}</p>
+            <p class="text-sm text-gray-900 truncate">{{ selectedTicket.holder_email }}</p>
           </div>
 
           <div>
@@ -449,7 +449,7 @@ onMounted(() => {
 
           <div v-if="selectedTicket.check_in_location">
             <p class="text-sm text-gray-600 mb-1">Location</p>
-            <p class="text-sm text-gray-900">{{ selectedTicket. check_in_location }}</p>
+            <p class="text-sm text-gray-900">{{ selectedTicket.check_in_location }}</p>
           </div>
         </div>
       </div>
