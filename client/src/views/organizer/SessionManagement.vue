@@ -232,7 +232,8 @@ const openCreateTicketModal = (sessionId) => {
     min_quantity_per_order: 1,
     max_quantity_per_order: session ? session.max_tickets_per_order : 5,
     sale_start_time: session ? session.start_time : '',
-    sale_end_time: session ? session.end_time : ''
+    sale_end_time: session ? session.end_time : '',
+    sold_quantity: ticket. sold_quantity || 0 
   }
   ticketErrors.value = {}
   showTicketModal.value = true
@@ -289,8 +290,8 @@ const validateTicketForm = () => {
 
 const handleSaveTicket = async () => {
    // ✅ Check if trying to update ticket with sold tickets
-  if (ticketForm. value.id && ticketForm.value.sold_quantity > 0) {
-    toast.error(`❌ Cannot update this ticket type because ${ticketForm. value.sold_quantity} tickets have already been sold.  This could affect existing orders.`, {
+  if (ticketForm.value.id && ticketForm.value.sold_quantity > 0) {
+    toast.error(`❌ Cannot update this ticket type because ${ticketForm.value.sold_quantity} tickets have already been sold.  This could affect existing orders.`, {
       position: 'top-right',
       autoClose: 5000
     })
