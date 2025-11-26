@@ -68,8 +68,8 @@ onBeforeUnmount(() => {
     <div v-if="!scanning" class="text-center p-8 bg-gray-50 rounded-lg border-2 border-dashed">
       <CameraIcon class="w-16 h-16 text-gray-400 mx-auto mb-4" />
       <p v-if="error" class="text-red-600 mb-4">{{ error }}</p>
-      <button @click="startScanning" class="btn-primary">
-        Start Scanning
+      <button @click="startScanning" class="btn btn-accent">
+        Scanning
       </button>
     </div>
 

@@ -170,7 +170,6 @@ onMounted(() => {
         <Card>
           <div class="text-center">
             <p class="text-gray-600 text-sm mb-2">Checked In</p>
-            <!-- ✅ USE BACKEND FIELD NAME -->
             <p class="text-4xl font-bold text-green-600">{{ stats.checked_in_tickets }}</p>
           </div>
         </Card>
@@ -178,7 +177,6 @@ onMounted(() => {
         <Card>
           <div class="text-center">
             <p class="text-gray-600 text-sm mb-2">Remaining</p>
-            <!-- ✅ USE BACKEND FIELD NAME -->
             <p class="text-4xl font-bold text-orange-600">{{ stats.pending_checkin }}</p>
           </div>
         </Card>
@@ -188,7 +186,7 @@ onMounted(() => {
           <div class="space-y-3">
             <div
               v-for="type in stats.by_ticket_type"
-              :key="type. ticket_type_name"
+              :key="type.ticket_type_name"
               class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
             >
               <div>

@@ -137,7 +137,7 @@ const getDashboardLink = computed(() => {
           <div v-if="authStore.isAuthenticated" class="relative">
             <button 
               @click="showUserMenu = !showUserMenu"
-              class="flex items-center space-x-2 btn-ghost btn-sm"
+              class= "flex items-center space-x-2 btn-ghost btn-sm"
             >
               <UserCircleIcon class="w-6 h-6" />
               <span class="hidden sm:block">{{ authStore.user?.first_name }}</span>
@@ -187,10 +187,10 @@ const getDashboardLink = computed(() => {
 
           <!-- Auth Buttons (Guest) -->
           <div v-else class="flex items-center space-x-2">
-            <RouterLink to="/auth/login" class="btn-ghost btn-sm">
+            <RouterLink to="/auth/login" class="btn btn-secondary btn-sm">
               Login
             </RouterLink>
-            <RouterLink to="/auth/register" class="btn-primary btn-sm">
+            <RouterLink to="/auth/register" class="btn btn-primary btn-sm">
               Register
             </RouterLink>
           </div>

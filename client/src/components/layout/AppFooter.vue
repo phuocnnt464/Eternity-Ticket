@@ -106,7 +106,7 @@ const currentYear = new Date().getFullYear()
 
       <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
         <p>&copy; {{ currentYear }} Eternity Ticket. All rights reserved.</p>
-        <p class="mt-2">Made with ❤️ for amazing events</p>
+        <p class="mt-2">Final Year Project - Nguyen Ngo Thanh Phuoc - University of Greenwich</p>
       </div>
     </div>
   </footer>

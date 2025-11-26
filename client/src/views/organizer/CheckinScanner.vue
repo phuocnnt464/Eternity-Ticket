@@ -42,7 +42,7 @@ const loadEvent = async () => {
   loading.value = true
   try {
     const response = await eventsAPI.getEventById(eventId.value)
-    event.value = response.data?. data?. event || response.data?. event
+    event.value = response.data?.data?.event || response.data?. event
   } catch (error) {
     console.error('Failed to load event:', error)
     router.push('/organizer/events')

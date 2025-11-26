@@ -212,6 +212,7 @@ class CheckinModel {
         FROM tickets t
         JOIN orders o ON t.order_id = o.id
         WHERE t.event_id = $1
+          AND o.status = 'paid'
       `;
 
       let params = [eventId];
