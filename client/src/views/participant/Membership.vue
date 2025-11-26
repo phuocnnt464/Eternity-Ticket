@@ -286,11 +286,19 @@ const handleCancelMembership = async () => {
   if (!confirm('Are you sure you want to cancel your membership?  You will lose all premium benefits.')) {
     return
   }
+
+  const cancelLoading = toast.loading('Cancelling membership... ', {
+    position: 'top-right'
+  })
   
   try {
-    await membershipAPI.cancelMembership()
+    const response = await membershipAPI.cancelMembership()
+    console.log('✅ Cancel response:', response)
+
     await authStore.fetchProfile()
     await fetchMembershipData()
+
+    toast.dismiss(cancelLoading)
     
     toast.success('Membership cancelled successfully', {
       position: 'top-right',
@@ -298,8 +306,23 @@ const handleCancelMembership = async () => {
     })
   } catch (error) {
     console.error('❌ Cancel membership error:', error)
+
+    console.error('❌ Error response:', error.response?.data)
+    console.error('❌ Error status:', error.response?.status)
     
-    const errorMsg = error.response?.data?.error?.message || 'Failed to cancel membership'
+    toast.dismiss(cancelLoading)
+    
+    // const errorMsg = error.response?.data?.error?.message || 'Failed to cancel membership'
+    let errorMsg = 'Failed to cancel membership'
+    
+    if (error.response?.status === 404) {
+      errorMsg = 'No active membership found to cancel'
+    } else if (error.response?.data?.error?.message) {
+      errorMsg = error.response.data.error.message
+    } else if (error.message) {
+      errorMsg = error.message
+    }
+
     toast.error(errorMsg, {
       position: 'top-right',
       autoClose: 5000
