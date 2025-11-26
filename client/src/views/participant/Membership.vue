@@ -1,7 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 import { membershipAPI } from '@/api/membership.js'
+import { toast } from 'vue3-toastify'
 import Badge from '@/components/common/Badge.vue'
 import Button from '@/components/common/Button.vue'
 import Spinner from '@/components/common/Spinner.vue'
@@ -16,6 +18,7 @@ import {
 } from '@heroicons/vue/24/outline'
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 const loading = ref(true)
 const membershipData = ref(null)
@@ -35,8 +38,9 @@ const membershipTiers = [
       { text: 'Browse all events', included: true },
       { text: 'Purchase tickets', included: true },
       { text: 'Email support', included: true },
-      { text: 'Discounts', included: false },
-      { text: 'Early access', included: false }
+      { text: 'Priority support', included: false },
+      { text: 'Early access to tickets', included: false },
+      { text: 'Exclusive discounts', included: false }
     ]
   },
   {
@@ -52,6 +56,7 @@ const membershipTiers = [
       { text: '5% discount on all tickets', included: true },
       { text: 'Event notifications', included: true },
       { text: 'Exclusive coupons', included: true },
+      { text: 'Priority support', included: true },
       { text: 'Early access', included: false }
     ]
   },
@@ -66,7 +71,7 @@ const membershipTiers = [
     features: [
       { text: 'All Advanced features', included: true },
       { text: '10% discount on all tickets', included: true },
-      { text: 'Early access (5 hours)', included: true, highlight: true },
+      { text: 'Early access (5 hours before sale)', included: true, highlight: true },
       { text: 'Max 5 tickets per order', included: true },
       { text: 'Priority notifications', included: true },
       { text: 'Exclusive Premium coupons', included: true }
@@ -75,7 +80,7 @@ const membershipTiers = [
 ]
 
 const currentTier = computed(() => {
-  return authStore.user?.membership_tier || 'basic'
+  return authStore.membershipTier || 'basic'
 })
 
 const currentPlan = computed(() => {
@@ -83,127 +88,80 @@ const currentPlan = computed(() => {
 })
 
 const canUpgrade = (tierValue) => {
-  const tierOrder = ['basic', 'premium', 'vip']
+  const tierOrder = ['basic', 'advanced', 'premium']
   const currentIndex = tierOrder.indexOf(currentTier.value)
   const targetIndex = tierOrder.indexOf(tierValue)
   return targetIndex > currentIndex
 }
 
+// ✅ FIX: Dùng getCurrentMembership thay vì getMembershipStatus
 const fetchMembershipData = async () => {
   loading.value = true
   try {
-    const response = await membershipAPI.getMembershipStatus()
-    membershipData.value = response.data.membership
-    console.log('Fetched membership data:', membershipData.value)
+    const response = await membershipAPI.getCurrentMembership()  // ✅ FIX
+    membershipData.value = response.data. membership
+    console.log('✅ Fetched membership data:', membershipData.value)
   } catch (error) {
-    console.error('Failed to fetch membership data:', error)
+    console.error('❌ Failed to fetch membership data:', error)
+    // Don't show error to user if they just don't have membership
+    if (error.response?.status !== 404) {
+      toast.error('Failed to load membership data', {
+        position: 'top-right',
+        autoClose: 3000
+      })
+    }
   } finally {
     loading.value = false
   }
 }
 
 const handleUpgrade = (tier) => {
-  if (!canUpgrade(tier.value)) return
+  if (!canUpgrade(tier. value)) return
   
   selectedPlan.value = tier
   showUpgradeModal.value = true
 }
 
-// const confirmUpgrade = async () => {
-//   if (!selectedPlan.value) return
-  
-//   upgrading.value = true
-//   try {
-//     // Step 1: Create membership order
-//     const orderResponse = await membershipAPI.createOrder({
-//       tier: selectedPlan.value.value,
-//       billing_period: 'monthly', // or get from selectedPlan
-//       return_url: window.location.origin + '/membership/payment/result'
-//     })
-    
-//     console.log('✅ Membership order created:', orderResponse)
-    
-//     const orderData = orderResponse.data
-    
-//     // If free tier (no payment required)
-//     if (!orderData.payment_required) {
-//       alert('Membership activated successfully!')
-//       await authStore.loadUser()
-//       await fetchMembershipData()
-//       showUpgradeModal.value = false
-//       upgrading.value = false
-//       return
-//     }
-    
-//     // Step 2: Process mock payment
-//     try {
-//       console.log('🎭 Processing mock membership payment...')
-      
-//       const paymentResponse = await membershipAPI.mockPayment(
-//         orderData.order.order_number, 
-//         true // true = success
-//       )
-      
-//       console.log('✅ Payment response:', paymentResponse)
-      
-//       if (paymentResponse.success) {
-//         // Redirect to payment result page
-//         const redirectUrl = paymentResponse.data.redirect_url
-//         window.location.href = redirectUrl
-//       } else {
-//         throw new Error(paymentResponse.message || 'Payment failed')
-//       }
-      
-//     } catch (paymentError) {
-//       console.error('❌ Payment error:', paymentError)
-      
-//       const errorMsg = paymentError.response?.data?.error?.message || paymentError.message
-      
-//       alert(`Payment failed: ${errorMsg}\n\nPlease try again.`)
-//       upgrading.value = false
-//     }
-    
-//   } catch (error) {
-//     console.error('❌ Order creation error:', error)
-//     alert(error.response?.data?.error?.message || 'Failed to create membership order')
-//     upgrading.value = false
-//   }
-// }
-
+// ✅ FIX: Thêm tier vào request
 const confirmUpgrade = async () => {
   if (!selectedPlan.value) return
   
   upgrading.value = true
   try {
+    console.log('📤 Creating membership order for tier:', selectedPlan.value. value)
+    
     // Step 1: Create membership order
     const orderResponse = await membershipAPI.createOrder({
-      tier: selectedPlan.value.tier,
+      tier: selectedPlan.value.value,  // ✅ FIX: Thêm tier
       billing_period: 'monthly',
       return_url: window.location.origin + '/membership/payment/result'
     })
     
-    console.log('✅ Membership order created:', orderResponse)
+    console.log('✅ Membership order created:', orderResponse.data)
     
     const orderData = orderResponse.data
     
     // If free tier (no payment required)
-    if (!orderData.payment_required) {
-      alert('Membership activated successfully!')
-      await authStore.loadUser()
+    if (! orderData.payment_required) {
+      toast.success('Membership activated successfully!', {
+        position: 'top-right',
+        autoClose: 3000
+      })
+      await authStore.fetchProfile()
       await fetchMembershipData()
       showUpgradeModal.value = false
       upgrading.value = false
       return
     }
     
-    // ✅ Step 2: Redirect to Payment Gateway UI
+    // Step 2: Redirect to Payment Gateway UI
     showUpgradeModal.value = false
     upgrading.value = false
     
     router.push({
       name: 'PaymentGateway',
       query: {
-        order: orderData.order.order_number,
+        order: orderData.order. order_number,
         amount: orderData.order.total_amount,
         type: 'membership'
       }
@@ -211,23 +169,40 @@ const confirmUpgrade = async () => {
     
   } catch (error) {
     console.error('❌ Order creation error:', error)
-    alert(error.response?.data?.error?.message || 'Failed to create membership order')
+    console.error('❌ Error details:', error.response?.data)
+    
+    const errorMsg = error.response?.data?.error?.message || 'Failed to create membership order'
+    toast.error(errorMsg, {
+      position: 'top-right',
+      autoClose: 5000
+    })
+    
     upgrading.value = false
   }
 }
 
 const handleCancelMembership = async () => {
-  if (!confirm('Are you sure you want to cancel your membership? You will lose all premium benefits.')) {
+  if (!confirm('Are you sure you want to cancel your membership?  You will lose all premium benefits.')) {
     return
   }
   
   try {
-    await membershipAPI.cancel()
-    await authStore.loadUser()
+    await membershipAPI.cancelMembership()
+    await authStore.fetchProfile()
     await fetchMembershipData()
-    alert('Membership cancelled successfully')
+    
+    toast.success('Membership cancelled successfully', {
+      position: 'top-right',
+      autoClose: 3000
+    })
   } catch (error) {
-    alert(error.response?.data?.error?.message || 'Failed to cancel membership')
+    console.error('❌ Cancel membership error:', error)
+    
+    const errorMsg = error.response?.data?.error?.message || 'Failed to cancel membership'
+    toast.error(errorMsg, {
+      position: 'top-right',
+      autoClose: 5000
+    })
   }
 }
 
