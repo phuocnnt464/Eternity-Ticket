@@ -1,11 +1,15 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useAuthStore } from '@/stores/auth'  // ✅ ADD
 import { 
   MinusIcon, 
   PlusIcon,
-  InformationCircleIcon 
+  InformationCircleIcon,
+  StarIcon  // ✅ ADD
 } from '@heroicons/vue/24/outline'
 import Badge from '@/components/common/Badge.vue'
+
+const authStore = useAuthStore()  // ✅ ADD
 
 const props = defineProps({
   ticketTypes: {
@@ -31,12 +35,12 @@ const emit = defineEmits(['update:modelValue'])
 const selections = ref({})
 
 // Initialize selections
-props.ticketTypes.forEach(ticket => {
+props.ticketTypes. forEach(ticket => {
   selections.value[ticket.id] = 0
 })
 
 // Watch for external changes
-watch(() => props.modelValue, (newValue) => {
+watch(() => props. modelValue, (newValue) => {
   if (newValue) {
     newValue.forEach(item => {
       selections.value[item.ticket_type_id] = item.quantity
@@ -49,25 +53,85 @@ const totalQuantity = computed(() => {
 })
 
 const canAddMore = computed(() => {
-  return totalQuantity.value < props.maxPerOrder
+  return totalQuantity. value < props.maxPerOrder
 })
 
+// ✅ ENHANCED: Check early access
+const isInEarlyAccessPeriod = (ticket) => {
+  if (!ticket.premium_early_access_minutes || ticket.premium_early_access_minutes === 0) {
+    return false
+  }
+  
+  const now = new Date()
+  const saleStart = new Date(ticket.sale_start_time)
+  const earlyAccessStart = new Date(
+    saleStart.getTime() - ticket.premium_early_access_minutes * 60000
+  )
+  
+  return now >= earlyAccessStart && now < saleStart
+}
+
+// ✅ ENHANCED: Check if user can access during early access
+const canAccessEarlyTicket = (ticket) => {
+  const userTier = authStore.membershipTier || 'basic'
+  
+  // If in early access period, only premium can access
+  if (isInEarlyAccessPeriod(ticket)) {
+    return userTier === 'premium'
+  }
+  
+  // Not in early access, everyone can access
+  return true
+}
+
+// ✅ ENHANCED: Availability check with early access
 const isAvailable = (ticket) => {
   const now = new Date()
   const saleStart = new Date(ticket.sale_start_time)
   const saleEnd = new Date(ticket.sale_end_time)
   
-  if (now < saleStart) return false
+  // ✅ Check early access first
+  if (isInEarlyAccessPeriod(ticket)) {
+    // During early access, only premium members
+    if (! canAccessEarlyTicket(ticket)) {
+      return false  // Block non-premium during early access
+    }
+  } else {
+    // After early access, check normal sale time
+    if (now < saleStart) return false
+  }
+  
   if (now > saleEnd) return false
   if (ticket.available_quantity <= 0) return false
   
   return true
 }
 
+// ✅ ENHANCED: Sale status with early access
 const getSaleStatus = (ticket) => {
   const now = new Date()
   const saleStart = new Date(ticket.sale_start_time)
   const saleEnd = new Date(ticket.sale_end_time)
+  const userTier = authStore.membershipTier || 'basic'
+  
+  // ✅ Early access period
+  if (isInEarlyAccessPeriod(ticket)) {
+    if (userTier === 'premium') {
+      const minutesRemaining = Math.ceil((saleStart - now) / 60000)
+      return {
+        variant: 'warning',
+        text: `Premium Early Access (${minutesRemaining}m left)`,
+        isPremiumAccess: true
+      }
+    } else {
+      const minutesRemaining = Math.ceil((saleStart - now) / 60000)
+      return {
+        variant: 'secondary',
+        text: `Premium Only (${minutesRemaining}m)`,
+        isPremiumAccess: false
+      }
+    }
+  }
   
   if (now < saleStart) {
     return { 
@@ -93,7 +157,7 @@ const getSaleStatus = (ticket) => {
   if (ticket.available_quantity < 10) {
     return { 
       variant: 'warning', 
-      text: `Only ${ticket.available_quantity} left` 
+      text: `Only ${ticket. available_quantity} left` 
     }
   }
   
@@ -111,7 +175,7 @@ const updateQuantity = (ticketId, delta) => {
   
   // Validate constraints
   if (newQty < 0) newQty = 0
-  if (newQty > ticket.max_quantity_per_order) newQty = ticket.max_quantity_per_order
+  if (newQty > ticket. max_quantity_per_order) newQty = ticket.max_quantity_per_order
   if (newQty > ticket.available_quantity) newQty = ticket.available_quantity
   
   // Check total max
@@ -131,7 +195,7 @@ const emitSelections = () => {
   const selected = Object.entries(selections.value)
     .filter(([, qty]) => qty > 0)
     .map(([ticketId, quantity]) => {
-      const ticket = props.ticketTypes.find(t => t.id === ticketId)
+      const ticket = props. ticketTypes.find(t => t.id === ticketId)
 
       if (!ticket) {
         console.error(`Ticket not found for ID: ${ticketId}`)
@@ -142,7 +206,7 @@ const emitSelections = () => {
         ticket_type_id: ticketId,
         ticket_type_name: ticket.name,
         quantity,
-        unit_price: ticket.price,
+        unit_price: ticket. price,
         subtotal: ticket.price * quantity
       }
     }).filter(item => item !== null)
@@ -151,7 +215,7 @@ const emitSelections = () => {
 }
 
 const formatPrice = (price) => {
-  return new Intl.NumberFormat('vi-VN', {
+  return new Intl. NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND'
   }).format(price)
@@ -173,17 +237,29 @@ const formatPrice = (price) => {
     <div class="space-y-3">
       <div
         v-for="ticket in ticketTypes"
-        :key="ticket.id"
+        :key="ticket. id"
         :class="[
           'card',
-          !isAvailable(ticket) && 'opacity-60'
+          ! isAvailable(ticket) && 'opacity-60'
         ]"
       >
         <div class="flex items-start justify-between mb-3">
           <div class="flex-1">
             <div class="flex items-center space-x-2 mb-1">
               <h4 class="font-semibold text-lg">{{ ticket.name }}</h4>
-              <Badge :variant="getSaleStatus(ticket).variant">
+              
+              <!-- ✅ ENHANCED: Show premium badge -->
+              <Badge 
+                v-if="getSaleStatus(ticket).isPremiumAccess === true"
+                variant="warning"
+              >
+                <StarIcon class="w-4 h-4 inline mr-1" />
+                {{ getSaleStatus(ticket).text }}
+              </Badge>
+              <Badge 
+                v-else
+                :variant="getSaleStatus(ticket). variant"
+              >
                 {{ getSaleStatus(ticket).text }}
               </Badge>
             </div>
@@ -192,9 +268,15 @@ const formatPrice = (price) => {
               {{ ticket.description }}
             </p>
             
+            <!-- ✅ ADD: Early access info -->
+            <div v-if="isInEarlyAccessPeriod(ticket) && ! canAccessEarlyTicket(ticket)" class="text-xs text-orange-600 mb-2 flex items-center">
+              <StarIcon class="w-3 h-3 mr-1" />
+              Premium members only during early access
+            </div>
+            
             <div class="flex items-center space-x-4 text-sm text-gray-600">
               <span>Min: {{ ticket.min_quantity_per_order }}</span>
-              <span>Max: {{ ticket.max_quantity_per_order }}</span>
+              <span>Max: {{ ticket. max_quantity_per_order }}</span>
               <span>Available: {{ ticket.available_quantity }}</span>
             </div>
           </div>
