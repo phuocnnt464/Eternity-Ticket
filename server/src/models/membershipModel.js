@@ -38,11 +38,26 @@ class MembershipModel {
     try {
       const query = `
         SELECT m.*, 
+          m.id,
+          m.user_id,
+          m.tier,
+          m.start_date,   
+          m.end_date,       
+          m. is_active,
+          m. payment_amount,
+          m.payment_date,
+          m.auto_renewal,
+          m.cancelled_at,
+          m.cancellation_reason,
+          m. created_at,
+          m.updated_at,
+          m.order_id,
+          m.payment_method,
+          m.payment_transaction_id,
+          m.billing_period,
+          m.next_billing_date,
           mp.features, 
-          mp.description,
-          m.auto_renewal,      
-          m.cancelled_at,      
-          m.cancellation_reason
+          mp.description
         FROM memberships m
         LEFT JOIN membership_pricing mp ON m.tier = mp.tier
         WHERE m.user_id = $1 
@@ -130,9 +145,11 @@ class MembershipModel {
       const isUpgrade = currentMembership && currentMembership.tier !== tier;
 
       // Calculate dates
-      const startDate = currentMembership && currentMembership.end_date > new Date() 
-        ? new Date(currentMembership.end_date)
-        : new Date();
+      // const startDate = currentMembership && currentMembership.end_date > new Date() 
+      //   ? new Date(currentMembership.end_date)
+      //   : new Date();
+
+      const startDate = new Date();
       
       const endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + months);
