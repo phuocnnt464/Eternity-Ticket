@@ -83,8 +83,8 @@ const fetchStatistics = async () => {
       tickets_sold: statsData.tickets?.sold || 0,
       tickets_available: statsData.tickets?.available || 0,
       total_revenue: statsData.revenue?.total || 0,
-      total_orders: statsData.orders?.total || 0,
-      average_order_value: statsData.revenue?.average_order_value || 0,
+      total_orders: statsData.orders?.paid || 0,
+      average_order_value: statsData.revenue?.average_order || 0,
       sales_by_ticket_type: statsData.sales_by_ticket_type || [],
       sales_trend: statsData.sales_trend || []
     }
@@ -214,30 +214,87 @@ onMounted(() => {
       </Card>
 
       <!-- Sales by Ticket Type -->
-      <Card>
-        <h3 class="text-lg font-semibold mb-4">Sales by Ticket Type</h3>
-        <div v-if="statistics.sales_by_ticket_type?.length > 0" class="space-y-4">
-          <div
-            v-for="item in statistics.sales_by_ticket_type"
-            :key="item.ticket_type_id"
-            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-          >
-            <div>
-              <h4 class="font-medium mb-1">{{ item.ticket_type_name }}</h4>
-              <p class="text-sm text-gray-600">
-                {{ item.sold }} / {{ item.total }} sold ({{ ((item.sold / item.total) * 100).toFixed(0) }}%)
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- ✅ Sales by Ticket Type -->
+        <Card>
+          <h3 class="text-lg font-semibold mb-4">Sales by Ticket Type</h3>
+          <div v-if="statistics.sales_by_ticket_type && statistics.sales_by_ticket_type.length > 0" class="space-y-3">
+            <div
+              v-for="ticket in statistics.sales_by_ticket_type"
+              :key="ticket.id"
+              class="border border-gray-200 rounded-lg p-4"
+            >
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex-1">
+                  <h4 class="font-medium text-gray-900">{{ ticket. name }}</h4>
+                  <p class="text-sm text-gray-600">{{ formatPrice(ticket.price) }}</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-semibold text-primary-600">{{ formatPrice(ticket. revenue) }}</p>
+                  <p class="text-sm text-gray-600">Revenue</p>
+                </div>
+              </div>
+              
+              <!-- Progress Bar -->
+              <div class="mb-2">
+                <div class="flex items-center justify-between text-sm mb-1">
+                  <span class="text-gray-600">
+                    {{ ticket.sold_quantity }} / {{ ticket.total_quantity }} sold
+                  </span>
+                  <span class="font-medium text-gray-900">
+                    {{ ticket.sold_percentage }}%
+                  </span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    class="bg-green-600 h-2 rounded-full transition-all"
+                    :style="{ width: `${ticket.sold_percentage}%` }"
+                  ></div>
+                </div>
+              </div>
+              
+              <p class="text-xs text-gray-500">
+                {{ ticket.available_quantity }} tickets remaining
               </p>
             </div>
-            <div class="text-right">
-              <p class="text-lg font-bold text-primary-600">{{ formatPrice(item.revenue) }}</p>
-              <p class="text-sm text-gray-600">Revenue</p>
+          </div>
+          <div v-else class="text-center text-gray-500 py-8">
+            <TicketIcon class="w-12 h-12 mx-auto mb-2 text-gray-400" />
+            <p>No ticket sales data available</p>
+          </div>
+        </Card>
+
+        <!-- ✅ Sales Trend -->
+        <Card>
+          <h3 class="text-lg font-semibold mb-4">Sales Trend (Last 30 Days)</h3>
+          <div v-if="statistics.sales_trend && statistics.sales_trend.length > 0" class="space-y-2">
+            <div
+              v-for="(trend, index) in statistics.sales_trend. slice(0, 10)"
+              :key="index"
+              class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+            >
+              <div class="flex items-center space-x-3">
+                <CalendarIcon class="w-4 h-4 text-gray-400" />
+                <span class="text-sm text-gray-900">
+                  {{ formatDate(trend.date) }}
+                </span>
+              </div>
+              <div class="flex items-center space-x-4 text-sm">
+                <span class="text-gray-600">
+                  {{ trend.tickets_sold }} tickets
+                </span>
+                <span class="font-medium text-primary-600">
+                  {{ formatPrice(trend.revenue) }}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-        <div v-else class="text-center py-8 text-gray-500">
-          No sales data available
-        </div>
-      </Card>
+          <div v-else class="text-center text-gray-500 py-8">
+            <ChartBarIcon class="w-12 h-12 mx-auto mb-2 text-gray-400" />
+            <p>No sales trend data available</p>
+          </div>
+        </Card>
+      </div>
 
       <!-- Quick Actions -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

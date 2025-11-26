@@ -926,49 +926,83 @@ static async update(eventId, updateData, userId) {
           FROM ticket_types tt 
           WHERE tt.event_id = e.id AND tt.is_active = true
         ) as total_tickets,
-
         (SELECT COALESCE(SUM(oi.quantity), 0)
-        FROM order_items oi
-        JOIN orders o ON oi.order_id = o.id
-        JOIN ticket_types tt ON oi. ticket_type_id = tt. id
-        WHERE tt.event_id = e.id 
-          AND o.status = 'paid'
-          AND tt.is_active = true
+          FROM order_items oi
+          JOIN orders o ON oi.order_id = o.id
+          JOIN ticket_types tt ON oi. ticket_type_id = tt. id
+          WHERE tt.event_id = e.id 
+            AND o.status = 'paid'
+            AND tt.is_active = true
         ) as sold_tickets,
-
         (SELECT COUNT(DISTINCT o.id)
-        FROM orders o
-        WHERE o.event_id = e. id AND o.status = 'paid'
+          FROM orders o
+          WHERE o.event_id = e. id AND o.status = 'paid'
         ) as paid_orders,
         (SELECT COUNT(DISTINCT o.id)
-        FROM orders o
-        WHERE o.event_id = e.id AND o.status = 'pending'
+          FROM orders o
+          WHERE o.event_id = e.id AND o.status = 'pending'
         ) as pending_orders,
         (SELECT COALESCE(SUM(o.total_amount), 0)
-        FROM orders o
-        WHERE o.event_id = e.id AND o.status = 'paid'
+          FROM orders o
+          WHERE o.event_id = e.id AND o.status = 'paid'
         ) as total_revenue,
         (SELECT COALESCE(AVG(o.total_amount), 0)
-        FROM orders o
-        WHERE o.event_id = e.id AND o.status = 'paid'
+          FROM orders o
+          WHERE o.event_id = e.id AND o.status = 'paid'
         ) as avg_order_value,
         (SELECT COUNT(DISTINCT t.id)
-        FROM tickets t
-        JOIN orders o ON t.order_id = o.id
-        WHERE t.event_id = e.id 
-          AND t.is_checked_in = true
-          AND o.status = 'paid'
+          FROM tickets t
+          JOIN orders o ON t.order_id = o.id
+          WHERE t.event_id = e.id 
+            AND t.is_checked_in = true
+            AND o.status = 'paid'
         ) as checked_in_count,
         (SELECT COUNT(DISTINCT o.user_id)
-        FROM orders o
-        WHERE o.event_id = e.id AND o.status = 'paid'
+          FROM orders o
+          WHERE o.event_id = e.id AND o.status = 'paid'
         ) as unique_customers
       FROM events e
       WHERE e.id = $1
     `;
+
+    // ✅ Sales by ticket type query
+    const salesByTicketQuery = `
+      SELECT 
+        tt.id,
+        tt.name,
+        tt.price,
+        tt. total_quantity,
+        COALESCE(SUM(oi.quantity), 0) as sold_quantity,
+        COALESCE(SUM(oi.quantity * oi.price), 0) as revenue
+      FROM ticket_types tt
+      LEFT JOIN order_items oi ON tt.id = oi. ticket_type_id
+      LEFT JOIN orders o ON oi.order_id = o.id AND o.status = 'paid'
+      WHERE tt.event_id = $1 AND tt.is_active = true
+      GROUP BY tt.id, tt.name, tt.price, tt.total_quantity
+      ORDER BY tt.sort_order, tt.price
+    `;
+    
+    // ✅ Sales trend query (last 30 days)
+    const salesTrendQuery = `
+      SELECT 
+        DATE(o.created_at) as date,
+        COUNT(DISTINCT o.id) as order_count,
+        COALESCE(SUM(o.total_amount), 0) as revenue,
+        COALESCE(SUM(oi.quantity), 0) as tickets_sold
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi. order_id
+      WHERE o.event_id = $1 
+        AND o.status = 'paid'
+        AND o.created_at >= NOW() - INTERVAL '30 days'
+      GROUP BY DATE(o.created_at)
+      ORDER BY date DESC
+      LIMIT 30
+    `;
     
     const result = await pool.query(query, [eventId]);
-    
+    const salesByTicketResult = await pool.query(salesByTicketQuery, [eventId]);
+    const salesTrendResult = await pool.query(salesTrendQuery, [eventId]);
+
     if (result.rows.length === 0) {
       throw new Error('Event not found');
     }
@@ -990,7 +1024,8 @@ static async update(eventId, updateData, userId) {
       },
       orders: {
         paid: parseInt(stats.paid_orders) || 0,
-        pending: parseInt(stats.pending_orders) || 0
+        pending: parseInt(stats.pending_orders) || 0,
+        total: stats.orders.total
       },
       revenue: {
         total: parseFloat(stats.total_revenue) || 0,
@@ -1002,7 +1037,25 @@ static async update(eventId, updateData, userId) {
       },
       customers: {
         unique: parseInt(stats.unique_customers) || 0
-      }
+      },
+      sales_by_ticket_type: salesByTicketResult.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        price: parseFloat(row.price),
+        total_quantity: parseInt(row.total_quantity),
+        sold_quantity: parseInt(row. sold_quantity),
+        available_quantity: parseInt(row.total_quantity) - parseInt(row. sold_quantity),
+        revenue: parseFloat(row.revenue),
+        sold_percentage: parseInt(row.total_quantity) > 0 
+          ? Math.round((parseInt(row.sold_quantity) / parseInt(row.total_quantity)) * 100) 
+          : 0
+      })),
+      sales_trend: salesTrendResult.rows. map(row => ({
+        date: row.date,
+        order_count: parseInt(row.order_count),
+        revenue: parseFloat(row.revenue),
+        tickets_sold: parseInt(row. tickets_sold)
+      }))
     };
   }
 
