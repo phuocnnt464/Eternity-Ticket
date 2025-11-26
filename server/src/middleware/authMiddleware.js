@@ -537,7 +537,7 @@ const checkEarlyAccess = async (req, res, next) => {
     const now = new Date();
 
     // Hardcode 5 hours (300 minutes) early access for Premium members
-    const PREMIUM_EARLY_ACCESS_MINUTES = 300; // 5 hours = 300 minutes (SYSTEM REQUIREMENT)
+    const premium_early_access_minutes = 300; // 5 hours = 300 minutes (SYSTEM REQUIREMENT)
 
     for (const ticketType of result.rows) {
       const saleStartTime = new Date(ticketType.sale_start_time);
