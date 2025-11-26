@@ -35,42 +35,41 @@ const membershipTiers = [
       { text: 'Browse all events', included: true },
       { text: 'Purchase tickets', included: true },
       { text: 'Email support', included: true },
-      { text: 'Priority support', included: false },
-      { text: 'Early access to tickets', included: false },
-      { text: 'Exclusive discounts', included: false }
-    ]
-  },
-  {
-    name: 'Premium',
-    value: 'premium',
-    price: 99000,
-    period: 'per month',
-    color: 'yellow',
-    icon: BoltIcon,
-    popular: true,
-    features: [
-      { text: 'All Basic features', included: true },
-      { text: 'Priority support', included: true },
-      { text: '10% discount on all tickets', included: true },
-      { text: 'Early access to tickets', included: true },
-      { text: 'Exclusive member events', included: true },
-      { text: 'VIP lounge access', included: false }
+      { text: 'Discounts', included: false },
+      { text: 'Early access', included: false }
     ]
   },
   {
     name: 'Advanced',
     value: 'advanced',
+    price: 149000,
+    period: 'per month',
+    color: 'blue',
+    icon: BoltIcon,
+    popular: false,
+    features: [
+      { text: 'All Basic features', included: true },
+      { text: '5% discount on all tickets', included: true },
+      { text: 'Event notifications', included: true },
+      { text: 'Exclusive coupons', included: true },
+      { text: 'Early access', included: false }
+    ]
+  },
+  {
+    name: 'Premium',
+    value: 'premium',
     price: 299000,
     period: 'per month',
-    color: 'purple',
+    color: 'yellow',
     icon: SparklesIcon,
+    popular: true,
     features: [
-      { text: 'All Premium features', included: true },
-      { text: 'Dedicated account manager', included: true },
-      { text: '20% discount on all tickets', included: true },
-      { text: 'VIP lounge access', included: true },
-      { text: 'Meet & greet opportunities', included: true },
-      { text: 'Exclusive merchandise', included: true }
+      { text: 'All Advanced features', included: true },
+      { text: '10% discount on all tickets', included: true },
+      { text: 'Early access (5 hours)', included: true, highlight: true },
+      { text: 'Max 5 tickets per order', included: true },
+      { text: 'Priority notifications', included: true },
+      { text: 'Exclusive Premium coupons', included: true }
     ]
   }
 ]
@@ -178,7 +177,7 @@ const confirmUpgrade = async () => {
   try {
     // Step 1: Create membership order
     const orderResponse = await membershipAPI.createOrder({
-      tier: selectedPlan.value.membership_tier,
+      tier: selectedPlan.value.tier,
       billing_period: 'monthly',
       return_url: window.location.origin + '/membership/payment/result'
     })
