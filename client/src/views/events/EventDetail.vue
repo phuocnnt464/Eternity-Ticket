@@ -9,7 +9,7 @@ import { useCartStore } from '@/stores/cart'
 import Badge from '@/components/common/Badge.vue'
 import Button from '@/components/common/Button.vue'
 import Spinner from '@/components/common/Spinner.vue'
-import Alert from '@/components/common/Alert.vue'
+import Card from '@/components/common/Card.vue'
 import TicketSelector from '@/components/features/TicketSelector.vue'
 import WaitingRoom from '@/components/features/WaitingRoom.vue' 
 import {
@@ -487,16 +487,17 @@ onBeforeUnmount(() => {
             <!-- Sidebar - Ticket Selection -->
             <div class="lg:col-span-1">
               <div class="sticky top-24 space-y-4">
-                 <Alert 
-                  v-if="earlyAccessInfo?.isActive && ! earlyAccessInfo?.isPremium"
-                  variant="warning"
-                  class="animate-pulse"
+                <Card 
+                  v-if="earlyAccessInfo?.isActive && !earlyAccessInfo?.isPremium"
+                  class="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-400 animate-pulse"
                 >
                   <div class="flex items-start space-x-3">
-                    <ExclamationCircleIcon class="w-6 h-6 flex-shrink-0 mt-0.5" />
+                    <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <ExclamationCircleIcon class="w-6 h-6 text-yellow-600" />
+                    </div>
                     <div class="flex-1">
-                      <p class="font-semibold mb-1">⭐ Premium Early Access Period</p>
-                      <p class="text-sm mb-2">
+                      <h3 class="font-semibold text-yellow-900 mb-1">⭐ Premium Early Access Period</h3>
+                      <p class="text-sm text-yellow-800 mb-3">
                         Premium members are buying now! <br>
                         Public sale starts in <strong>{{ earlyAccessInfo.minutesRemaining }} minutes</strong>
                       </p>
@@ -509,7 +510,7 @@ onBeforeUnmount(() => {
                       </Button>
                     </div>
                   </div>
-                </Alert>
+                </Card>
 
                 <div class="card">
                   <h2 class="text-xl font-bold mb-4">Get Tickets</h2>
