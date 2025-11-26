@@ -31,8 +31,8 @@ const checkingIn = ref(false)
 
 const stats = ref({
   total_tickets: 0,
-  checked_in: 0,
-  remaining: 0
+  checked_in_tickets: 0,
+  pending_checkin: 0
 })
 
 const recentCheckIns = ref([])
@@ -41,7 +41,7 @@ const errorMessage = ref('')
 
 const checkinPercentage = computed(() => {
   if (!stats.value.total_tickets) return 0
-  return ((stats.value.checked_in / stats.value.total_tickets) * 100).toFixed(1)
+  return ((stats.value.checked_in_tickets / stats.value.total_tickets) * 100).toFixed(1)
 })
 
 const fetchEventData = async () => {
@@ -53,24 +53,9 @@ const fetchEventData = async () => {
       checkinAPI.getRecentCheckins(eventId.value, { limit: 10 })
     ])
     
-    // event.value = eventRes.data.data.event
-    // stats.value = statsRes.data.data.stats
-    // recentCheckIns.value = checkinsRes.data.data.checkIns || []
-
-    // ✅ FIX: Handle different response structures with safe chaining
-    event.value = eventRes.data?.event || eventRes.data?.data?.event || null
-    
-    // ✅ FIX: Stats with fallback
-    stats.value = statsRes.data?.stats || statsRes.data?.data?.stats || {
-      total_tickets: 0,
-      checked_in: 0,
-      remaining: 0
-    }
-    
-    // ✅ FIX: Correct field name (checkins not checkIns)
-    recentCheckIns.value = checkinsRes.data?.checkins || 
-                           checkinsRes.data?.data?.checkins || 
-                           []
+    event.value = eventRes.data.event
+    stats.value = statsRes.data.stats
+    recentCheckIns.value = checkinsRes.data.checkins || []
     
     console.log('✅ Checkin page data loaded:', {
       eventTitle: event.value?.title,
@@ -203,14 +188,14 @@ onMounted(() => {
         <Card>
           <div class="text-center">
             <p class="text-gray-600 text-sm mb-2">Checked In</p>
-            <p class="text-4xl font-bold text-green-600">{{ stats.checked_in }}</p>
+            <p class="text-4xl font-bold text-green-600">{{ stats.checked_in_tickets }}</p>
           </div>
         </Card>
         
         <Card>
           <div class="text-center">
             <p class="text-gray-600 text-sm mb-2">Remaining</p>
-            <p class="text-4xl font-bold text-orange-600">{{ stats.remaining }}</p>
+            <p class="text-4xl font-bold text-orange-600">{{ stats.pending_checkin }}</p>
           </div>
         </Card>
       </div>
@@ -278,7 +263,7 @@ onMounted(() => {
               <CheckCircleIcon class="w-8 h-8 text-green-600" />
               <div>
                 <h4 class="font-semibold text-green-900">Check-in Successful!</h4>
-                <p class="text-sm text-green-700">{{ ticketResult.customer_name }}</p>
+                <p class="text-sm text-green-700">{{ ticketResult.holder_name }}</p>
               </div>
             </div>
             
@@ -305,7 +290,7 @@ onMounted(() => {
                   <UserIcon class="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p class="font-medium text-sm">{{ checkin.customer_name }}</p>
+                  <p class="font-medium text-sm">{{ checkin.holder_name }}</p>
                   <p class="text-xs text-gray-600">{{ checkin.ticket_type_name }}</p>
                 </div>
               </div>
