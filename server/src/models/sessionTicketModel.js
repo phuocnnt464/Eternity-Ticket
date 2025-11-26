@@ -80,7 +80,12 @@ class SessionTicketModel {
           es.*,
           COUNT(tt.id) as ticket_type_count,
           SUM(tt.total_quantity) as total_tickets,
-          SUM(tt.sold_quantity) as sold_tickets,
+          COALESCE(SUM(
+            (SELECT COUNT(*)
+            FROM tickets t
+            JOIN orders o ON t.order_id = o.id
+            WHERE t.ticket_type_id = tt.id AND o.status = 'paid')
+          ), 0)  as sold_tickets,
           MIN(tt.price) as min_price,
           MAX(tt.price) as max_price
         FROM event_sessions es
@@ -197,11 +202,26 @@ class SessionTicketModel {
       const query = `
         SELECT 
           tt.*,
-          (tt.total_quantity - tt.sold_quantity) as available_quantity,
+          COALESCE((
+            SELECT COUNT(*)
+            FROM tickets t
+            JOIN orders o ON t.order_id = o.id
+            WHERE t.ticket_type_id = tt.id AND o.status = 'paid'
+          ), 0) as sold_quantity,
+          (tt.total_quantity - COALESCE((
+            SELECT COUNT(*)
+            FROM tickets t
+            JOIN orders o ON t.order_id = o.id
+            WHERE t.ticket_type_id = tt.id AND o.status = 'paid'
+          ), 0)) as available_quantity,
           CASE 
             WHEN NOW() < tt.sale_start_time THEN 'not_started'
             WHEN NOW() > tt.sale_end_time THEN 'ended'
-            WHEN tt.sold_quantity >= tt.total_quantity THEN 'sold_out'
+            WHEN (SELECT COUNT(*)
+                  FROM tickets t
+                  JOIN orders o ON t.order_id = o. id
+                  WHERE t.ticket_type_id = tt.id AND o.status = 'paid') >= tt.total_quantity 
+            THEN 'sold_out'
             ELSE 'available'
           END as sale_status
         FROM ticket_types tt
