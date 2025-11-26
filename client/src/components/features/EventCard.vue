@@ -57,13 +57,26 @@ const formatPrice = (price) => {
 
 const statusBadge = computed(() => {
   const status = props.event.status
-  const variants = {
-    approved: { text: 'Available', variant: 'success' },
-    pending: { text: 'Pending', variant: 'warning' },
-    rejected: { text: 'Rejected', variant: 'danger' },
-    cancelled: { text: 'Cancelled', variant: 'danger' }
+  const availableTickets = props.event.available_tickets || 0
+  // const variants = {
+  //   approved: { text: 'Available', variant: 'success' },
+  //   pending: { text: 'Pending', variant: 'warning' },
+  //   rejected: { text: 'Rejected', variant: 'danger' },
+  //   cancelled: { text: 'Cancelled', variant: 'danger' }
+  // }
+  // return variants[status] || variants.approved
+  if (status === 'pending') return { text: 'Pending Approval', variant: 'warning' }
+  if (status === 'rejected') return { text: 'Rejected', variant: 'danger' }
+  if (status === 'cancelled') return { text: 'Cancelled', variant: 'danger' }
+  
+  // ✅ For approved events, check available_tickets
+  if (status === 'approved' || status === 'active') {
+    if (availableTickets > 0) {
+      return { text: 'Available', variant: 'success' }
+    } else {
+      return { text: 'Sold Out', variant: 'danger' }  // ✅ No tickets available
+    }
   }
-  return variants[status] || variants.approved
 })
 </script>
 
@@ -132,7 +145,16 @@ const statusBadge = computed(() => {
       <div class="flex items-center justify-between pt-3 border-t">
         <div class="flex items-center text-sm text-gray-600 space-x-1">
           <TicketIcon class="w-4 h-4" />
-          <span>{{ event.total_tickets_sold || 0 }} sold</span>
+          <!-- <span>{{ event.total_tickets_sold || 0 }} sold</span> -->
+          <span v-if="event.available_tickets > 0">
+            {{ event.available_tickets }} left  <!-- ✅ Show available if > 0 -->
+          </span>
+          <span v-else-if="event.total_tickets_sold">
+            {{ event.total_tickets_sold || 0 }} sold  <!-- Show sold if no tickets left -->
+          </span>
+          <span v-else>
+            Sold Out  <!-- Fallback -->
+          </span>
         </div>
         <div class="font-semibold text-primary-600">
           {{ minPrice }}
