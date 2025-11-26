@@ -24,8 +24,11 @@ onMounted(async () => {
   })
   
   // Reload user to get updated membership status
-  if (isSuccess.value) {
-    await authStore.loadUser()
+  try {
+    await authStore.fetchProfile()
+    console.log('✅ Profile refreshed, membership tier:', authStore.membershipTier)
+  } catch (error) {
+    console.error('❌ Failed to refresh profile:', error)
   }
 })
 

@@ -87,11 +87,30 @@ const membershipTiers = [
 ]
 
 const currentTier = computed(() => {
-  return authStore.membershipTier || 'basic'
+  if (membershipData.value?.tier) {
+    return membershipData.value.tier
+  }
+  if (authStore.membershipTier) {
+    return authStore.membershipTier
+  }
+  if (authStore.user?.membership?.tier) {
+    return authStore.user.membership.tier
+  }
+  return 'basic'
 })
 
 const currentPlan = computed(() => {
-  return membershipTiers.find(t => t.value === currentTier.value)
+  return membershipTiers.find(t => t.value === currentTier.value) || membershipTiers[0]
+})
+
+const membershipInfo = computed(() => {
+  if (membershipData.value) {
+    return membershipData.value
+  }
+  if (authStore.user?.membership) {
+    return authStore.user.membership
+  }
+  return null
 })
 
 const canUpgrade = (tierValue) => {
@@ -106,7 +125,20 @@ const fetchMembershipData = async () => {
   loading.value = true
   try {
     const response = await membershipAPI.getCurrentMembership() 
-    membershipData.value = response.data. membership
+    // membershipData.value = response.data.membership
+
+    console.log('🔍 Full response:', response)
+    console.log('🔍 Response data:', response.data)
+
+    if (response.data?. data?. membership) {
+      membershipData.value = response.data.data.membership
+    } else if (response.data?.membership) {
+      membershipData.value = response.data.membership
+    } else if (response.data?.data) {
+      membershipData.value = response.data.data
+    } else {
+      membershipData.value = response.data
+    }
     console.log('✅ Fetched membership data:', membershipData.value)
   } catch (error) {
     console.error('❌ Failed to fetch membership data:', error)
@@ -263,7 +295,6 @@ const handleCancelPayment = () => {
     showUpgradeModal.value = false
   }
 }
-
 
 const handleCancelMembership = async () => {
   if (!confirm('Are you sure you want to cancel your membership?  You will lose all premium benefits.')) {
@@ -519,12 +550,12 @@ onMounted(() => {
             <p class="text-sm font-medium text-gray-700">Benefits:</p>
             <ul class="space-y-1">
               <li
-                v-for="(feature, idx) in selectedPlan.features. filter(f => f.included)"
+                v-for="(feature, idx) in selectedPlan.features.filter(f => f.included)"
                 :key="idx"
                 class="flex items-start text-sm text-gray-600"
               >
                 <CheckCircleIcon class="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                <span>{{ feature. text }}</span>
+                <span>{{ feature.text }}</span>
               </li>
             </ul>
           </div>
@@ -560,6 +591,20 @@ onMounted(() => {
               />
               <div>
                 <span class="font-medium">Bank Transfer</span>
+                <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Mock</span>
+              </div>
+            </label>
+
+             <label class="flex items-center p-3 border-2 rounded-lg cursor-pointer"
+                   :class="paymentMethod === 'momo' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
+              <input
+                type="radio"
+                v-model="paymentMethod"
+                value="momo"
+                class="mr-3"
+              />
+              <div>
+                <span class="font-medium">Momo</span>
                 <span class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Mock</span>
               </div>
             </label>
