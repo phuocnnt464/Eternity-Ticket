@@ -15,7 +15,7 @@ const router = express.Router();
 
 const checkinLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 10, // max 10 checkin attempts per minute per IP
+  max: 1000, // max 1000 checkin attempts per minute per IP
   message: {
     success: false,
     error: { message: 'Too many check-in attempts. Please wait.' }

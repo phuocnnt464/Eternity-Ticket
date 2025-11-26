@@ -53,11 +53,36 @@ const fetchEventData = async () => {
       checkinAPI.getRecentCheckins(eventId.value, { limit: 10 })
     ])
     
-    event.value = eventRes.data.data.event
-    stats.value = statsRes.data.data.stats
-    recentCheckIns.value = checkinsRes.data.data.checkIns || []
+    // event.value = eventRes.data.data.event
+    // stats.value = statsRes.data.data.stats
+    // recentCheckIns.value = checkinsRes.data.data.checkIns || []
+
+    // ✅ FIX: Handle different response structures with safe chaining
+    event.value = eventRes.data?.event || eventRes.data?.data?.event || null
+    
+    // ✅ FIX: Stats with fallback
+    stats.value = statsRes.data?.stats || statsRes.data?.data?.stats || {
+      total_tickets: 0,
+      checked_in: 0,
+      remaining: 0
+    }
+    
+    // ✅ FIX: Correct field name (checkins not checkIns)
+    recentCheckIns.value = checkinsRes.data?.checkins || 
+                           checkinsRes.data?.data?.checkins || 
+                           []
+    
+    console.log('✅ Checkin page data loaded:', {
+      eventTitle: event.value?.title,
+      stats: stats.value,
+      recentCount: recentCheckIns.value.length
+    })
   } catch (error) {
     console.error('Failed to fetch event data:', error)
+
+    event.value = null
+    stats. value = { total_tickets: 0, checked_in: 0, remaining: 0 }
+    recentCheckIns.value = []
   } finally {
     loading.value = false
   }
