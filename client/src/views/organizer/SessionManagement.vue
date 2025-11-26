@@ -233,7 +233,6 @@ const openCreateTicketModal = (sessionId) => {
     max_quantity_per_order: session ? session.max_tickets_per_order : 5,
     sale_start_time: session ? session.start_time : '',
     sale_end_time: session ? session.end_time : '',
-    sold_quantity: ticket. sold_quantity || 0 
   }
   ticketErrors.value = {}
   showTicketModal.value = true
@@ -250,7 +249,8 @@ const openEditTicketModal = (sessionId, ticket) => {
     min_quantity_per_order: ticket.min_quantity_per_order || 1,
     max_quantity_per_order: ticket.max_quantity_per_order || 5,
     sale_start_time: ticket.sale_start_time ? new Date(ticket.sale_start_time).toISOString().slice(0, 16) : '',
-    sale_end_time: ticket.sale_end_time ? new Date(ticket.sale_end_time).toISOString().slice(0, 16) : ''
+    sale_end_time: ticket.sale_end_time ? new Date(ticket.sale_end_time).toISOString().slice(0, 16) : '',
+    sold_quantity: ticket.sold_quantity || 0 
   }
   ticketErrors.value = {}
   showTicketModal.value = true
@@ -341,13 +341,13 @@ const handleSaveTicket = async () => {
 
 const handleDeleteTicket = async (ticketId) => {
   // ✅ Check if tickets have been sold
-  if (ticket. sold_quantity > 0) {
-    toast.error(`❌ Cannot delete this ticket type because ${ticket.sold_quantity} tickets have already been sold. `, {
-      position: 'top-right',
-      autoClose: 5000
-    })
-    return
-  }
+  // if (ticket.sold_quantity > 0) {
+  //   toast.error(`❌ Cannot delete this ticket type because ${ticket.sold_quantity} tickets have already been sold. `, {
+  //     position: 'top-right',
+  //     autoClose: 5000
+  //   })
+  //   return
+  // }
 
   if (!confirm('Delete this ticket type?')) return
   
