@@ -16,8 +16,12 @@ import {
   TrashIcon,
   CalendarIcon,
   TicketIcon,
-  ClockIcon
+  ClockIcon,
+  LockClosedIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
+import { toast } from 'vue3-toastify'
+import 'vue3-toastify/dist/index.css'
 
 const route = useRoute()
 const router = useRouter()
@@ -284,6 +288,15 @@ const validateTicketForm = () => {
 }
 
 const handleSaveTicket = async () => {
+   // ✅ Check if trying to update ticket with sold tickets
+  if (ticketForm. value.id && ticketForm.value.sold_quantity > 0) {
+    toast.error(`❌ Cannot update this ticket type because ${ticketForm. value.sold_quantity} tickets have already been sold.  This could affect existing orders.`, {
+      position: 'top-right',
+      autoClose: 5000
+    })
+    return  // ✅ Block the update
+  }
+
   if (!validateTicketForm()) return
   
   savingTicket.value = true
@@ -302,11 +315,17 @@ const handleSaveTicket = async () => {
     if (ticketForm.value.id) {
       // Update
       await sessionsAPI.updateTicketType(ticketForm.value.id, data)
-      alert('Ticket type updated successfully!')
+      toast. success('✅ Ticket type updated successfully!', {
+        position: 'top-right',
+        autoClose: 3000
+      })
     } else {
       // Create
       await sessionsAPI.createTicketType(ticketForm.value.session_id, data)
-      alert('Ticket type created successfully!')
+      toast.success('✅ Ticket type created successfully!', {
+        position: 'top-right',
+        autoClose: 3000
+      })
     }
     
     showTicketModal.value = false
@@ -320,11 +339,23 @@ const handleSaveTicket = async () => {
 }
 
 const handleDeleteTicket = async (ticketId) => {
+  // ✅ Check if tickets have been sold
+  if (ticket. sold_quantity > 0) {
+    toast.error(`❌ Cannot delete this ticket type because ${ticket.sold_quantity} tickets have already been sold. `, {
+      position: 'top-right',
+      autoClose: 5000
+    })
+    return
+  }
+
   if (!confirm('Delete this ticket type?')) return
   
   try {
     await sessionsAPI.deleteTicketType(ticketId)
-    alert('Ticket type deleted successfully!')
+    toast.success('✅ Ticket type deleted successfully! ', {
+      position: 'top-right',
+      autoClose: 3000
+    })
     await fetchData()
   } catch (error) {
     console.error('Failed to delete ticket type:', error)
@@ -453,10 +484,19 @@ onMounted(() => {
                 v-for="ticket in session.ticket_types"
                 :key="ticket.id"
                 class="border border-gray-200 rounded-lg p-3 hover:bg-gray-50"
+                :class="{ 'bg-orange-50 border-orange-200': ticket.sold_quantity > 0 }"
               >
                 <div class="flex items-start justify-between">
                   <div class="flex-1">
-                    <h5 class="font-medium mb-1">{{ ticket.name }}</h5>
+                    <div class="flex items-center space-x-2 mb-1">
+                      <h5 class="font-medium">{{ ticket.name }}</h5>
+                      <!-- ✅ Show locked badge if sold -->
+                      <Badge v-if="ticket.sold_quantity > 0" variant="warning">
+                        <LockClosedIcon class="w-3 h-3" />
+                        {{ ticket.sold_quantity }} sold
+                      </Badge>
+                    </div>
+
                     <p v-if="ticket.description" class="text-sm text-gray-600 mb-2">{{ ticket.description }}</p>
                     
                     <div class="flex items-center space-x-3 text-sm">
@@ -466,6 +506,12 @@ onMounted(() => {
                       <span class="text-gray-600">Min: {{ ticket.min_quantity_per_order }}</span>
                       <span class="text-gray-600">Max: {{ ticket.max_quantity_per_order }}</span>
                     </div>
+
+                    <!-- ✅ Warning message if sold -->
+                    <p v-if="ticket.sold_quantity > 0" class="text-xs text-orange-600 mt-2 flex items-center">
+                      <ExclamationTriangleIcon class="w-3 h-3 mr-1" />
+                      Cannot edit or delete - tickets already sold
+                    </p>
                   </div>
 
                   <div class="flex items-center space-x-2">
@@ -477,9 +523,11 @@ onMounted(() => {
                       <PencilIcon class="w-4 h-4" />
                     </Button>
                     <Button
-                      variant="danger"
+                      :variant="ticket.sold_quantity > 0 ? 'secondary' : 'danger'"
                       size="sm"
                       @click="handleDeleteTicket(ticket.id)"
+                      :disabled="ticket.sold_quantity > 0"
+                      :class="{ 'opacity-50 cursor-not-allowed': ticket.sold_quantity > 0 }"
                     >
                       <TrashIcon class="w-4 h-4" />
                     </Button>
@@ -605,6 +653,29 @@ onMounted(() => {
       :title="ticketForm.id ? 'Edit Ticket Type' : 'Create Ticket Type'"
       size="lg"
     >
+      <div v-if="ticketForm.id && ticketForm.sold_quantity > 0" 
+           class="mb-6 bg-orange-100 border-l-4 border-orange-500 p-4 rounded-r-lg">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <ExclamationTriangleIcon class="h-6 w-6 text-orange-600" />
+          </div>
+          <div class="ml-3">
+            <h3 class="text-base font-semibold text-orange-900">
+              ⚠️ This ticket type cannot be modified
+            </h3>
+            <div class="mt-2 text-sm text-orange-800">
+              <p class="mb-1">
+                <strong>{{ ticketForm.sold_quantity }} tickets have already been sold.</strong>
+              </p>
+              <p>
+                Editing this ticket type could affect existing orders and customer purchases.  
+                All fields below are read-only.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <form @submit.prevent="handleSaveTicket" class="space-y-4">
         <Input
           v-model="ticketForm.name"
@@ -693,15 +764,29 @@ onMounted(() => {
             @click="showTicketModal = false"
             full-width
           >
-            Cancel
+            {{ ticketForm.id && ticketForm.sold_quantity > 0 ? 'Close' : 'Cancel' }}
           </Button>
+
           <Button
+            v-if="! ticketForm.id || ticketForm.sold_quantity === 0"
             variant="primary"
             :loading="savingTicket"
             @click="handleSaveTicket"
             full-width
           >
             {{ ticketForm.id ? 'Update' : 'Create' }} Ticket Type
+          </Button>
+
+          <!-- ✅ Show disabled button with tooltip if sold -->
+          <Button
+            v-else
+            variant="secondary"
+            :disabled="true"
+            full-width
+            class="opacity-50 cursor-not-allowed"
+          >
+            <LockClosedIcon class="w-4 h-4 mr-2" />
+            Cannot Update
           </Button>
         </div>
       </template>
