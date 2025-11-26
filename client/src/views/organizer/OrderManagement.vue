@@ -8,6 +8,7 @@ import Badge from '@/components/common/Badge.vue'
 import Button from '@/components/common/Button.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import Spinner from '@/components/common/Spinner.vue'
+import Modal from '@/components/common/Modal.vue'
 import {
   ArrowLeftIcon,
   MagnifyingGlassIcon,
@@ -16,7 +17,10 @@ import {
   CheckCircleIcon,
   ClockIcon,
   XCircleIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  UserCircleIcon,
+  EnvelopeIcon,
+  CreditCardIcon
 } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -28,6 +32,10 @@ const event = ref(null)
 const orders = ref([])
 const searchQuery = ref('')
 const selectedStatus = ref('all')
+
+const showOrderModal = ref(false)
+const selectedOrder = ref(null)
+const loadingOrderDetails = ref(false)
 
 const pagination = ref({
   currentPage: 1,
@@ -113,10 +121,25 @@ const handlePageChange = (page) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-const viewOrderDetails = (orderId) => {
-  router.push(`/organizer/orders/${orderId}`)
-  // Or use console for now:
-  // console.log('View order details:', orderId)
+const viewOrderDetails = async (order) => {
+  selectedOrder. value = order
+  showOrderModal.value = true
+  
+  // Optional: Fetch full order details if needed
+  loadingOrderDetails.value = true
+  try {
+    const response = await ordersAPI.getOrderById(order.id)
+    selectedOrder.value = response.data.order
+  } catch (error) {
+    console.error('Failed to fetch order details:', error)
+  } finally {
+    loadingOrderDetails.value = false
+  }
+}
+
+const closeOrderModal = () => {
+  showOrderModal.value = false
+  selectedOrder.value = null
 }
 
 const exportOrders = () => {
@@ -141,7 +164,7 @@ onMounted(() => {
           Back to Events
         </button>
         <h1 class="text-2xl font-bold text-gray-900">Order Management</h1>
-        <p v-if="event" class="text-gray-600 mt-1">{{ event.title }}</p>
+        <p v-if="event" class="text-gray-600 mt-1">{{ event. title }}</p>
       </div>
       <Button variant="secondary" @click="exportOrders">
         <ArrowDownTrayIcon class="w-5 h-5" />
@@ -226,7 +249,6 @@ onMounted(() => {
               </td>
               <td class="px-6 py-4">
                 <div class="text-sm">
-                  <!-- ✅ FIX: Update field names -->
                   <p class="font-medium text-gray-900">
                     {{ order.first_name }} {{ order.last_name }}
                   </p>
@@ -238,24 +260,23 @@ onMounted(() => {
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="text-sm font-medium text-gray-900">
-                  {{ formatPrice(order.total_amount) }}
+                  {{ formatPrice(order. total_amount) }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <Badge :variant="getStatusBadge(order.status). variant">
+                <Badge :variant="getStatusBadge(order.status).variant">
                   <component :is="getStatusBadge(order.status).icon" class="w-4 h-4" />
                   {{ getStatusBadge(order.status).text }}
                 </Badge>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ new Date(order.created_at).toLocaleDateString() }}
+                {{ new Date(order.created_at). toLocaleDateString() }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">
-                <!-- ✅ FIX: Replace alert with function call -->
                 <Button
                   variant="ghost"
                   size="sm"
-                  @click="viewOrderDetails(order.id)"
+                  @click="viewOrderDetails(order)"
                 >
                   View
                 </Button>
@@ -268,7 +289,7 @@ onMounted(() => {
       <!-- Pagination -->
       <div v-if="pagination.totalPages > 1" class="p-6 border-t">
         <Pagination
-          v-model:current-page="pagination.currentPage"
+          v-model:current-page="pagination. currentPage"
           :total-pages="pagination.totalPages"
           @update:current-page="handlePageChange"
         />
@@ -284,5 +305,90 @@ onMounted(() => {
         }}
       </p>
     </Card>
+
+    <!-- ✅ ADD: Order Details Modal -->
+    <Modal
+      v-model="showOrderModal"
+      title="Order Details"
+      size="2xl"
+      @close="closeOrderModal"
+    >
+      <div v-if="selectedOrder" class="space-y-6">
+        <!-- Order Info -->
+        <div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div>
+            <p class="text-sm text-gray-600 mb-1">Order Number</p>
+            <p class="font-semibold text-gray-900">#{{ selectedOrder.order_number }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600 mb-1">Status</p>
+            <Badge :variant="getStatusBadge(selectedOrder.status).variant">
+              <component :is="getStatusBadge(selectedOrder.status).icon" class="w-4 h-4" />
+              {{ getStatusBadge(selectedOrder.status).text }}
+            </Badge>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600 mb-1">Order Date</p>
+            <p class="text-gray-900">{{ formatDate(selectedOrder.created_at) }}</p>
+          </div>
+          <div v-if="selectedOrder.paid_at">
+            <p class="text-sm text-gray-600 mb-1">Paid At</p>
+            <p class="text-gray-900">{{ formatDate(selectedOrder.paid_at) }}</p>
+          </div>
+        </div>
+
+        <!-- Customer Info -->
+        <div>
+          <h3 class="font-semibold text-gray-900 mb-3 flex items-center">
+            <UserIcon class="w-5 h-5 mr-2" />
+            Customer Information
+          </h3>
+          <div class="space-y-2 p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-start">
+              <UserIcon class="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
+              <div>
+                <p class="text-sm text-gray-600">Name</p>
+                <p class="text-gray-900">{{ selectedOrder.first_name }} {{ selectedOrder.last_name }}</p>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <EnvelopeIcon class="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
+              <div>
+                <p class="text-sm text-gray-600">Email</p>
+                <p class="text-gray-900">{{ selectedOrder.email }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Info -->
+        <div>
+          <h3 class="font-semibold text-gray-900 mb-3 flex items-center">
+            <CreditCardIcon class="w-5 h-5 mr-2" />
+            Payment Information
+          </h3>
+          <div class="space-y-2 p-4 bg-gray-50 rounded-lg">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Tickets</span>
+              <span class="text-gray-900 font-medium">{{ selectedOrder. ticket_count || 0 }} ticket(s)</span>
+            </div>
+            <div v-if="selectedOrder.payment_method" class="flex justify-between">
+              <span class="text-gray-600">Payment Method</span>
+              <span class="text-gray-900 font-medium uppercase">{{ selectedOrder.payment_method }}</span>
+            </div>
+            <div class="flex justify-between pt-2 border-t">
+              <span class="font-semibold text-gray-900">Total Amount</span>
+              <span class="font-bold text-primary-600">{{ formatPrice(selectedOrder.total_amount) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <Button variant="secondary" @click="closeOrderModal">
+          Close
+        </Button>
+      </template>
+    </Modal>
   </div>
 </template>
