@@ -5,13 +5,18 @@ import { usersAPI } from '@/api/users.js'
 import Input from '@/components/common/Input.vue'
 import Button from '@/components/common/Button.vue'
 import Badge from '@/components/common/Badge.vue'
+import Modal from '@/components/common/Modal.vue'
 import { 
   UserIcon, 
   EnvelopeIcon, 
   PhoneIcon,
   CameraIcon,
-  KeyIcon
+  KeyIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
+
+import { toast } from 'vue3-toastify'  
+import 'vue3-toastify/dist/index.css'
 
 const authStore = useAuthStore()
 
@@ -38,6 +43,11 @@ const passwordLoading = ref(false)
 const avatarFile = ref(null)
 const avatarPreview = ref(null)
 const showPasswordForm = ref(false)
+
+const showDeactivateModal = ref(false)
+const deactivatePassword = ref('')
+const deactivateLoading = ref(false)
+const deactivateError = ref('')
 
 const membershipTier = computed(() => {
   return authStore.user?.membership_tier || 'basic'
@@ -160,13 +170,21 @@ const uploadAvatar = async () => {
     errors.value.avatar = ''
     
     console.log('✅ Avatar updated successfully')
-    alert('Avatar updated successfully!')
+    // alert('Avatar updated successfully!')
+    toast.success('Avatar updated successfully! ', {
+      position: 'top-right',
+      autoClose: 3000
+    })
     
   } catch (error) {
     console.error('❌ Upload avatar error:', error)
     console.error('❌ Error details:', error.response?.data)
     
     errors.value.avatar = error.response?.data?.error?.message || 'Failed to upload avatar'
+     toast.error(errors.value.avatar, {
+      position: 'top-right',
+      autoClose: 5000
+    })
   } finally {
     loading.value = false
   }
@@ -222,9 +240,17 @@ const handleUpdateProfile = async () => {
     
     // Reload user data
     await authStore.fetchProfile()
-    alert('Profile updated successfully!')
+    // alert('Profile updated successfully!')
+    toast.success('Profile updated successfully!', {
+      position: 'top-right',
+      autoClose: 3000
+    })
   } catch (error) {
     errors.value.general = error.response?.data?.error?.message || 'Failed to update profile'
+    toast.error(errors.value.general, {
+      position: 'top-right',
+      autoClose: 5000
+    })
   } finally {
     loading.value = false
   }
@@ -264,12 +290,77 @@ const handleChangePassword = async () => {
       confirm_password: ''
     }
     showPasswordForm.value = false
-    alert('Password changed successfully!')
+    // alert('Password changed successfully!')
+    toast.success('Password changed successfully!', {
+      position: 'top-right',
+      autoClose: 3000
+    })
   } catch (error) {
     passwordErrors.value.general = error.response?.data?.error?.message || 'Failed to change password'
+    toast.error(passwordErrors.value.general, {
+      position: 'top-right',
+      autoClose: 5000
+    })
   } finally {
     passwordLoading.value = false
   }
+}
+
+const handleDeactivateAccount = () => {
+  showDeactivateModal.value = true
+  deactivatePassword.value = ''
+  deactivateError.value = ''
+}
+
+const confirmDeactivate = async () => {
+  if (!deactivatePassword.value) {
+    deactivateError.value = 'Password is required'
+    return
+  }
+
+  deactivateLoading.value = true
+  deactivateError.value = ''
+
+  try {
+    const userId = authStore.user?. id
+
+    if (!userId) {
+      throw new Error('User ID not found')
+    }
+
+    await usersAPI.deactivateAccount(userId, deactivatePassword. value)
+
+    toast.success('Account deactivated successfully.  You will be logged out. ', {
+      position: 'top-right',
+      autoClose: 3000
+    })
+
+    // Close modal
+    showDeactivateModal.value = false
+
+    // Logout and redirect
+    setTimeout(async () => {
+      await authStore.logout()
+      router. push('/auth/login')
+    }, 2000)
+
+  } catch (error) {
+    console.error('❌ Deactivate account error:', error)
+    deactivateError.value = error.response?.data?.error?. message || 'Failed to deactivate account'
+    
+    toast.error(deactivateError. value, {
+      position: 'top-right',
+      autoClose: 5000
+    })
+  } finally {
+    deactivateLoading.value = false
+  }
+}
+
+const cancelDeactivate = () => {
+  showDeactivateModal.value = false
+  deactivatePassword.value = ''
+  deactivateError. value = ''
 }
 
 onMounted(() => {
@@ -518,14 +609,90 @@ onMounted(() => {
     </div>
 
     <!-- Account Actions -->
-    <div class="card border-red-200">
-      <h2 class="text-lg font-semibold text-red-600 mb-2">Danger Zone</h2>
-      <p class="text-sm text-gray-600 mb-4">
-        Once you delete your account, there is no going back. Please be certain.
+    <div class="card border-red-200 bg-red-50">
+      <h2 class="text-lg font-semibold text-red-600 mb-2 flex items-center">
+        <ExclamationTriangleIcon class="w-5 h-5 mr-2" />
+        Danger Zone
+      </h2>
+      <p class="text-sm text-gray-700 mb-4">
+        Once you delete your account, there is no going back. All your data, orders, and tickets will be permanently lost.  Please be certain.
       </p>
-      <Button variant="danger" @click="() => alert('Account deactivation feature - TODO')">
+      
+      <Button 
+        variant="danger" 
+        @click="handleDeactivateAccount"
+      >
         Deactivate Account
       </Button>
     </div>
+
+    <Modal
+      v-model="showDeactivateModal"
+      title="Deactivate Account"
+      size="md"
+    >
+      <div class="space-y-4">
+        <!-- Warning -->
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div class="flex items-start space-x-3">
+            <ExclamationTriangleIcon class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 class="font-semibold text-red-900 mb-1">Warning: This action cannot be undone!</h3>
+              <ul class="text-sm text-red-800 space-y-1 list-disc list-inside">
+                <li>Your account will be permanently deactivated</li>
+                <li>All your personal data will be removed</li>
+                <li>Your orders and tickets will no longer be accessible</li>
+                <li>You will be logged out immediately</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Input -->
+        <div>
+          <p class="text-sm text-gray-700 mb-3">
+            Please enter your password to confirm account deactivation:
+          </p>
+          
+          <Input
+            v-model="deactivatePassword"
+            type="password"
+            label="Your Password"
+            placeholder="Enter your password"
+            :error="deactivateError"
+            :icon="KeyIcon"
+            required
+            autofocus
+          />
+        </div>
+
+        <!-- Additional Confirmation -->
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="text-xs text-gray-600 italic">
+            By clicking "Deactivate My Account", you acknowledge that you understand this action is permanent and irreversible.
+          </p>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end space-x-3">
+          <Button
+            variant="secondary"
+            @click="cancelDeactivate"
+            :disabled="deactivateLoading"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            @click="confirmDeactivate"
+            :loading="deactivateLoading"
+          >
+            <ExclamationTriangleIcon class="w-5 h-5 mr-2" />
+            Deactivate My Account
+          </Button>
+        </div>
+      </template>
+    </Modal>
   </div>
 </template>
