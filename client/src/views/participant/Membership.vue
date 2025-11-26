@@ -93,9 +93,6 @@ const currentTier = computed(() => {
   if (authStore.membershipTier) {
     return authStore.membershipTier
   }
-  if (authStore.user?.membership?.tier) {
-    return authStore.user.membership.tier
-  }
   return 'basic'
 })
 
@@ -125,20 +122,9 @@ const fetchMembershipData = async () => {
   loading.value = true
   try {
     const response = await membershipAPI.getCurrentMembership() 
-    // membershipData.value = response.data.membership
 
-    console.log('🔍 Full response:', response)
-    console.log('🔍 Response data:', response.data)
-
-    if (response.data?. data?. membership) {
-      membershipData.value = response.data.data.membership
-    } else if (response.data?.membership) {
-      membershipData.value = response.data.membership
-    } else if (response.data?.data) {
-      membershipData.value = response.data.data
-    } else {
-      membershipData.value = response.data
-    }
+    membershipData.value = response.data
+    
     console.log('✅ Fetched membership data:', membershipData.value)
   } catch (error) {
     console.error('❌ Failed to fetch membership data:', error)
