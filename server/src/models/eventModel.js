@@ -973,7 +973,7 @@ static async update(eventId, updateData, userId) {
         tt.price,
         tt. total_quantity,
         COALESCE(SUM(oi.quantity), 0) as sold_quantity,
-        COALESCE(SUM(oi.quantity * oi.price), 0) as revenue
+        COALESCE(SUM(oi.quantity * tt.price), 0) as revenue
       FROM ticket_types tt
       LEFT JOIN order_items oi ON tt.id = oi. ticket_type_id
       LEFT JOIN orders o ON oi.order_id = o.id AND o.status = 'paid'
@@ -1025,7 +1025,7 @@ static async update(eventId, updateData, userId) {
       orders: {
         paid: parseInt(stats.paid_orders) || 0,
         pending: parseInt(stats.pending_orders) || 0,
-         total: paidOrders + pendingOrders 
+        total: paidOrders + pendingOrders 
       },
       revenue: {
         total: parseFloat(stats.total_revenue) || 0,
@@ -1033,6 +1033,7 @@ static async update(eventId, updateData, userId) {
       },
       checkin: {
         checked_in: checkedIn,
+        not_checked_in: soldTickets - checkedIn,
         percentage: soldTickets > 0 ? Math.round((checkedIn / soldTickets) * 100) : 0
       },
       customers: {
