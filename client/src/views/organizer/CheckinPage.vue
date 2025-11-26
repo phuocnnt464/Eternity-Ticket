@@ -132,7 +132,7 @@ onMounted(() => {
     <div class="flex items-center justify-between">
       <div>
         <button
-          @click="router.push('/organizer/events')"
+          @click="router. push('/organizer/events')"
           class="flex items-center text-gray-600 hover:text-gray-900 mb-2"
         >
           <ArrowLeftIcon class="w-5 h-5 mr-2" />
@@ -150,24 +150,6 @@ onMounted(() => {
         <QrCodeIcon class="w-5 h-5" />
         Open Scanner
       </Button>
-
-      <!-- Mode Toggle -->
-      <div class="flex items-center space-x-2">
-        <Button
-          :variant="scanMode ? 'primary' : 'secondary'"
-          @click="scanMode = true"
-        >
-          <QrCodeIcon class="w-5 h-5" />
-          Scan QR
-        </Button>
-        <Button
-          :variant="!scanMode ? 'primary' : 'secondary'"
-          @click="scanMode = false"
-        >
-          <MagnifyingGlassIcon class="w-5 h-5" />
-          Manual Entry
-        </Button>
-      </div>
     </div>
 
     <!-- Loading -->
@@ -188,6 +170,7 @@ onMounted(() => {
         <Card>
           <div class="text-center">
             <p class="text-gray-600 text-sm mb-2">Checked In</p>
+            <!-- ✅ USE BACKEND FIELD NAME -->
             <p class="text-4xl font-bold text-green-600">{{ stats.checked_in_tickets }}</p>
           </div>
         </Card>
@@ -195,6 +178,7 @@ onMounted(() => {
         <Card>
           <div class="text-center">
             <p class="text-gray-600 text-sm mb-2">Remaining</p>
+            <!-- ✅ USE BACKEND FIELD NAME -->
             <p class="text-4xl font-bold text-orange-600">{{ stats.pending_checkin }}</p>
           </div>
         </Card>
@@ -216,6 +200,26 @@ onMounted(() => {
         <!-- Check-in Section -->
         <Card>
           <h3 class="text-lg font-semibold mb-4">{{ scanMode ? 'Scan QR Code' : 'Manual Entry' }}</h3>
+
+          <!-- Mode Toggle -->
+          <div class="flex items-center space-x-2 mb-4">
+            <Button
+              :variant="scanMode ? 'primary' : 'secondary'"
+              @click="scanMode = true"
+              size="sm"
+            >
+              <QrCodeIcon class="w-4 h-4" />
+              Scan QR
+            </Button>
+            <Button
+              :variant="! scanMode ? 'primary' : 'secondary'"
+              @click="scanMode = false"
+              size="sm"
+            >
+              <MagnifyingGlassIcon class="w-4 h-4" />
+              Manual
+            </Button>
+          </div>
 
           <!-- QR Scanner Mode -->
           <div v-if="scanMode">
@@ -263,14 +267,14 @@ onMounted(() => {
               <CheckCircleIcon class="w-8 h-8 text-green-600" />
               <div>
                 <h4 class="font-semibold text-green-900">Check-in Successful!</h4>
-                <p class="text-sm text-green-700">{{ ticketResult.holder_name }}</p>
+                <p class="text-sm text-green-700">{{ ticketResult. holder_name }}</p>
               </div>
             </div>
             
             <div class="text-sm space-y-1 text-green-800">
-              <p><strong>Ticket:</strong> {{ ticketResult.ticket_type_name }}</p>
-              <p><strong>Code:</strong> {{ ticketResult.ticket_code }}</p>
-              <p><strong>Time:</strong> {{ new Date().toLocaleTimeString() }}</p>
+              <p><strong>Ticket:</strong> {{ ticketResult. ticket_type_name }}</p>
+              <p><strong>Code:</strong> {{ ticketResult. ticket_code }}</p>
+              <p><strong>Time:</strong> {{ new Date(). toLocaleTimeString() }}</p>
             </div>
           </div>
         </Card>
@@ -281,8 +285,8 @@ onMounted(() => {
           
           <div v-if="recentCheckIns.length > 0" class="space-y-3 max-h-96 overflow-y-auto">
             <div
-              v-for="checkin in recentCheckIns"
-              :key="checkin.checkin_id"
+              v-for="(checkin, index) in recentCheckIns"
+              :key="index"
               class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
             >
               <div class="flex items-center space-x-3">
@@ -290,6 +294,7 @@ onMounted(() => {
                   <UserIcon class="w-5 h-5 text-green-600" />
                 </div>
                 <div>
+                  <!-- ✅ USE BACKEND FIELD NAME -->
                   <p class="font-medium text-sm">{{ checkin.holder_name }}</p>
                   <p class="text-xs text-gray-600">{{ checkin.ticket_type_name }}</p>
                 </div>
