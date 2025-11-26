@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeMount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
 import { sessionsAPI } from '@/api/sessions.js'
