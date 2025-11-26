@@ -53,14 +53,14 @@ const deactivateLoading = ref(false)
 const deactivateError = ref('')
 
 const membershipTier = computed(() => {
-  return authStore.user?.membership_tier || 'basic'
+  return authStore.user?.tier || 'basic'
 })
 
 const membershipBadge = computed(() => {
   const badges = {
-    basic: { variant: 'info', text: 'Basic' },
-    premium: { variant: 'warning', text: 'Premium' },
-    vip: { variant: 'success', text: 'VIP' }
+    basic: { variant: 'secondary', text: 'Basic' },
+    advanced: { variant: 'warning', text: 'Advanced' }, 
+    premium: { variant: 'primary', text: 'Premium' }  
   }
   return badges[membershipTier.value] || badges.basic
 })
@@ -405,12 +405,28 @@ onMounted(() => {
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm text-gray-600 mb-1">Membership Status</p>
-          <Badge :variant="membershipBadge.variant" size="lg">
-            {{ membershipBadge.text }}
-          </Badge>
+          <div class="flex items-center space-x-2">
+            <Badge :variant="membershipBadge.variant" size="lg">
+              {{ membershipBadge.text }}
+            </Badge>
+            
+            <!-- ✅ Show membership details if not basic -->
+            <span v-if="membershipTier !== 'basic' && authStore.user?.membership" class="text-xs text-gray-600">
+              {{ authStore.user. membership.is_active ? 'Active' : 'Expired' }}
+            </span>
+          </div>
+          
+          <!-- ✅ Show expiry date if exists -->
+          <p v-if="membershipTier !== 'basic' && authStore.user?.membership?. end_date" class="text-xs text-gray-600 mt-1">
+            Expires: {{ new Date(authStore.user.membership.end_date).toLocaleDateString() }}
+          </p>
         </div>
-        <RouterLink to="/participant/membership" class="btn-primary">
-          Upgrade Membership
+        
+        <RouterLink 
+          to="/participant/membership" 
+          class="btn btn-accent btn-sm"
+        >
+          {{ membershipTier === 'basic' ? 'Upgrade Membership' : 'Manage Membership' }}
         </RouterLink>
       </div>
     </div>
