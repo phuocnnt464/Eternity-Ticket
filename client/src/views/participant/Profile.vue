@@ -333,7 +333,7 @@ const confirmDeactivate = async () => {
 
     await usersAPI.deactivateAccount(userId, deactivatePassword. value)
 
-    toast.success('Account deactivated successfully.  You will be logged out. ', {
+    toast.success('Account deactivated successfully. You will be logged out. ', {
       position: 'top-right',
       autoClose: 3000
     })

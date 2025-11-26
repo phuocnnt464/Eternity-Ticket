@@ -67,19 +67,24 @@ const handleSubmit = async () => {
   }
 }
 
-onMounted(() => {
-  // Check if redirected after deactivation
-  if (route.query.deactivated === 'true') {
-    // Show info message
-    const message = route.query.message || 'Your account has been deactivated'
+// onMounted(() => {
+//   // Check if redirected after deactivation
+//   if (route.query.deactivated === 'true') {
+//     // Show info message
+//     const message = route.query.message || 'Your account has been deactivated'
     
-    // Use alert or toast
-    toast.info(message, {
-      position: 'top-right',
-      autoClose: 5000
-    })
-  }
-})
+//     // Use alert or toast
+//     toast.info(message, {
+//       position: 'top-right',
+//       autoClose: 8000
+//     })
+
+//     router.replace({
+//       path: route.path,
+//       query: {}  // Clear all query params
+//     })
+//   }
+// })
 </script>
 
 <template>
