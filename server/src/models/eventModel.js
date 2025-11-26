@@ -1011,6 +1011,8 @@ static async update(eventId, updateData, userId) {
     const totalTickets = parseInt(stats.total_tickets) || 0;
     const soldTickets = parseInt(stats.sold_tickets) || 0;
     const checkedIn = parseInt(stats.checked_in_count) || 0;
+    const paidOrders = parseInt(stats.paid_orders) || 0;       
+    const pendingOrders = parseInt(stats.pending_orders) || 0;
     
     return {
       title: stats.title,

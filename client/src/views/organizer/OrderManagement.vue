@@ -278,7 +278,7 @@ onMounted(() => {
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">
                 <Button
-                  variant="ghost"
+                  variant="primary"
                   size="sm"
                   @click="viewOrderDetails(order)"
                 >
@@ -314,7 +314,7 @@ onMounted(() => {
     <Modal
       v-model="showOrderModal"
       title="Order Details"
-      size="2xl"
+      size="xl"
       @close="closeOrderModal"
     >
       <div v-if="selectedOrder" class="space-y-6">
