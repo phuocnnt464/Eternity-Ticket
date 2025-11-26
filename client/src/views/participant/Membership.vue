@@ -14,7 +14,9 @@ import {
   XMarkIcon,
   CreditCardIcon,
   CalendarIcon,
-  BoltIcon
+  BoltIcon,
+  ExclamationTriangleIcon,
+  ExclamationCircleIcon
 } from '@heroicons/vue/24/outline'
 
 const authStore = useAuthStore()
@@ -362,19 +364,15 @@ onMounted(() => {
             <p class="text-sm text-gray-600 mb-2">Current Plan</p>
             <div class="flex items-center space-x-3">
               <h2 class="text-2xl font-bold text-gray-900">{{ currentPlan?. name }}</h2>
-              <Badge
-                :variant="currentTier === 'premium' ? 'primary' : currentTier === 'advanced' ? 'info' : 'default'"
-              >
+              <Badge :variant="currentTier === 'premium' ? 'primary' : currentTier === 'advanced' ? 'info' : 'default'">
                 {{ currentPlan?.name }}
               </Badge>
               
-              <!-- ✅ ADD: Show cancelled status -->
               <Badge v-if="membershipData?.cancelled_at" variant="warning">
-                Auto-Renewal Cancelled
+                Cancelled
               </Badge>
             </div>
             
-            <!-- ✅ ADD: Show membership dates -->
             <div v-if="membershipData?.start_date" class="mt-3 space-y-1 text-sm text-gray-600">
               <div class="flex items-center space-x-2">
                 <CalendarIcon class="w-4 h-4" />
@@ -385,11 +383,9 @@ onMounted(() => {
                 <span>Expires: {{ new Date(membershipData. end_date).toLocaleDateString() }}</span>
               </div>
               
-              <!-- ✅ ADD: Show cancelled info -->
+              <!-- ✅ FIX: Use Heroicon component instead of SVG path -->
               <div v-if="membershipData?.cancelled_at" class="flex items-start space-x-2 text-orange-600 font-medium pt-2">
-                <svg class="w-4 h-4 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h. 01m-6.938 4h13.856c1.54 0 2. 502-1.667 1. 732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+                <ExclamationTriangleIcon class="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <span>Cancelled on {{ new Date(membershipData.cancelled_at).toLocaleDateString() }}</span>
               </div>
             </div>
@@ -401,23 +397,26 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- ✅ UPDATE: Only show cancel button if NOT cancelled -->
-        <div v-if="currentTier !== 'basic' && !membershipData?.cancelled_at" class="mt-4 pt-4 border-t border-primary-100">
+        <!-- Cancel button section -->
+        <div v-if="currentTier !== 'basic' && ! membershipData?.cancelled_at" class="mt-4 pt-4 border-t border-primary-100">
           <p class="text-sm text-gray-600 mb-2">
-            Cancel auto-renewal. You'll keep access until {{ membershipData?.end_date ?  new Date(membershipData.end_date).toLocaleDateString() : 'end of period' }}
+            Cancel auto-renewal.  You'll keep access until {{ membershipData?. end_date ?  new Date(membershipData.end_date).toLocaleDateString() : 'end of period' }}
           </p>
-          <Button variant="danger" size="sm" :loading="cancellingMembership"
-            :disabled="cancellingMembership" @click="handleCancelMembership">
+          <Button 
+            variant="danger" 
+            size="sm" 
+            :loading="cancellingMembership"
+            :disabled="cancellingMembership" 
+            @click="handleCancelMembership"
+          >
             {{ cancellingMembership ? 'Cancelling...' : 'Cancel Auto-Renewal' }}
           </Button>
         </div>
 
-        <!-- ✅ ADD: Show message if already cancelled -->
+        <!-- ✅ FIX: Use Heroicon in warning box too -->
         <div v-else-if="membershipData?.cancelled_at" class="mt-4 pt-4 border-t bg-orange-50 rounded-lg p-4">
           <div class="flex items-start space-x-3">
-            <svg class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <ExclamationCircleIcon class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
             <div>
               <p class="text-sm font-medium text-orange-900">Auto-Renewal Cancelled</p>
               <p class="text-sm text-orange-700 mt-1">
