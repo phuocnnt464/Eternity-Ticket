@@ -227,8 +227,8 @@ const processMockPayment = async () => {
 // ✅ STEP 3: Complete mock payment (CALL processPayment API)
 const completeMockPayment = async () => {
   try {
-    // Giả lập transaction ID
-    const transactionId = `TXN-MEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    // transaction ID
+    const transactionId = `MEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     
     // ✅ Call processPayment API (GIỐNG ORDER)
     const response = await membershipAPI.processPayment(createdOrder.value.order_number, {
@@ -415,7 +415,7 @@ onMounted(() => {
             <p class="text-sm text-gray-600 mb-2">Current Plan</p>
             <div class="flex items-center space-x-3">
               <h2 class="text-2xl font-bold text-gray-900">{{ currentPlan?.name }}</h2>
-              <Badge :variant="currentTier === 'premium' ? 'primary' : currentTier === 'advanced' ? 'info' : 'default'">
+              <Badge :variant="currentTier === 'premium' ? 'primary' : currentTier === 'advanced' ? 'warning' : 'secondary'">
                 {{ currentPlan?.name }}
               </Badge>
               
