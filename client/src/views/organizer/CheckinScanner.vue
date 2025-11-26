@@ -1,11 +1,19 @@
-<!-- CheckinScanner.vue -->
-
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { checkinAPI } from '@/api/checkin.js'
 import { eventsAPI } from '@/api/events.js'
-// ... imports
+import Card from '@/components/common/Card.vue'
+import Button from '@/components/common/Button.vue'
+import Input from '@/components/common/Input.vue'
+import QRScanner from '@/components/common/QRScanner.vue'
+import {
+  ArrowLeftIcon,
+  QrCodeIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon
+} from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const router = useRouter()
