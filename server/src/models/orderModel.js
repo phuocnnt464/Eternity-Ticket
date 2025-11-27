@@ -459,11 +459,26 @@ class OrderModel {
 
         // ✅ STEP 3: Verify sale period
         const now = new Date();
-        if (now < new Date(ticketType.sale_start_time)) {
-          throw new Error(`Sale for ${ticketType.name} has not started yet`);
-        }
-        if (now > new Date(ticketType.sale_end_time)) {
-          throw new Error(`Sale for ${ticketType.name} has ended`);
+        const saleStartTime = new Date(ticketType.sale_start_time);
+        const saleEndTime = new Date(ticketType. sale_end_time);
+
+        const earlyAccessStartTime = new Date(saleStartTime.getTime() - earlyAccessMinutes * 60000);
+
+        // ✅ Check if in early access period
+        const isInEarlyAccessPeriod = now >= earlyAccessStartTime && now < saleStartTime;
+
+        if (isInEarlyAccessPeriod) {
+          // During early access: This code path should only be reached by premium users
+          // (because non-premium were already blocked in first validation)
+          console.log(`✅ Creating tickets during early access period`);
+        } else {
+          // Outside early access: Check normal sale period
+          if (now < earlyAccessStartTime) {
+            throw new Error(`Sale for ${ticketType.name} has not started yet`);
+          }
+          if (now > saleEndTime) {
+            throw new Error(`Sale for ${ticketType.name} has ended`);
+          }
         }
 
         // Create order item
