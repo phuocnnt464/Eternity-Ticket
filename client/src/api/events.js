@@ -167,6 +167,10 @@ export const eventsAPI = {
   getTeamMembers: (eventId) => {
     return api.get(`/events/${eventId}/members`)
   },
+  // GET /api/events/my-team-events
+  getMyTeamEvents: () => {
+    return api.get('/events/my-team-events')
+  },
 
   // POST /api/events/:eventId/members
   addTeamMember: (eventId, data) => {

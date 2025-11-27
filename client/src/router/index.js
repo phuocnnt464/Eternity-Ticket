@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import TeamsMember from '../views/organizer/TeamsMember.vue'
 
 // ==========================================
 // LAYOUTS
@@ -52,6 +53,7 @@ const EditEvent = () => import('@/views/organizer/EditEvent.vue')
 const EventStatistics = () => import('@/views/organizer/EventStatistics.vue')
 const OrderManagement = () => import('@/views/organizer/OrderManagement.vue')
 const TeamManagement = () => import('@/views/organizer/TeamManagement.vue')
+const TeamsMember = () => import('@/views/organizer/TeamsMember.vue')
 const CheckinPage = () => import('@/views/organizer/CheckinPage.vue')
 const CheckinScanner = () => import('@/views/organizer/CheckinScanner.vue')
 const CouponManagement = () => import('@/views/organizer/CouponManagement.vue')
@@ -325,6 +327,12 @@ const routes = [
         name: 'TeamManagement',
         component: TeamManagement,
         meta: { title: 'Team Management - Organizer' }
+      },
+      {
+        path: 'teams',
+        name: 'TeamsMember',
+        component: TeamsMember,
+        meta: { requiresAuth: true }
       },
       {
         path: 'events/:id/checkin',

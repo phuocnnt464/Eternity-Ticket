@@ -1267,6 +1267,47 @@ class EventController {
     }
   }
 
+  static async getTeams(req, res) {
+    try {
+      const query = `
+        SELECT 
+          e.id,
+          e.title,
+          e. slug,
+          e.status,
+          e.start_date,
+          e.end_date,
+          eom.role as member_role,
+          eom.added_at,
+          u.email as owner_email,
+          u.first_name as owner_first_name,
+          u.last_name as owner_last_name
+        FROM event_organizer_members eom
+        JOIN events e ON eom.event_id = e. id
+        JOIN users u ON e.organizer_id = u. id
+        WHERE eom.user_id = $1 
+          AND eom.is_active = true
+          AND e.status != 'deleted'
+        ORDER BY eom.added_at DESC
+      `;
+      
+      const result = await pool.query(query, [req.user.id]);
+
+      return res.json({
+        success: true,
+        data: {
+          events: result.rows
+        }
+      });
+    } catch (error) {
+      console.error('Get team events error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to get team events'
+      });
+    }
+  }
+
   static async removeEventMember(req, res) {
     try {
       const { eventId, userId } = req.params;

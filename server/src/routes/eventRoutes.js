@@ -442,6 +442,11 @@ router.patch('/:eventId/members/:userId',
   EventController.updateMemberRole
 );
 
+router.get('/teams',
+  authenticateToken,
+  EventController.getTeams
+)
+
 router.get('/image-requirements',
   EventController.getImageRequirements
 );
