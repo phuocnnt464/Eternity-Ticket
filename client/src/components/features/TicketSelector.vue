@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'  
-import { adminAPI } from '@/api/admin
+import { adminAPI } from '@/api/admin'
 import { 
   MinusIcon, 
   PlusIcon,
@@ -228,7 +228,7 @@ const emitSelections = () => {
 }
 
 const formatPrice = (price) => {
-  return new Intl. NumberFormat('vi-VN', {
+  return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND'
   }).format(price)
