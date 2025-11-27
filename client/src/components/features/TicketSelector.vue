@@ -384,5 +384,62 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <div 
+      v-if="premiumLimitWarning"
+      :class="[
+        'p-4 rounded-lg border-2 transition-all',
+        premiumLimitWarning.exceeded 
+          ? 'bg-red-50 border-red-300' 
+          : 'bg-blue-50 border-blue-300'
+      ]"
+    >
+      <!-- Exceeded -->
+      <div v-if="premiumLimitWarning.exceeded" class="flex items-start gap-3">
+        <svg class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h. 01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3. 34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div class="flex-1">
+          <h4 class="font-bold text-red-900 mb-2">
+            ⏰ Premium Early Access Limit Exceeded
+          </h4>
+          <p class="text-sm text-red-800 mb-3">
+            During Premium early access, you can purchase up to 
+            <strong class="text-lg">{{ premiumLimitWarning.maxAllowed }} tickets</strong> 
+            per order to ensure fair access for all Premium members.
+          </p>
+          
+          <div class="bg-white rounded-lg p-3 mb-3 border border-red-200">
+            <p class="text-red-900 font-medium text-center">
+              ❌ You selected: <span class="text-2xl font-bold">{{ premiumLimitWarning.selected }}</span> tickets
+            </p>
+          </div>
+
+          <div class="bg-green-50 rounded-lg p-3 border border-green-300">
+            <p class="font-semibold text-green-900 mb-2 flex items-center gap-1">
+              <StarIcon class="w-4 h-4" />
+              💡 Good news:
+            </p>
+            <ul class="text-xs text-green-800 space-y-1 ml-5 list-disc">
+              <li>You can make <strong>multiple purchases</strong> during early access</li>
+              <li>After public sale: up to <strong>{{ premiumLimitWarning.publicLimit }} tickets per order</strong></li>
+              <li>You keep your <strong>10% Premium discount</strong>!</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Within limit -->
+      <div v-else class="flex items-start gap-3">
+        <InformationCircleIcon class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div class="text-sm text-blue-800">
+          <p class="font-medium mb-1">🌟 Premium Early Access Active</p>
+          <p class="text-xs">
+            Selected: <strong>{{ premiumLimitWarning. selected }}</strong> / {{ premiumLimitWarning. maxAllowed }} tickets
+            <span class="text-gray-600 ml-2">(Public sale: {{ premiumLimitWarning.publicLimit }} max)</span>
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
