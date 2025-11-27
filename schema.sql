@@ -942,6 +942,7 @@ INSERT INTO system_settings (setting_key, setting_value, description, is_public)
 ('premium_discount_rate', '0.1', 'Premium membership discount rate', false),
 ('advanced_discount_rate', '0.05', 'Advanced membership discount rate', false),
 ('premium_early_access_hours', '5', 'Premium early access hours', false),
+('premium_early_access_max_tickets', '5', 'Maximum tickets premium members can buy per order during early access period', true)
 ('currency_code', 'VND', 'Default currency code', true),
 ('currency_symbol', '₫', 'Default currency symbol', true),
 ('timezone', 'Asia/Ho_Chi_Minh', 'Default timezone', true),

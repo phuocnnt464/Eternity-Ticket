@@ -240,21 +240,81 @@ class OrderModel {
           );
         }
       }
+      
+      const premiumEarlyAccessMaxTickets = parseInt(await getSystemSetting('premium_early_access_max_tickets', '5'));
 
-      // Check session max tickets limit
-      let maxAllowed = session.max_tickets_per_order;
+      // ✅ Check if currently in early access period
+      const now = new Date();
+      let isInEarlyAccessPeriod = false;
 
-      if (membershipTier === 'premium') {
-        maxAllowed = Math.min(5, session.max_tickets_per_order);
+      // Check if ANY ticket in cart is in early access period
+      for (const ticketDetail of ticketDetails) {
+        const saleStartTime = new Date(ticketDetail.ticket_type.sale_start_time);
+        const earlyAccessStartTime = new Date(saleStartTime.getTime() - earlyAccessMinutes * 60000);
         
-        if (totalTickets > 5) {
-          throw new Error(`Premium members can order maximum 5 tickets per order. You selected ${totalTickets}.`);
+        if (now >= earlyAccessStartTime && now < saleStartTime) {
+          isInEarlyAccessPeriod = true;
+          console.log(`⏰ Ticket "${ticketDetail.ticket_type. name}" is in early access period`);
+          break;
         }
       }
 
       // Check session max tickets limit
+      // let maxAllowed = session.max_tickets_per_order;
+
+
+      let maxAllowed;
+      let limitReason = '';
+
+      if (isInEarlyAccessPeriod) {
+        // During early access: Premium gets limited tickets per order
+        if (membershipTier === 'premium') {
+          maxAllowed = Math.min(premiumEarlyAccessMaxTickets, session.max_tickets_per_order);
+          limitReason = 'Premium early access period';
+          console.log(`🌟 Premium early access: max ${maxAllowed} tickets (session limit: ${session.max_tickets_per_order})`);
+        } else {
+          // Non-premium shouldn't reach here (blocked in earlier validation)
+          throw new Error('Only Premium members can purchase during early access period');
+        }
+      } else {
+        // During public sale: Everyone follows session limit
+        maxAllowed = session.max_tickets_per_order;
+        limitReason = 'Public sale period';
+          console.log(`🎫 Public sale: max ${maxAllowed} tickets for all users`);
+      }
+
+
+      // if (membershipTier === 'premium') {
+      //   maxAllowed = Math.min(5, session.max_tickets_per_order);
+        
+      //   if (totalTickets > 5) {
+      //     throw new Error(`Premium members can order maximum 5 tickets per order. You selected ${totalTickets}.`);
+      //   }
+      // }
+
+      // Check session max tickets limit
       if (totalTickets > maxAllowed) {
         throw new Error(`Cannot order more than ${maxAllowed} tickets per session`);
+      }
+
+      if (totalTickets > maxAllowed) {
+        if (isInEarlyAccessPeriod && membershipTier === 'premium') {
+          throw new Error(
+            `⏰ Premium Early Access Limit\n\n` +
+            `During the Premium early access period, you can purchase up to ${maxAllowed} tickets per order ` +
+            `to ensure fair access for all Premium members.\n\n` +
+            `You selected ${totalTickets} tickets.\n\n` +
+            `💡 Good news:\n` +
+            `• You can make multiple purchases during early access\n` +
+            `• After public sale starts, you can buy up to ${session.max_tickets_per_order} tickets per order\n` +
+            `• You'll still receive your 10% Premium discount on all purchases! `
+          );
+        } else {
+          throw new Error(
+            `Maximum ${maxAllowed} tickets per order.  ` +
+            `You selected ${totalTickets} tickets.`
+          );
+        }
       }
 
       // Calculate membership discount
