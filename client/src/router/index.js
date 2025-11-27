@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import TeamsMember from '../views/organizer/TeamsMember.vue'
 
 // ==========================================
 // LAYOUTS
