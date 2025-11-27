@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authAPI } from '@/api/auth'
 import { usersAPI } from '../api/users'
+import { eventsAPI } from '@/api/events'
 import { useRouter } from 'vue-router' 
 import { useCartStore } from './cart' 
 import { useQueueStore } from './queue' 
@@ -146,6 +147,8 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       accessToken.value = null
       refreshToken.value = null
+      isTeamMember.value = false
+      teamEventsCount.value = 0
 
       // ✅ 3. Clear localStorage
       const keysToRemove = [
@@ -319,6 +322,29 @@ export const useAuthStore = defineStore('auth', () => {
   const clearError = () => {
     error.value = null
   }
+
+  /**
+   * Check team membership
+   */
+  const checkTeamMembership = async () => {
+    if (user.value?.role !== 'participant') {
+      isTeamMember.value = false
+      teamEventsCount.value = 0
+      return
+    }
+
+    try {
+      const response = await eventsAPI.getMyTeamEvents()
+      const events = response.data.data?. events || response.data.events || []
+      isTeamMember.value = events.length > 0
+      teamEventsCount.value = events.length
+      console.log('✅ Team membership check:', isTeamMember.value, events.length, 'events')
+    } catch (error) {
+      console. error('❌ Failed to check team membership:', error)
+      isTeamMember.value = false
+      teamEventsCount. value = 0
+    }
+  }
   
   return {
     // State
@@ -327,6 +353,8 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     loading,
     error,
+    isTeamMember,
+    teamEventsCount,
     
     // Getters
     isAuthenticated,
@@ -357,7 +385,8 @@ export const useAuthStore = defineStore('auth', () => {
     forgotPassword,
     resetPassword,
     verifyEmail,
-    clearError
+    clearError,
+    checkTeamMembership
   }
 }, {
   persist: {
