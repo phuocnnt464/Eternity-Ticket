@@ -1274,21 +1274,26 @@ class EventController {
           e.id,
           e.title,
           e. slug,
-          e.status,
           e.start_date,
           e.end_date,
+          e.venue_name,
+          e.city,
+          e.status,
+          e.banner_url,
           eom.role as member_role,
-          eom.added_at,
-          u.email as owner_email,
-          u.first_name as owner_first_name,
-          u.last_name as owner_last_name
+          eom.invited_at as added_at,  
+          eom.accepted_at,
+          o.id as owner_id,
+          o.first_name as owner_first_name,
+          o.last_name as owner_last_name,
+          o.email as owner_email
         FROM event_organizer_members eom
-        JOIN events e ON eom.event_id = e. id
-        JOIN users u ON e.organizer_id = u. id
+        JOIN events e ON eom. event_id = e.id
+        JOIN users o ON e.organizer_id = o.id
         WHERE eom.user_id = $1 
           AND eom.is_active = true
-          AND e.status != 'deleted'
-        ORDER BY eom.added_at DESC
+          AND e.status != 'cancelled'
+        ORDER BY eom.invited_at DESC
       `;
       
       const result = await pool.query(query, [req.user.id]);
