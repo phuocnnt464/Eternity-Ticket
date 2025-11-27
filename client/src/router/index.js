@@ -357,7 +357,7 @@ const routes = [
         component: EventOverview,
         meta: { 
           requiresAuth: true, 
-          role: 'organizer',
+          allowedRoles: ['organizer', 'participant'],
           title: 'Event Management'
         }
       },
@@ -378,7 +378,7 @@ const routes = [
       component: TeamsMember,
       meta: { title: 'My Team Events' }
     }
-  ]
+  ],
 },
 
   // ==========================================
