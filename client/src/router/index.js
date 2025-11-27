@@ -351,35 +351,54 @@ const routes = [
         component: SessionManagement,
         meta: { title: 'Sessions & Tickets - Organizer' }
       },
-      {
-        path: '/organizer/events/:id/overview',
-        name: 'EventOverview',
-        component: EventOverview,
-        meta: { 
-          requiresAuth: true, 
-          allowedRoles: ['organizer', 'participant'],
-          title: 'Event Management'
-        }
-      },
     ]
   },
 
   {
-  path: '/organizer/teams',
-  component: OrganizerLayout, 
-  meta: { 
-    requiresAuth: true,
-    allowedRoles: ['organizer', 'participant']  
+    path: '/organizer/teams',
+    component: OrganizerLayout, 
+    meta: { 
+      requiresAuth: true,
+      allowedRoles: ['organizer', 'participant']  
+    },
+    children: [
+      {
+        path: '',
+        name: 'TeamsMember',
+        component: TeamsMember,
+        meta: { title: 'My Team Events' }
+      }
+    ],
   },
-  children: [
-    {
-      path: '',
-      name: 'TeamsMember',
-      component: TeamsMember,
-      meta: { title: 'My Team Events' }
-    }
-  ],
-},
+
+  {
+    path: '/organizer/events/:id',
+    component: OrganizerLayout,
+    meta: { 
+      requiresAuth: true,
+      allowedRoles: ['organizer', 'participant']
+    },
+    children: [
+      {
+        path: 'overview',
+        name: 'EventOverview',
+        component: EventOverview,
+        meta: { title: 'Event Management' }
+      },
+      {
+        path: 'checkin',
+        name: 'TeamMemberCheckin',
+        component: CheckinPage,
+        meta: { title: 'Check-in' }
+      },
+      {
+        path: 'orders',
+        name: 'TeamMemberOrders',
+        component: OrderManagement,
+        meta: { title: 'Orders' }
+      }
+    ]
+  },
 
   // ==========================================
   // ADMIN ROUTES
