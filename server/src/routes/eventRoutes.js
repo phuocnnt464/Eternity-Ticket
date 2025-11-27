@@ -269,6 +269,11 @@ router.get('/my/stats',
   EventController.getOrganizerStats
 );
 
+router.get('/team-events',
+  authenticateToken,
+  EventController.getTeams
+)
+
 // Admin routes (for future admin panel)
 
 /**
@@ -307,11 +312,6 @@ router.get('/',
   validate(eventQuerySchema, 'query'),
   EventController.getEvents
 );
-
-router.get('/teams',
-  authenticateToken,
-  EventController.getTeams
-)
 
 /**
  * @route   POST /api/events

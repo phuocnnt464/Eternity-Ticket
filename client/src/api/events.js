@@ -169,7 +169,7 @@ export const eventsAPI = {
   },
   // GET /api/events/teams
   getMyTeamEvents: () => {
-    return api.get('/events/teams')
+    return api.get('/events/team-events')
   },
 
   // POST /api/events/:eventId/members
