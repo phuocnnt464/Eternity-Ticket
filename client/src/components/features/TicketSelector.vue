@@ -13,6 +13,9 @@ import Badge from '@/components/common/Badge.vue'
 const authStore = useAuthStore()  
 const earlyAccessHours = ref(5)
 
+const showEarlyAccessLimitModal = ref(false)
+const earlyAccessLimitDetails = ref(null)
+
 const props = defineProps({
   ticketTypes: {
     type: Array,

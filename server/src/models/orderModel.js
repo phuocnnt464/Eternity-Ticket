@@ -240,7 +240,7 @@ class OrderModel {
           );
         }
       }
-      
+
       const premiumEarlyAccessMaxTickets = parseInt(await getSystemSetting('premium_early_access_max_tickets', '5'));
 
       // ✅ Check if currently in early access period
@@ -293,26 +293,18 @@ class OrderModel {
       // }
 
       // Check session max tickets limit
-      if (totalTickets > maxAllowed) {
-        throw new Error(`Cannot order more than ${maxAllowed} tickets per session`);
-      }
+      // if (totalTickets > maxAllowed) {
+      //   throw new Error(`Cannot order more than ${maxAllowed} tickets per session`);
+      // }
 
       if (totalTickets > maxAllowed) {
         if (isInEarlyAccessPeriod && membershipTier === 'premium') {
           throw new Error(
-            `⏰ Premium Early Access Limit\n\n` +
-            `During the Premium early access period, you can purchase up to ${maxAllowed} tickets per order ` +
-            `to ensure fair access for all Premium members.\n\n` +
-            `You selected ${totalTickets} tickets.\n\n` +
-            `💡 Good news:\n` +
-            `• You can make multiple purchases during early access\n` +
-            `• After public sale starts, you can buy up to ${session.max_tickets_per_order} tickets per order\n` +
-            `• You'll still receive your 10% Premium discount on all purchases! `
+            `Premium early access limit: ${maxAllowed} tickets per order.  You selected ${totalTickets}. `
           );
         } else {
           throw new Error(
-            `Maximum ${maxAllowed} tickets per order.  ` +
-            `You selected ${totalTickets} tickets.`
+            `Maximum ${maxAllowed} tickets per order. You selected ${totalTickets}.`
           );
         }
       }

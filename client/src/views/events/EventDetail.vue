@@ -509,7 +509,7 @@ onBeforeUnmount(() => {
                         </p>
                       </div>
                       <Badge variant="success" size="md">
-                        {{ session.available_tickets }} left
+                        {{ session.available_quantity }} left
                       </Badge>
                     </div>
                   </button>
