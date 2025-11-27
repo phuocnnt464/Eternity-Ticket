@@ -86,7 +86,7 @@ const formatPrice = (price) => {
       <div v-if="membershipDiscount > 0" class="flex justify-between text-green-600">
         <div class="flex items-center space-x-1">
           <span>Membership Discount</span>
-          <Badge variant="success" size="sm">Member</Badge>
+          <Badge variant="success" size="md">Member</Badge>
         </div>
         <span class="font-medium">-{{ formatPrice(membershipDiscount) }}</span>
       </div>
@@ -95,7 +95,7 @@ const formatPrice = (price) => {
         <div class="flex items-center space-x-1">
           <TagIcon class="w-4 h-4" />
           <span>Coupon</span>
-          <Badge v-if="couponCode" variant="success" size="sm">{{ couponCode }}</Badge>
+          <Badge v-if="couponCode" variant="success" size="md">{{ couponCode }}</Badge>
         </div>
         <span class="font-medium">-{{ formatPrice(discount) }}</span>
       </div>

@@ -125,6 +125,20 @@ class OrderModel {
 
       const session = sessionCheck.rows[0];
 
+      const membershipQuery = await client.query(`
+        SELECT tier FROM memberships 
+        WHERE user_id = $1 
+          AND is_active = true
+          AND (end_date IS NULL OR end_date > NOW())
+        ORDER BY created_at DESC
+        LIMIT 1
+      `, [userId]);
+
+      const { getSystemSetting } = require('../middleware/authMiddleware');
+      const earlyAccessHours = parseInt(await getSystemSetting('premium_early_access_hours', '5'));
+      const earlyAccessMinutes = earlyAccessHours * 60;
+      console.log(`⏰ Early access setting: ${earlyAccessHours} hours (${earlyAccessMinutes} minutes)`);
+
       // Calculate totals and validate ticket availability
       let subtotal = 0;
       let totalTickets = 0;
@@ -159,8 +173,39 @@ class OrderModel {
 
         // Check sale period
         const now = new Date();
-        if (now < new Date(ticketType.sale_start_time) || now > new Date(ticketType.sale_end_time)) {
-          throw new Error(`${ticketType.name} is not available for sale at this time`);
+        // if (now < new Date(ticketType.sale_start_time) || now > new Date(ticketType.sale_end_time)) {
+        //   throw new Error(`${ticketType.name} is not available for sale at this time`);
+        // }
+
+        const saleStartTime = new Date(ticketType.sale_start_time);
+        const saleEndTime = new Date(ticketType.sale_end_time);
+        
+        const earlyAccessStartTime = new Date(saleStartTime.getTime() - earlyAccessMinutes * 60000);
+        
+        // ✅ Check if in early access period
+        const isInEarlyAccessPeriod = now >= earlyAccessStartTime && now < saleStartTime;
+
+        if (isInEarlyAccessPeriod) {
+          // ✅ During early access: Only premium members allowed
+          if (membershipTier !== 'premium') {
+            const minutesRemaining = Math.ceil((saleStartTime - now) / 60000);
+            throw new Error(
+              `${ticketType.name} is in Premium early access period. ` +
+              `Public sale starts in ${minutesRemaining} minutes.  ` +
+              `Upgrade to Premium to buy now. `
+            );
+          }
+          // ✅ Premium user during early access → ALLOW
+          console.log(`✅ Premium user accessing ${ticketType.name} during early access period`);
+        } else {
+          // ✅ Outside early access: Check normal sale period
+          if (now < earlyAccessStartTime) {
+            throw new Error(`Sale for ${ticketType.name} has not started yet`);
+          }
+          
+          if (now > saleEndTime) {
+            throw new Error(`Sale for ${ticketType.name} has ended`);
+          }
         }
 
         const itemTotal = parseFloat(ticketType.price) * quantity;
@@ -175,16 +220,6 @@ class OrderModel {
           total_price: itemTotal
         });
       }
-
-      // Get user membership for discounts
-      const membershipQuery = await client.query(`
-        SELECT tier FROM memberships 
-        WHERE user_id = $1 
-          AND is_active = true
-          AND (end_date IS NULL OR end_date > NOW())
-        ORDER BY created_at DESC
-      LIMIT 1
-      `, [userId]);
 
       const membershipTier = membershipQuery.rows.length > 0 ? membershipQuery.rows[0].tier : 'basic';
 
