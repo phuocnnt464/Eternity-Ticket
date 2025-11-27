@@ -245,8 +245,43 @@ const totalSelectedTickets = computed(() => {
   return Object.values(selections.value).reduce((sum, qty) => sum + qty, 0)
 })
 
-// ✅ UPDATE: Use dynamic limit from server
-const premiumLimitWarning = computed(() => {
+const canAddMoreTicket = (ticketId) => {
+  const ticket = props.ticketTypes.find(t => t.id === ticketId)
+  if (! ticket) return false
+  
+  const current = selections.value[ticketId] || 0
+  
+  // Check availability
+  if (current >= ticket.available_quantity) return false
+  if (current >= ticket.max_quantity_per_order) return false
+  
+  // Check total session limit
+  const totalOther = Object.entries(selections.value)
+    .filter(([id]) => id !== ticketId)
+    .reduce((sum, [, qty]) => sum + qty, 0)
+  
+  // ✅ NEW: Check premium early access limit
+  const hasEarlyAccessTicket = props.ticketTypes. some(t => 
+    isInEarlyAccessPeriod(t) && selections.value[t.id] > 0
+  )
+  
+  if (hasEarlyAccessTicket && authStore.membershipTier === 'premium') {
+    const maxAllowed = premiumEarlyAccessLimit.value
+    if (totalOther + current + 1 > maxAllowed) {
+      return false  // ✅ Block if exceeds premium limit
+    }
+  }
+  
+  // Check session limit
+  if (totalOther + current + 1 > props.maxPerOrder) {
+    return false
+  }
+  
+  return true
+}
+
+// ✅ UPDATE: Simplified warning - only show when at limit
+const premiumLimitInfo = computed(() => {
   const hasEarlyAccessTicket = props.ticketTypes.some(ticket => 
     isInEarlyAccessPeriod(ticket) && selections.value[ticket.id] > 0
   )
@@ -257,27 +292,16 @@ const premiumLimitWarning = computed(() => {
   if (userTier !== 'premium') return null
   
   const total = totalSelectedTickets.value
-  const maxAllowed = premiumEarlyAccessLimit.value  // ✅ Use ref value
+  const maxAllowed = premiumEarlyAccessLimit.value
   
-  if (total > maxAllowed) {
+  // ✅ Only show when reached limit
+  if (total >= maxAllowed) {
     return {
-      exceeded: true,
       maxAllowed: maxAllowed,
       selected: total,
       publicLimit: props.maxPerOrder
     }
   }
-  
-  if (total > 0) {
-    return {
-      exceeded: false,
-      maxAllowed: maxAllowed,
-      selected: total,
-      publicLimit: props.maxPerOrder
-    }
-  }
-  
-  return null
 })
 
 onMounted(async () => {
@@ -293,6 +317,24 @@ onMounted(async () => {
       <div class="text-sm text-blue-800">
         <p>Select tickets (Min: {{ minPerOrder }}, Max: {{ maxPerOrder }})</p>
         <p class="mt-1">Current total: <strong>{{ totalQuantity }}</strong> tickets</p>
+      </div>
+    </div>
+
+    <div 
+      v-if="premiumLimitInfo"
+      class="flex items-start gap-3 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg"
+    >
+      <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div class="text-sm text-yellow-800">
+        <p class="font-semibold mb-1">
+          ⏰ Premium Early Access: Maximum {{ premiumLimitInfo.maxAllowed }} tickets per order
+        </p>
+        <p class="text-xs">
+          You've reached the limit ({{ premiumLimitInfo.selected }}/{{ premiumLimitInfo.maxAllowed }}). 
+          After public sale starts, you can buy up to {{ premiumLimitInfo.publicLimit }} tickets per order. 
+        </p>
       </div>
     </div>
 
@@ -368,7 +410,7 @@ onMounted(async () => {
             
             <button
               @click="updateQuantity(ticket.id, 1)"
-              :disabled="!isAvailable(ticket) || !canAddMore"
+              :disabled="!isAvailable(ticket) || ! canAddMoreTicket(ticket.id)"
               class="btn-primary btn-sm w-10 h-10 !p-0"
             >
               <PlusIcon class="w-5 h-5" />
@@ -381,63 +423,6 @@ onMounted(async () => {
               {{ formatPrice(ticket.price * selections[ticket.id]) }}
             </p>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div 
-      v-if="premiumLimitWarning"
-      :class="[
-        'p-4 rounded-lg border-2 transition-all',
-        premiumLimitWarning.exceeded 
-          ? 'bg-red-50 border-red-300' 
-          : 'bg-blue-50 border-blue-300'
-      ]"
-    >
-      <!-- Exceeded -->
-      <div v-if="premiumLimitWarning.exceeded" class="flex items-start gap-3">
-        <svg class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h. 01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3. 34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-        <div class="flex-1">
-          <h4 class="font-bold text-red-900 mb-2">
-            ⏰ Premium Early Access Limit Exceeded
-          </h4>
-          <p class="text-sm text-red-800 mb-3">
-            During Premium early access, you can purchase up to 
-            <strong class="text-lg">{{ premiumLimitWarning.maxAllowed }} tickets</strong> 
-            per order to ensure fair access for all Premium members.
-          </p>
-          
-          <div class="bg-white rounded-lg p-3 mb-3 border border-red-200">
-            <p class="text-red-900 font-medium text-center">
-              ❌ You selected: <span class="text-2xl font-bold">{{ premiumLimitWarning.selected }}</span> tickets
-            </p>
-          </div>
-
-          <div class="bg-green-50 rounded-lg p-3 border border-green-300">
-            <p class="font-semibold text-green-900 mb-2 flex items-center gap-1">
-              <StarIcon class="w-4 h-4" />
-              💡 Good news:
-            </p>
-            <ul class="text-xs text-green-800 space-y-1 ml-5 list-disc">
-              <li>You can make <strong>multiple purchases</strong> during early access</li>
-              <li>After public sale: up to <strong>{{ premiumLimitWarning.publicLimit }} tickets per order</strong></li>
-              <li>You keep your <strong>10% Premium discount</strong>!</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Within limit -->
-      <div v-else class="flex items-start gap-3">
-        <InformationCircleIcon class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-        <div class="text-sm text-blue-800">
-          <p class="font-medium mb-1">🌟 Premium Early Access Active</p>
-          <p class="text-xs">
-            Selected: <strong>{{ premiumLimitWarning. selected }}</strong> / {{ premiumLimitWarning. maxAllowed }} tickets
-            <span class="text-gray-600 ml-2">(Public sale: {{ premiumLimitWarning.publicLimit }} max)</span>
-          </p>
         </div>
       </div>
     </div>
