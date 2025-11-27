@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events'
 import { UsersIcon, CalendarIcon } from '@heroicons/vue/24/outline'
@@ -21,12 +21,11 @@ const getRoleBadge = (role) => {
 }
 
 const goToEvent = (event) => {
-  // ✅ SỬA LẠI: Navigate dựa trên role
+  // Navigate dựa trên role
   if (event.member_role === 'checkin_staff') {
     // Staff chỉ có quyền check-in
     router.push(`/organizer/events/${event. id}/checkin`)
   } else if (event.member_role === 'manager' || event.member_role === 'owner') {
-    // Manager và Owner vào trang overview/quản lý
     router.push(`/organizer/events/${event.id}/overview`)
   }
 }
@@ -35,7 +34,7 @@ const fetchTeamEvents = async () => {
   loading.value = true
   try {
     const response = await eventsAPI.getMyTeamEvents()
-    console.log('✅ Team events loaded:', response.data) // Debug
+    console.log('✅ Team events loaded:', response.data) 
     teamEvents.value = response.data.data?. events || response.data.events || []
   } catch (error) {
     console.error('❌ Failed to fetch team events:', error)
@@ -45,24 +44,22 @@ const fetchTeamEvents = async () => {
   }
 }
 
-const roleOptions = computed(() => {
-  if (userEventRole.value === 'manager') {
-    // Manager chỉ thêm được Check-in Staff
-    return [
-      { value: 'checkin_staff', label: 'Check-in Staff', description: 'Can check-in attendees' }
-    ]
-  } else {
-    // Owner thêm được Manager hoặc Check-in Staff
-    return [
-      { value: 'manager', label: 'Manager', description: 'Can view orders, manage team (add checkin staff), and check-in' },
-      { value: 'checkin_staff', label: 'Check-in Staff', description: 'Can check-in attendees only' }
-    ]
-  }
-})
+// const roleOptions = computed(() => {
+//   if (userEventRole.value === 'manager') {
+//     // Manager chỉ thêm được Check-in Staff
+//     return [
+//       { value: 'checkin_staff', label: 'Check-in Staff', description: 'Can check-in attendees' }
+//     ]
+//   } else {
+//     // Owner thêm được Manager hoặc Check-in Staff
+//     return [
+//       { value: 'manager', label: 'Manager', description: 'Can view orders, manage team (add checkin staff), and check-in' },
+//       { value: 'checkin_staff', label: 'Check-in Staff', description: 'Can check-in attendees only' }
+//     ]
+//   }
+// })
 
 onMounted(async() => {
-  await fetchEventRole()
-  userEventRole.value = eventRole.value
   await fetchTeamEvents()
 })
 </script>
