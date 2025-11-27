@@ -166,7 +166,7 @@ const getDashboardLink = computed(() => {
                 
                 <RouterLink 
                   v-if="authStore.isParticipant && authStore.isTeamMember"
-                  to="/events/team-events"
+                  to="/organizer/team-events"
                   class="block px-4 py-2 text-sm hover:bg-gray-100 text-blue-600 font-medium"
                   @click="showUserMenu = false"
                 >

@@ -24,7 +24,7 @@ const goToEvent = (event) => {
   // Navigate dựa trên role
   if (event.member_role === 'checkin_staff') {
     // Staff chỉ có quyền check-in
-    router.push(`/organizer/events/${event. id}/checkin`)
+    router.push(`/organizer/events/${event.id}/checkin`)
   } else if (event.member_role === 'manager' || event.member_role === 'owner') {
     router.push(`/organizer/events/${event.id}/overview`)
   }
