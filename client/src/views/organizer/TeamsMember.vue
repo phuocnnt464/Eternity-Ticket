@@ -8,9 +8,6 @@ const router = useRouter()
 const loading = ref(true)
 const teamEvents = ref([])
 
-const userEventRole = ref(null)
-const { eventRole, fetchEventRole } = useEventPermissions(eventId)
-
 const getRoleBadge = (role) => {
   const badges = {
     'owner': { text: 'Owner', class: 'bg-purple-100 text-purple-700' },
@@ -80,7 +77,7 @@ onMounted(async() => {
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="teamEvents.length === 0" class="text-center py-12">
+    <div v-else-if="!teamEvents || teamEvents.length === 0" class="text-center py-12">
       <UsersIcon class="w-16 h-16 mx-auto text-gray-300 mb-4" />
       <p class="text-gray-500 mb-2">You are not a member of any event teams yet.</p>
       <p class="text-sm text-gray-400">
@@ -103,7 +100,7 @@ onMounted(async() => {
               <span
                 :class="[
                   'px-3 py-1 text-xs font-medium rounded-full',
-                  getRoleBadge(event.member_role). class
+                  getRoleBadge(event.member_role).class
                 ]"
               >
                 {{ getRoleBadge(event.member_role).text }}
@@ -115,6 +112,12 @@ onMounted(async() => {
                 <CalendarIcon class="w-4 h-4" />
                 {{ new Date(event.start_date).toLocaleDateString() }}
               </p>
+               <p v-if="event.venue_name">
+                <strong>Venue:</strong> {{ event.venue_name }}
+              </p>
+              <p v-if="event.venue_city">
+                <strong>City:</strong> {{ event.venue_city }}
+              </p>
               <p>
                 <strong>Organizer:</strong> 
                 {{ event.owner_first_name }} {{ event.owner_last_name }}
@@ -122,7 +125,7 @@ onMounted(async() => {
               </p>
               <p>
                 <strong>Added:</strong> 
-                {{ new Date(event. added_at).toLocaleDateString() }}
+                {{ new Date(event.added_at).toLocaleDateString() }}
               </p>
             </div>
           </div>
