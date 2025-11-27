@@ -8,6 +8,7 @@ import 'vue3-toastify/dist/index.css'
 
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from './stores/auth' 
 
 import { directive as vClickAway } from 'vue3-click-away'
 
@@ -50,4 +51,20 @@ app.config.warnHandler = (msg, instance, trace) => {
   console.warn('Trace:', trace)
 }
 
-app.mount('#app')
+
+router.isReady().then(async () => {
+  const authStore = useAuthStore()
+  
+  // Check team membership for authenticated participants
+  if (authStore.isAuthenticated && authStore.isParticipant) {
+    console.log('🔍 Initializing team membership check...')
+    try {
+      await authStore.checkTeamMembership()
+      console.log('✅ Team membership initialized:', authStore.isTeamMember, 'Count:', authStore.teamEventsCount)
+    } catch (error) {
+      console.error('❌ Failed to initialize team membership:', error)
+    }
+  }
+
+  app.mount('#app')
+})
