@@ -52,19 +52,6 @@ app.config.warnHandler = (msg, instance, trace) => {
 }
 
 
-router.isReady().then(async () => {
-  const authStore = useAuthStore()
-  
-  // Check team membership for authenticated participants
-  if (authStore.isAuthenticated && authStore.isParticipant) {
-    console.log('🔍 Initializing team membership check...')
-    try {
-      await authStore.checkTeamMembership()
-      console.log('✅ Team membership initialized:', authStore.isTeamMember, 'Count:', authStore.teamEventsCount)
-    } catch (error) {
-      console.error('❌ Failed to initialize team membership:', error)
-    }
-  }
 
-  app.mount('#app')
-})
+app.mount('#app')
+

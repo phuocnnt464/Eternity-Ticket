@@ -1,10 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { eventsAPI } from '@/api/events'
 import { UsersIcon, CalendarIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const loading = ref(true)
 const teamEvents = ref([])
 
@@ -18,12 +20,21 @@ const getRoleBadge = (role) => {
 }
 
 const goToEvent = (event) => {
+  console.log('🔍 Navigation Debug:')
+  console.log('  User role:', authStore.user?.role)
+  console.log('  Event:', event.title)
+  console. log('  Member role:', event.member_role)
+
   // Navigate dựa trên role
   if (event.member_role === 'checkin_staff') {
     // Staff chỉ có quyền check-in
-    router.push(`/organizer/events/${event.id}/checkin`)
+    const path = `/organizer/events/${event.id}/checkin`
+    console.log('  → Navigating to:', path)
+    router.push(path)
   } else if (event.member_role === 'manager' || event.member_role === 'owner') {
-    router.push(`/organizer/events/${event.id}/overview`)
+    const path = `/organizer/events/${event.id}/overview`
+    console.log('  → Navigating to:', path)
+    router.push(path)
   }
 }
 
@@ -32,7 +43,10 @@ const fetchTeamEvents = async () => {
   try {
     const response = await eventsAPI.getMyTeamEvents()
     console.log('✅ Team events loaded:', response.data) 
-    teamEvents.value = response.data.data?. events || response.data.events || []
+    teamEvents.value = response.data.data?.events || response.data.events || []
+    console. log('👤 Current user role:', authStore.user?.role)
+    console.log('📊 Total events:', teamEvents.value.length)
+    
   } catch (error) {
     console.error('❌ Failed to fetch team events:', error)
     alert('Failed to load team events')
