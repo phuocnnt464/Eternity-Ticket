@@ -328,12 +328,6 @@ const routes = [
         meta: { title: 'Team Management - Organizer' }
       },
       {
-        path: 'teams',
-        name: 'TeamsMember',
-        component: TeamsMember,
-        meta: { requiresAuth: true }
-      },
-      {
         path: 'events/:id/checkin',
         name: 'CheckinPage',
         component: CheckinPage,
@@ -369,6 +363,23 @@ const routes = [
       },
     ]
   },
+
+  {
+  path: '/organizer/teams',
+  component: OrganizerLayout,
+  meta: { 
+    requiresAuth: true,
+    allowedRoles: ['organizer', 'participant']  
+  },
+  children: [
+    {
+      path: '',
+      name: 'TeamsMember',
+      component: TeamsMember,
+      meta: { title: 'My Team Events' }
+    }
+  ]
+},
 
   // ==========================================
   // ADMIN ROUTES
