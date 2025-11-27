@@ -12,9 +12,7 @@ import Badge from '@/components/common/Badge.vue'
 
 const authStore = useAuthStore()  
 const earlyAccessHours = ref(5)
-
-const showEarlyAccessLimitModal = ref(false)
-const earlyAccessLimitDetails = ref(null)
+const premiumEarlyAccessLimit = ref(5) 
 
 const props = defineProps({
   ticketTypes: {
@@ -71,8 +69,14 @@ const fetchSystemSettings = async () => {
       earlyAccessHours.value = parseInt(earlyAccessSetting.setting_value) || 5
       console.log('TicketSelector: Early access hours =', earlyAccessHours.value)
     }
+
+    const premiumLimitSetting = settings.find(s => s.setting_key === 'premium_early_access_max_tickets')
+    if (premiumLimitSetting) {
+      premiumEarlyAccessLimit.value = parseInt(premiumLimitSetting.setting_value) || 5
+      console.log('Premium early access limit: ', premiumEarlyAccessLimit.value)
+    }
   } catch (error) {
-    console. error('Failed to fetch settings:', error)
+    console.error('Failed to fetch settings:', error)
   }
 }
 
@@ -236,6 +240,45 @@ const formatPrice = (price) => {
     currency: 'VND'
   }).format(price)
 }
+
+const totalSelectedTickets = computed(() => {
+  return Object.values(selections.value).reduce((sum, qty) => sum + qty, 0)
+})
+
+// ✅ UPDATE: Use dynamic limit from server
+const premiumLimitWarning = computed(() => {
+  const hasEarlyAccessTicket = props.ticketTypes.some(ticket => 
+    isInEarlyAccessPeriod(ticket) && selections.value[ticket.id] > 0
+  )
+  
+  if (! hasEarlyAccessTicket) return null
+  
+  const userTier = authStore.membershipTier || 'basic'
+  if (userTier !== 'premium') return null
+  
+  const total = totalSelectedTickets.value
+  const maxAllowed = premiumEarlyAccessLimit.value  // ✅ Use ref value
+  
+  if (total > maxAllowed) {
+    return {
+      exceeded: true,
+      maxAllowed: maxAllowed,
+      selected: total,
+      publicLimit: props.maxPerOrder
+    }
+  }
+  
+  if (total > 0) {
+    return {
+      exceeded: false,
+      maxAllowed: maxAllowed,
+      selected: total,
+      publicLimit: props.maxPerOrder
+    }
+  }
+  
+  return null
+})
 
 onMounted(async () => {
   await fetchSystemSettings()
