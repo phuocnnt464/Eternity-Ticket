@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
 import { sessionsAPI } from '@/api/sessions.js'
+import { adminAPI } from '@/api/admin.js'
 import Card from '@/components/common/Card.vue'
 import Button from '@/components/common/Button.vue'
 import Input from '@/components/common/Input.vue'
@@ -63,7 +64,9 @@ const ticketForm = ref({
 const ticketErrors = ref({})
 const savingTicket = ref(false)
 
-// ✅ ADD: Helper function to convert UTC to local datetime-local format
+const systemEarlyAccessHours = ref(5)
+
+// Helper function to convert UTC to local datetime-local format
 const toLocalDateTimeString = (utcDateString) => {
   if (!utcDateString) return ''
   
@@ -77,7 +80,7 @@ const toLocalDateTimeString = (utcDateString) => {
   return localDate.toISOString().slice(0, 16)
 }
 
-// ✅ ADD: Helper function to convert local datetime-local to UTC ISO string
+// Helper function to convert local datetime-local to UTC ISO string
 const toUTCISOString = (localDateTimeString) => {
   if (! localDateTimeString) return null
   
@@ -102,6 +105,19 @@ const formatDateTime = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+const fetchSystemSettings = async () => {
+  try {
+    const response = await adminAPI.getSettings()
+    const settings = response.data. settings || []
+    const setting = settings.find(s => s.setting_key === 'premium_early_access_hours')
+    if (setting) {
+      systemEarlyAccessHours.value = parseInt(setting.setting_value) || 5
+    }
+  } catch (error) {
+    console.error('Failed to fetch settings:', error)
+  }
 }
 
 const toggleSession = (sessionId) => {
@@ -257,7 +273,7 @@ const openCreateTicketModal = (sessionId) => {
     max_quantity_per_order: session ?  session.max_tickets_per_order : 5,
     sale_start_time: toLocalDateTimeString(session?. start_time),
     sale_end_time: toLocalDateTimeString(session?.end_time),
-    premium_early_access_minutes: 0 
+    // premium_early_access_minutes: 0 
   }
   ticketErrors.value = {}
   showTicketModal.value = true
@@ -275,7 +291,7 @@ const openEditTicketModal = (sessionId, ticket) => {
     max_quantity_per_order: ticket.max_quantity_per_order || 5,
     sale_start_time: toLocalDateTimeString(ticket.sale_start_time),
     sale_end_time: toLocalDateTimeString(ticket.sale_end_time),
-    premium_early_access_minutes: ticket.premium_early_access_minutes || 0,  // ✅ ADD
+    // premium_early_access_minutes: ticket.premium_early_access_minutes || 0,  // ✅ ADD
     sold_quantity: ticket.sold_quantity || 0 
   }
   ticketErrors.value = {}
@@ -337,7 +353,7 @@ const handleSaveTicket = async () => {
       max_quantity_per_order: parseInt(ticketForm.value.max_quantity_per_order),
        sale_start_time: toUTCISOString(ticketForm.value.sale_start_time),
       sale_end_time: toUTCISOString(ticketForm.value. sale_end_time),
-      premium_early_access_minutes: parseInt(ticketForm.value. premium_early_access_minutes) || 0  
+      // premium_early_access_minutes: parseInt(ticketForm.value. premium_early_access_minutes) || 0  
     }
     
     if (ticketForm.value.id) {
@@ -393,6 +409,7 @@ const handleDeleteTicket = async (ticketId) => {
 
 onMounted(() => {
   fetchData()
+  fetchSystemSettings()
 })
 </script>
 
@@ -780,19 +797,37 @@ onMounted(() => {
           />
         </div>
 
-        <div>
-        <Input
-            v-model.number="ticketForm.premium_early_access_minutes"
-            type="number"
-            label="Premium Early Access (minutes)"
-            placeholder="e.g. 300 for 5 hours"
-            help-text="Premium members can buy this many minutes before public sale.  Use 300 for 5 hours."
-            min="0"
-            max="1440"
-            step="30"
-          />
+        <!-- <div>
+          <Input
+              v-model.number="ticketForm.premium_early_access_minutes"
+              type="number"
+              label="Premium Early Access (minutes)"
+              placeholder="e.g. 300 for 5 hours"
+              help-text="Premium members can buy this many minutes before public sale.  Use 300 for 5 hours."
+              min="0"
+              max="1440"
+              step="30"
+            />
           <p class="text-xs text-gray-500 mt-1">
             0 = No early access | 300 = 5 hours | 1440 = 24 hours
+          </p>
+        </div> -->
+
+        <div class="bg-gray-50 border border-gray-300 rounded-lg p-4">
+          <label class="label mb-2">Premium Early Access</label>
+          <div class="flex items-center space-x-2">
+            <input 
+              type="text" 
+              :value="`${systemEarlyAccessHours} hours`" 
+              disabled 
+              class="input bg-gray-100 cursor-not-allowed"
+            />
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">
+            Managed by system administrators.  Premium members can purchase tickets {{systemEarlyAccessHours}} hours before public sale.
           </p>
         </div>
 
