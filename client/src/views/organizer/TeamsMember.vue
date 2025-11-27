@@ -113,7 +113,7 @@ onMounted(async() => {
             <div class="text-sm text-gray-600 space-y-1">
               <p class="flex items-center gap-2">
                 <CalendarIcon class="w-4 h-4" />
-                {{ new Date(event.start_date). toLocaleDateString() }}
+                {{ new Date(event.start_date).toLocaleDateString() }}
               </p>
               <p>
                 <strong>Organizer:</strong> 

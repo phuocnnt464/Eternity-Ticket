@@ -308,6 +308,11 @@ router.get('/',
   EventController.getEvents
 );
 
+router.get('/teams',
+  authenticateToken,
+  EventController.getTeams
+)
+
 /**
  * @route   POST /api/events
  * @desc    Create new event (Organizers only)
@@ -441,11 +446,6 @@ router.patch('/:eventId/members/:userId',
   validate(updateMemberRoleSchema),
   EventController.updateMemberRole
 );
-
-router.get('/teams',
-  authenticateToken,
-  EventController.getTeams
-)
 
 router.get('/image-requirements',
   EventController.getImageRequirements
