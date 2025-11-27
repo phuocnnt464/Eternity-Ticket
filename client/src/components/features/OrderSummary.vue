@@ -64,8 +64,8 @@ const formatPrice = (price) => {
         <div class="flex items-start space-x-2 flex-1">
           <TicketIcon class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
           <div>
-            <p class="font-medium">{{ item.ticket_type_name }}</p>
-            <p class="text-gray-500">{{ formatPrice(item.unit_price) }} × {{ item.quantity }}</p>
+            <p class="font-medium">{{ item.name }}</p>
+            <p class="text-gray-500">{{ formatPrice(item.price) }} × {{ item.quantity }}</p>
           </div>
         </div>
         <div class="font-medium">

@@ -788,7 +788,8 @@ onBeforeUnmount(() => {
           <OrderSummary
             :items="tickets"
             :show-details="true"
-            :coupon-discount="couponDiscount"
+            :membership-discount="cartStore.membershipDiscount"
+            :discount="couponDiscount"
             :coupon-code="couponApplied ? couponCode : ''"
           />
         </div>
