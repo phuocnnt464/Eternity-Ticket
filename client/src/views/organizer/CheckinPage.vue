@@ -1,5 +1,4 @@
 <!-- client/src/views/organizer/CheckinPage.vue -->
-
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -489,7 +488,7 @@ onMounted(async () => {
             <ArrowUturnLeftIcon class="w-4 h-4" />
             Undo Check-in
           </Button>
-          
+
           <div v-else class="text-sm text-gray-500 italic">
             Only Owner and Manager can undo check-ins
           </div>

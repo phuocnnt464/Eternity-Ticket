@@ -139,7 +139,7 @@ router.post('/:ticketCode',
  */
 router.get('/event/:eventId/stats',
   authorizeEventOrganizer(),
-  requireEventRole('manager'),
+  requireEventRole('manager','checkin_staff'),
   CheckinController.getCheckinStats
 );
 
