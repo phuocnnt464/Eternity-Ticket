@@ -134,6 +134,9 @@ class OrderModel {
         LIMIT 1
       `, [userId]);
 
+      const membershipTier = membershipQuery.rows.length > 0 ? membershipQuery.rows[0].tier : 'basic';
+      console.log(`👤 User membership tier: ${membershipTier}`);
+
       const { getSystemSetting } = require('../middleware/authMiddleware');
       const earlyAccessHours = parseInt(await getSystemSetting('premium_early_access_hours', '5'));
       const earlyAccessMinutes = earlyAccessHours * 60;
@@ -220,8 +223,6 @@ class OrderModel {
           total_price: itemTotal
         });
       }
-
-      const membershipTier = membershipQuery.rows.length > 0 ? membershipQuery.rows[0].tier : 'basic';
 
       for (const ticketDetail of ticketDetails) {
         const { ticket_type, quantity } = ticketDetail;
