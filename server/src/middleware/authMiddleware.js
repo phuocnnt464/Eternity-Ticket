@@ -505,6 +505,22 @@ const eventAccessLimiter = async (req, res, next) => {
 };
 
 /**
+ * Get system setting value
+ */
+const getSystemSetting = async (key, defaultValue = null) => {
+  try {
+    const result = await pool.query(
+      'SELECT setting_value FROM system_settings WHERE setting_key = $1',
+      [key]
+    );
+    return result.rows[0]?.setting_value || defaultValue;
+  } catch (error) {
+    console.error(`Failed to get setting ${key}:`, error);
+    return defaultValue;
+  }
+};
+
+/**
  * Check early access for premium members
  */
 const checkEarlyAccess = async (req, res, next) => {
@@ -514,6 +530,14 @@ const checkEarlyAccess = async (req, res, next) => {
     if (!session_id || !tickets || tickets.length === 0) {
       return next();
     }
+
+    const earlyAccessHours = parseInt(
+      await getSystemSetting('premium_early_access_hours', '5')
+    );
+
+    const premium_early_access_minutes = earlyAccessHours * 60;
+
+    console.log(`🔍 Early access setting: ${earlyAccessHours} hours (${PREMIUM_EARLY_ACCESS_MINUTES} minutes)`);
 
     const ticketTypeIds = tickets.map(t => t.ticket_type_id);
     const userTier = req.user.membership_tier || 'basic';
@@ -537,7 +561,7 @@ const checkEarlyAccess = async (req, res, next) => {
     const now = new Date();
 
     // Hardcode 5 hours (300 minutes) early access for Premium members
-    const premium_early_access_minutes = 300; // 5 hours = 300 minutes (SYSTEM REQUIREMENT)
+    // const premium_early_access_minutes = 300; // 5 hours = 300 minutes (SYSTEM REQUIREMENT)
 
     for (const ticketType of result.rows) {
       const saleStartTime = new Date(ticketType.sale_start_time);
@@ -547,8 +571,14 @@ const checkEarlyAccess = async (req, res, next) => {
 
       // ✅ Premium members get 5 hours early access
       const earlyAccessStart = new Date(
-        saleStartTime.getTime() - PREMIUM_EARLY_ACCESS_MINUTES * 60000
+        saleStartTime.getTime() - premium_early_access_minutes * 60000
       );
+
+      console.log(`🎫 Ticket: ${ticketType.name}`);
+      console.log(`   Sale start: ${saleStartTime}`);
+      console.log(`   Early access start: ${earlyAccessStart}`);
+      console.log(`   Now: ${now}`);
+      console.log(`   In early access period: ${now >= earlyAccessStart && now < saleStartTime}`);
 
       // Check if in early access period
       if (now >= earlyAccessStart && now < saleStartTime) {
@@ -560,12 +590,13 @@ const checkEarlyAccess = async (req, res, next) => {
               false,
               `${ticketType.name} is in Premium early access period. Public sale starts in ${minutesRemaining} minutes.`,
               {
+                code: 'PREMIUM_EARLY_ACCESS_ONLY',
                 ticket_type: ticketType.name,
                 public_sale_start: saleStartTime,
                 current_tier: userTier,
                 required_tier: 'premium',
                 time_remaining_minutes: minutesRemaining,
-                premium_early_access_hours: 5
+                premium_early_access_hours: earlyAccessHours
               }
             )
           );
@@ -592,5 +623,6 @@ module.exports = {
   requireEventRole,
   checkPurchaseCooldown,
   eventAccessLimiter,
-  checkEarlyAccess
+  checkEarlyAccess,
+  getSystemSetting
 };

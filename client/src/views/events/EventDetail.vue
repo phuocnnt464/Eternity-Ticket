@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
 import { sessionsAPI } from '@/api/sessions.js'
 import { queueAPI } from '@/api/queue.js'
+import { adminAPI } from '@/api/admin.js'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import Badge from '@/components/common/Badge.vue'
@@ -43,6 +44,7 @@ const joiningQueue = ref(false)
 
 const earlyAccessInfo = ref(null)
 const earlyAccessInterval = ref(null)
+const earlyAccessHours = ref(5)  // Default to 5 hours
 
 const eventDate = computed(() => {
   if (!event.value?.start_date) return ''
@@ -62,7 +64,25 @@ const eventTime = computed(() => {
   return `${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
 })
 
+const fetchSystemSettings = async () => {
+  try {
+    const response = await adminAPI.getSettings()
+    const settings = response. data. settings || []
+    
+    const earlyAccessSetting = settings.find(s => s.setting_key === 'premium_early_access_hours')
+    if (earlyAccessSetting) {
+      earlyAccessHours.value = parseInt(earlyAccessSetting.setting_value) || 5
+      console.log('Early access hours from settings:', earlyAccessHours.value)
+    }
+  } catch (error) {
+    console. error('Failed to fetch settings:', error)
+    earlyAccessHours.value = 5  // Fallback
+  }
+}
+
 const checkEarlyAccess = () => {
+  console.log('🔍 Checking early access...')
+
   if (!ticketTypes.value || ticketTypes.value.length === 0) {
     earlyAccessInfo.value = null
     return
@@ -71,28 +91,38 @@ const checkEarlyAccess = () => {
   const now = new Date()
   const userTier = authStore.membershipTier || 'basic'
   
+  console.log(`Early access setting: ${earlyAccessHours.value} hours`)
+  console.log('User tier:', userTier)
+
   // Check each ticket type
   for (const ticket of ticketTypes.value) {
-    if (ticket.premium_early_access_minutes && ticket.premium_early_access_minutes > 0) {
-      const saleStart = new Date(ticket.sale_start_time)
-      const earlyAccessStart = new Date(
-        saleStart.getTime() - ticket.premium_early_access_minutes * 60000
-      )
+    const saleStart = new Date(ticket.sale_start_time)
+    
+    // ✅ Use system setting
+    const earlyAccessStart = new Date(
+      saleStart. getTime() - (earlyAccessHours.value * 60 * 60 * 1000)
+    )
+
+    console.log('Sale start:', saleStart)
+    console.log('Early access start:', earlyAccessStart)
       
-      // Check if we're in early access period
-      if (now >= earlyAccessStart && now < saleStart) {
-        const minutesRemaining = Math.ceil((saleStart - now) / 60000)
-        
-        earlyAccessInfo.value = {
-          isActive: true,
-          isPremium: userTier === 'premium',
-          ticketName: ticket.name,
-          publicSaleStart: saleStart,
-          minutesRemaining: minutesRemaining
-        }
-        
-        return
+    // Check if we're in early access period
+    if (now >= earlyAccessStart && now < saleStart) {
+      const minutesRemaining = Math.ceil((saleStart - now) / 60000)
+      
+      console.log('✅ EARLY ACCESS ACTIVE!')
+      console.log('Minutes remaining:', minutesRemaining)
+
+      earlyAccessInfo.value = {
+        isActive: true,
+        isPremium: userTier === 'premium',
+        ticketName: ticket.name,
+        publicSaleStart: saleStart,
+        minutesRemaining: minutesRemaining,
+        earlyAccessHours: earlyAccessHours.value
       }
+        
+      return
     }
   }
   
@@ -341,11 +371,25 @@ const formatPrice = (price) => {
 onMounted(() => {
   fetchEventDetails()
 
-   earlyAccessInterval.value = setInterval(() => {
-    if (ticketTypes.value.length > 0) {
-      checkEarlyAccess()
+   // ✅ Fetch system settings first
+  await fetchSystemSettings()
+  
+  // Load user info
+  if (authStore.user) {
+    customerInfo.value = {
+      first_name: authStore.user. first_name || '',
+      last_name: authStore.user.last_name || '',
+      email: authStore. user.email,
+      phone: authStore.user.phone || ''
     }
-  }, 60000) 
+  }
+
+  // Check existing order
+  const hasExistingOrder = await checkExistingOrder()
+  
+  if (! hasExistingOrder) {
+    await checkQueueStatusAndStartTimer()
+  }
 })
 
 onBeforeUnmount(() => {
