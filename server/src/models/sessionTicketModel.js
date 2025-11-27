@@ -86,6 +86,12 @@ class SessionTicketModel {
             JOIN orders o ON t.order_id = o.id
             WHERE t.ticket_type_id = tt.id AND o.status = 'paid')
           ), 0)  as sold_tickets,
+          COALESCE(SUM(tt.total_quantity) - SUM(
+            (SELECT COUNT(*)
+            FROM tickets t
+            JOIN orders o ON t.order_id = o.id
+            WHERE t.ticket_type_id = tt.id AND o.status = 'paid')
+          ), 0) as available_quantity,
           MIN(tt.price) as min_price,
           MAX(tt.price) as max_price
         FROM event_sessions es
@@ -102,6 +108,7 @@ class SessionTicketModel {
         ticket_type_count: parseInt(session.ticket_type_count) || 0,
         total_tickets: parseInt(session.total_tickets) || 0,
         sold_tickets: parseInt(session.sold_tickets) || 0,
+        available_quantity: parseInt(session.available_quantity) || 0,
         min_price: session.min_price ? parseFloat(session.min_price) : null,
         max_price: session.max_price ? parseFloat(session.max_price) : null
       }));
