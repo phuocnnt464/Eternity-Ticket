@@ -382,11 +382,11 @@ onMounted(async () => {
   }, 60000)
 })
 
-// onBeforeUnmount(() => {
-//   if (earlyAccessInterval.value) {
-//     clearInterval(earlyAccessInterval.value)
-//   }
-// })
+onBeforeUnmount(() => {
+  if (earlyAccessInterval.value) {
+    clearInterval(earlyAccessInterval.value)
+  }
+})
 </script>
 
 <template>
