@@ -171,6 +171,15 @@ router.get('/categories',
 );
 
 /**
+ * @route   GET /api/events/public-settings
+ * @desc    Get public system settings
+ * @access  Public
+ */
+router.get('/public-settings',
+  EventController.getPublicSettings
+);
+
+/**
  * @route   GET /api/events/featured
  * @desc    Get featured/trending events
  * @access  Public

@@ -1571,6 +1571,38 @@ class EventController {
       res.status(500).json(createResponse(false, 'Failed to get attendees'));
     }
   }
+
+  /**
+   * Get public system settings
+   * GET /api/events/public-settings
+   * @access Public (no authentication required)
+   */
+  static async getPublicSettings(req, res) {
+    try {
+      console.log('🔓 Getting public system settings');
+
+      const query = `
+        SELECT 
+          setting_key, 
+          setting_value, 
+          description
+        FROM system_settings
+        WHERE is_public = true
+        ORDER BY setting_key
+      `;
+      
+      const result = await pool.query(query);
+      
+      res.json(createResponse(
+        true,
+        'Public settings retrieved successfully',
+        { settings: result.rows }
+      ));
+    } catch (error) {
+      console.error('❌ Get public settings error:', error);
+      res.status(500).json(createResponse(false, 'Failed to retrieve settings'));
+    }
+  }
 }
 
 module.exports = EventController;

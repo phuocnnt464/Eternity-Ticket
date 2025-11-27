@@ -10,6 +10,14 @@ export const eventsAPI = {
     return api.get('/events/categories')
   },
 
+  /**
+   * Get public system settings
+   * @returns {Promise}
+   */
+  getPublicSettings() {
+    return api.get('/events/public-settings');
+  },
+
   // GET /api/events/featured
   getFeaturedEvents: (params) => {
     return api.get('/events/featured', { params })

@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
 import { sessionsAPI } from '@/api/sessions.js'
 import { queueAPI } from '@/api/queue.js'
-import { adminAPI } from '@/api/admin.js'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import Badge from '@/components/common/Badge.vue'
@@ -66,7 +65,7 @@ const eventTime = computed(() => {
 
 const fetchSystemSettings = async () => {
   try {
-    const response = await adminAPI.getSettings()
+    const response = await eventsAPI.getPublicSettings()
     const settings = response. data. settings || []
     
     const earlyAccessSetting = settings.find(s => s.setting_key === 'premium_early_access_hours')
@@ -504,12 +503,12 @@ onBeforeUnmount(() => {
                   >
                     <div class="flex items-center justify-between">
                       <div>
-                        <p class="font-semibold">{{ session.name }}</p>
+                        <p class="font-semibold">{{ session.title }}</p>
                         <p class="text-sm text-gray-600">
                           {{ new Date(session.start_time).toLocaleString() }}
                         </p>
                       </div>
-                      <Badge variant="info">
+                      <Badge variant="success" size="md">
                         {{ session.available_tickets }} left
                       </Badge>
                     </div>
@@ -523,7 +522,7 @@ onBeforeUnmount(() => {
               <div class="sticky top-24 space-y-4">
                 <Card 
                   v-if="earlyAccessInfo?.isActive && !earlyAccessInfo?.isPremium"
-                  class="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-400 animate-pulse"
+                  class="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-400"
                 >
                   <div class="flex items-start space-x-3">
                     <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -538,6 +537,7 @@ onBeforeUnmount(() => {
                       <Button 
                         variant="warning" 
                         size="sm"
+                        class="btn btn-accent"
                         @click="router.push('/participant/membership')"
                       >
                         Upgrade to Premium
@@ -570,7 +570,7 @@ onBeforeUnmount(() => {
                         </span>
                       </div>
                       <p class="text-xs text-yellow-800 mt-1">
-                        You're shopping {{ earlyAccessInfo.minutesRemaining }} minutes before public sale
+                        Remaining {{ earlyAccessInfo.minutesRemaining }} minutes before public sale
                       </p>
                     </div>
 

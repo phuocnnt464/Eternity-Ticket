@@ -109,7 +109,7 @@ const formatDateTime = (dateString) => {
 
 const fetchSystemSettings = async () => {
   try {
-    const response = await adminAPI.getSettings()
+    const response = await eventsAPI.getPublicSettings()
     const settings = response.data. settings || []
     const setting = settings.find(s => s.setting_key === 'premium_early_access_hours')
     if (setting) {

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'  
-import { adminAPI } from '@/api/admin'
+import { eventsAPI } from '@/api/events.js'
 import { 
   MinusIcon, 
   PlusIcon,
@@ -60,7 +60,7 @@ const canAddMore = computed(() => {
 
 const fetchSystemSettings = async () => {
   try {
-    const response = await adminAPI.getSettings()
+    const response = await eventsAPI.getPublicSettings()
     const settings = response.data.settings || []
     
     const earlyAccessSetting = settings.find(s => s.setting_key === 'premium_early_access_hours')
@@ -285,10 +285,10 @@ onMounted(async () => {
               {{ ticket.description }}
             </p>
             
-            <!-- ✅ ADD: Early access info -->
+            <!-- Early access info -->
             <div v-if="isInEarlyAccessPeriod(ticket) && ! canAccessEarlyTicket(ticket)" class="text-xs text-orange-600 mb-2 flex items-center">
-              <StarIcon class="w-3 h-3 mr-1" />
-              Premium members only during early access
+              <StarIcon class="w-4 h-4 mr-2" />
+              Early access for Premium members only
             </div>
             
             <div class="flex items-center space-x-4 text-sm text-gray-600">
