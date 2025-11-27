@@ -24,7 +24,7 @@ const route = useRoute()
 const router = useRouter()
 
 const loading = ref(true)
-const eventId = computed(() => route.params.id) 
+const eventId = ref(route.params.id) 
 const event = ref(null)
 
 const { 
