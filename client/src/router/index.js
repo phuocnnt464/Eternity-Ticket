@@ -366,7 +366,7 @@ const routes = [
 
   {
   path: '/organizer/teams',
-  component: OrganizerLayout,
+  component: OrganizerLayout, 
   meta: { 
     requiresAuth: true,
     allowedRoles: ['organizer', 'participant']  

@@ -130,7 +130,7 @@ onMounted(async() => {
             </div>
           </div>
 
-          <button class="btn-primary">
+          <button class="btn btn-accent btn-sm mt-2">
             {{ event.member_role === 'checkin_staff' ? 'Go to Check-in' : 'Manage Event' }}
           </button>
         </div>

@@ -1292,7 +1292,7 @@ class EventController {
         JOIN users o ON e.organizer_id = o.id
         WHERE eom.user_id = $1 
           AND eom.is_active = true
-          AND e.status != 'cancelled'
+          AND e.status IN ('approved') 
         ORDER BY eom.invited_at DESC
       `;
       
