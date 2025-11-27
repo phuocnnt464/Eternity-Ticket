@@ -3,6 +3,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useEventPermissions } from '@/composables/useEventPermissions.js'
 import { eventsAPI } from '@/api/events.js'
 import { checkinAPI } from '@/api/checkin.js'
 import Card from '@/components/common/Card.vue'
@@ -37,7 +38,13 @@ const searchLoading = ref(false)
 const checkingIn = ref(false)
 const undoingCheckin = ref(false)
 
-// ✅ ADD: Modal states
+const { 
+  eventRole, 
+  canUndoCheckin, 
+  fetchEventRole 
+} = useEventPermissions(eventId)
+
+
 const showTicketDetailModal = ref(false)
 const selectedTicket = ref(null)
 
@@ -72,7 +79,9 @@ const fetchEventData = async () => {
     console.log('✅ Checkin page data loaded:', {
       eventTitle: event.value?. title,
       stats: stats.value,
-      recentCount: recentCheckIns.value.length
+      recentCount: recentCheckIns.value.length,
+      userRole: eventRole.value,
+      canUndo: canUndoCheckin.value
     })
   } catch (error) {
     console.error('Failed to fetch event data:', error)
@@ -133,14 +142,21 @@ const handleCheckIn = async (ticketCode) => {
   }
 }
 
-// ✅ ADD: View ticket details
+
 const viewTicketDetails = (checkin) => {
   selectedTicket.value = checkin
   showTicketDetailModal.value = true
 }
 
-// ✅ ADD: Undo check-in
 const handleUndoCheckin = async (ticketCode) => {
+  if (!canUndoCheckin.value) {
+    toast.error('❌ You do not have permission to undo check-in', {
+      position: 'top-right',
+      autoClose: 3000
+    })
+    return
+  }
+
   if (!confirm('Are you sure you want to undo this check-in?')) return
   
   undoingCheckin.value = true
@@ -189,8 +205,9 @@ const formatDateTime = (dateString) => {
   })
 }
 
-onMounted(() => {
-  fetchEventData()
+onMounted(async () => {
+  await fetchEventRole()
+  await fetchEventData()
 })
 </script>
 
@@ -208,6 +225,13 @@ onMounted(() => {
         </button>
         <h1 class="text-2xl font-bold text-gray-900">Check-in Management</h1>
         <p v-if="event" class="text-gray-600 mt-1">{{ event.title }}</p>
+      
+         <p v-if="eventRole" class="text-sm text-gray-500 mt-1">
+          Your role: 
+          <span class="font-semibold text-gray-700">
+            {{ eventRole === 'checkin_staff' ? 'Check-in Staff' : eventRole. charAt(0).toUpperCase() + eventRole.slice(1) }}
+          </span>
+        </p>
       </div>
 
       <Button 
@@ -396,7 +420,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- ✅ ADD: Ticket Detail Modal with Undo -->
+    <!-- Ticket Detail Modal with Undo -->
     <Modal
       v-model="showTicketDetailModal"
       title="Check-in Details"
@@ -457,6 +481,7 @@ onMounted(() => {
       <template #footer>
         <div class="flex items-center justify-between w-full">
           <Button
+            v-if="canUndoCheckin"
             variant="danger"
             @click="handleUndoCheckin(selectedTicket.ticket_code)"
             :loading="undoingCheckin"
@@ -464,6 +489,11 @@ onMounted(() => {
             <ArrowUturnLeftIcon class="w-4 h-4" />
             Undo Check-in
           </Button>
+          
+          <div v-else class="text-sm text-gray-500 italic">
+            Only Owner and Manager can undo check-ins
+          </div>
+
           <Button variant="secondary" @click="showTicketDetailModal = false">
             Close
           </Button>
