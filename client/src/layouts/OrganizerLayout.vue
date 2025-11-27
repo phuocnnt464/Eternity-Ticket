@@ -1,8 +1,7 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import AppSidebar from '@/components/layout/AppSidebar.vue'
 import {
   HomeIcon,
   CalendarIcon,
@@ -19,11 +18,29 @@ const route = useRoute()
 const authStore = useAuthStore()
 const sidebarOpen = ref(false)
 
-const navigation = [
-  { name: 'Dashboard', href: '/organizer/dashboard', icon: HomeIcon },
-  { name: 'My Events', href: '/organizer/events', icon: CalendarIcon },
-  { name: 'Create Event', href: '/organizer/events/create', icon: PlusCircleIcon },
-]
+const navigation = computed(() => {
+  if (authStore.isOrganizer) {
+    // Navigation cho Organizer (owner)
+    return [
+      { name: 'Dashboard', href: '/organizer/dashboard', icon: HomeIcon },
+      { name: 'My Events', href: '/organizer/events', icon: CalendarIcon },
+      { name: 'Create Event', href: '/organizer/events/create', icon: PlusCircleIcon },
+    ]
+  } else {
+    // Navigation cho Participant (team member)
+    return [
+      { name: 'My Team Events', href: '/organizer/teams', icon: UsersIcon },
+    ]
+  }
+})
+
+const layoutTitle = computed(() => {
+  return authStore.isOrganizer ?  'Organizer Dashboard' : 'Team Events'
+})
+
+const roleLabel = computed(() => {
+  return authStore.isOrganizer ? 'Organizer' : 'Team Member'
+})
 
 const handleLogout = async () => {
   await authStore.logout()
@@ -37,7 +54,7 @@ const isActive = (href) => route.path.startsWith(href)
     <!-- Similar structure to ParticipantLayout but with organizer navigation -->
     <div class="md:hidden bg-white shadow-sm sticky top-0 z-40">
       <div class="flex items-center justify-between px-4 py-3">
-        <h1 class="text-lg font-semibold">Organizer Dashboard</h1>
+        <h1 class="text-lg font-semibold">{{ layoutTitle }}</h1>
         <button @click="sidebarOpen = !sidebarOpen" class="btn-ghost btn-sm">
           <Bars3Icon v-if="!sidebarOpen" class="w-6 h-6" />
           <XMarkIcon v-else class="w-6 h-6" />
@@ -59,7 +76,7 @@ const isActive = (href) => route.path.startsWith(href)
             <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg flex items-center justify-center">
               <span class="text-white font-bold text-xl">ET</span>
             </div>
-            <span class="text-xl font-bold">Organizer</span>
+            <span class="text-xl font-bold">{{ layoutTitle }}</span>
           </RouterLink>
         </div>
 
@@ -72,7 +89,7 @@ const isActive = (href) => route.path.startsWith(href)
             </div>
             <div class="flex-1 min-w-0">
               <p class="font-semibold truncate">{{ authStore.fullName }}</p>
-              <p class="text-sm text-gray-500">Organizer</p>
+              <p class="text-sm text-gray-500">{{ roleLabel }}</p>
             </div>
           </div>
         </div>
@@ -80,7 +97,7 @@ const isActive = (href) => route.path.startsWith(href)
         <nav class="flex-1 overflow-y-auto p-4">
           <RouterLink
             v-for="item in navigation"
-            :key="item.name"
+            :key="item. name"
             :to="item.href"
             @click="sidebarOpen = false"
             :class="[

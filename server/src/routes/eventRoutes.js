@@ -252,7 +252,7 @@ router.get('/slug/:slug',
  */
 router.get('/:id/statistics',
   authenticateToken,
-  authorizeRoles('organizer'),
+  // authorizeRoles('organizer'),
   validateUUIDParam('id'),
   authorizeEventOrganizer('id'),
   EventController.getEventStatistics
