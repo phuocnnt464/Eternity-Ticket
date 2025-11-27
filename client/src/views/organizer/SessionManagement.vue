@@ -63,6 +63,30 @@ const ticketForm = ref({
 const ticketErrors = ref({})
 const savingTicket = ref(false)
 
+// ✅ ADD: Helper function to convert UTC to local datetime-local format
+const toLocalDateTimeString = (utcDateString) => {
+  if (!utcDateString) return ''
+  
+  const date = new Date(utcDateString)
+  
+  // Get local timezone offset
+  const tzOffset = date.getTimezoneOffset() * 60000 // offset in milliseconds
+  const localDate = new Date(date.getTime() - tzOffset)
+  
+  // Format as YYYY-MM-DDTHH:mm
+  return localDate.toISOString().slice(0, 16)
+}
+
+// ✅ ADD: Helper function to convert local datetime-local to UTC ISO string
+const toUTCISOString = (localDateTimeString) => {
+  if (! localDateTimeString) return null
+  
+  // datetime-local input returns in local timezone
+  // Convert to UTC for backend
+  const date = new Date(localDateTimeString)
+  return date.toISOString()
+}
+
 const formatPrice = (price) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -137,9 +161,9 @@ const openEditSessionModal = (session) => {
     id: session.id || session.session_id,
     title: session.title || session.session_name,
     description: session.description || '',
-    start_time: session.start_time ? new Date(session.start_time).toISOString().slice(0, 16) : '',
-    end_time: session.end_time ? new Date(session.end_time).toISOString().slice(0, 16) : '',
-    min_tickets_per_order: session.min_tickets_per_order || 1,
+    start_time: toLocalDateTimeString(session.start_time),
+    end_time: toLocalDateTimeString(session. end_time),
+    min_tickets_per_order: session. min_tickets_per_order || 1,
     max_tickets_per_order: session.max_tickets_per_order || 10
   }
   sessionErrors.value = {}
@@ -179,8 +203,8 @@ const handleSaveSession = async () => {
     const data = {
       title: sessionForm.value.title,
       description: sessionForm.value.description,
-      start_time: sessionForm.value.start_time,
-      end_time: sessionForm.value.end_time,
+      start_time: toUTCISOString(sessionForm.value.start_time),
+      end_time: toUTCISOString(sessionForm. value.end_time),
       min_tickets_per_order: parseInt(sessionForm.value.min_tickets_per_order),
       max_tickets_per_order: parseInt(sessionForm.value.max_tickets_per_order)
     }
@@ -230,9 +254,10 @@ const openCreateTicketModal = (sessionId) => {
     price: 0,
     total_quantity: 0,
     min_quantity_per_order: 1,
-    max_quantity_per_order: session ? session.max_tickets_per_order : 5,
-    sale_start_time: session ? session.start_time : '',
-    sale_end_time: session ? session.end_time : '',
+    max_quantity_per_order: session ?  session.max_tickets_per_order : 5,
+    sale_start_time: toLocalDateTimeString(session?. start_time),
+    sale_end_time: toLocalDateTimeString(session?.end_time),
+    premium_early_access_minutes: 0 
   }
   ticketErrors.value = {}
   showTicketModal.value = true
@@ -248,8 +273,9 @@ const openEditTicketModal = (sessionId, ticket) => {
     total_quantity: ticket.total_quantity,
     min_quantity_per_order: ticket.min_quantity_per_order || 1,
     max_quantity_per_order: ticket.max_quantity_per_order || 5,
-    sale_start_time: ticket.sale_start_time ? new Date(ticket.sale_start_time).toISOString().slice(0, 16) : '',
-    sale_end_time: ticket.sale_end_time ? new Date(ticket.sale_end_time).toISOString().slice(0, 16) : '',
+    sale_start_time: toLocalDateTimeString(ticket.sale_start_time),
+    sale_end_time: toLocalDateTimeString(ticket.sale_end_time),
+    premium_early_access_minutes: ticket.premium_early_access_minutes || 0,  // ✅ ADD
     sold_quantity: ticket.sold_quantity || 0 
   }
   ticketErrors.value = {}
@@ -309,8 +335,9 @@ const handleSaveTicket = async () => {
       total_quantity: parseInt(ticketForm.value.total_quantity),
       min_quantity_per_order: parseInt(ticketForm.value.min_quantity_per_order),
       max_quantity_per_order: parseInt(ticketForm.value.max_quantity_per_order),
-      sale_start_time: ticketForm.value.sale_start_time,
-      sale_end_time: ticketForm.value.sale_end_time
+       sale_start_time: toUTCISOString(ticketForm.value.sale_start_time),
+      sale_end_time: toUTCISOString(ticketForm.value. sale_end_time),
+      premium_early_access_minutes: parseInt(ticketForm.value. premium_early_access_minutes) || 0  
     }
     
     if (ticketForm.value.id) {
@@ -751,6 +778,22 @@ onMounted(() => {
             label="Sale End Time"
             :icon="ClockIcon"
           />
+        </div>
+
+        <div>
+        <Input
+            v-model.number="ticketForm.premium_early_access_minutes"
+            type="number"
+            label="Premium Early Access (minutes)"
+            placeholder="e.g. 300 for 5 hours"
+            help-text="Premium members can buy this many minutes before public sale.  Use 300 for 5 hours."
+            min="0"
+            max="1440"
+            step="30"
+          />
+          <p class="text-xs text-gray-500 mt-1">
+            0 = No early access | 300 = 5 hours | 1440 = 24 hours
+          </p>
         </div>
 
         <p class="text-sm text-gray-600">
