@@ -512,99 +512,96 @@ const router = createRouter({
 // ==========================================
 // NAVIGATION GUARDS
 // ==========================================
-// router.beforeEach(async (to, from, next) => {
-//   const authStore = useAuthStore()
-  
-//   // Set page title
-//   document.title = to.meta.title || 'Eternity Ticket'
-  
-//   // Show loading (optional)
-//   // You can add loading state here
-  
-//   // Guest-only routes (login, register)
-//   if (to.meta.guestOnly && authStore.isAuthenticated) {
-//     return next({ name: 'Home' })
-//   }
-  
-//   // Protected routes
-//   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-//     return next({
-//       name: 'Login',
-//       query: { redirect: to.fullPath }
-//     })
-//   }
-  
-//   // Role-based access
-//   if (to.meta.allowedRoles && authStore.isAuthenticated) {
-//     const userRole = authStore.user?.role
-//     const allowedRoles = Array.isArray(to.meta.allowedRoles) 
-//       ? to.meta.allowedRoles 
-//       : [to.meta.allowedRoles]
-    
-//     if (!allowedRoles.includes(userRole)) {
-//       return next({ name: 'Forbidden' })
-//     }
-//   }
-  
-//   next()
-// })
-
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
-  
-  // ✅ THÊM DEBUG LOG
-  console.log('🛡️ Router Guard:')
-  console.log('  From:', from.path)
-  console. log('  To:', to.path)
-  console.log('  User role:', authStore.user?. role)
-  console.log('  Meta allowedRoles:', to.meta.allowedRoles)
-  console.log('  Meta requiresAuth:', to.meta.requiresAuth)
   
   // Set page title
   document.title = to.meta.title || 'Eternity Ticket'
   
+  // Show loading (optional)
+  // You can add loading state here
+  
   // Guest-only routes (login, register)
-  if (to. meta.guestOnly && authStore.isAuthenticated) {
-    console.log('❌ Blocked: Guest only route')
+  if (to.meta.guestOnly && authStore.isAuthenticated) {
     return next({ name: 'Home' })
   }
   
   // Protected routes
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    console. log('❌ Blocked: Authentication required')
     return next({
       name: 'Login',
-      query: { redirect: to. fullPath }
+      query: { redirect: to.fullPath }
     })
   }
   
   // Role-based access
-  if (to. meta.allowedRoles && authStore.isAuthenticated) {
-    const userRole = authStore. user?.role
+  if (to.meta.allowedRoles && authStore.isAuthenticated) {
+    const userRole = authStore.user?.role
     const allowedRoles = Array.isArray(to.meta.allowedRoles) 
       ? to.meta.allowedRoles 
       : [to.meta.allowedRoles]
     
-    console.log('  🔍 Role check:')
-    console.log('    User role:', userRole)
-    console.log('    Allowed roles:', allowedRoles)
-    console.log('    Includes? ', allowedRoles.includes(userRole))
-    
     if (!allowedRoles.includes(userRole)) {
-      console. log('❌ BLOCKED: Role not in allowedRoles')
-      console.log('  Redirecting to /403')
       return next({ name: 'Forbidden' })
     }
   }
   
-  console.log('✅ Access granted')
   next()
 })
 
+// router.beforeEach(async (to, from, next) => {
+//   const authStore = useAuthStore()
+  
+//   // ✅ THÊM DEBUG LOG
+//   console.log('🛡️ Router Guard:')
+//   console.log('  From:', from.path)
+//   console. log('  To:', to.path)
+//   console.log('  User role:', authStore.user?. role)
+//   console.log('  Meta allowedRoles:', to.meta.allowedRoles)
+//   console.log('  Meta requiresAuth:', to.meta.requiresAuth)
+  
+//   // Set page title
+//   document.title = to.meta.title || 'Eternity Ticket'
+  
+//   // Guest-only routes (login, register)
+//   if (to. meta.guestOnly && authStore.isAuthenticated) {
+//     console.log('❌ Blocked: Guest only route')
+//     return next({ name: 'Home' })
+//   }
+  
+//   // Protected routes
+//   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+//     console. log('❌ Blocked: Authentication required')
+//     return next({
+//       name: 'Login',
+//       query: { redirect: to. fullPath }
+//     })
+//   }
+  
+//   // Role-based access
+//   if (to. meta.allowedRoles && authStore.isAuthenticated) {
+//     const userRole = authStore. user?.role
+//     const allowedRoles = Array.isArray(to.meta.allowedRoles) 
+//       ? to.meta.allowedRoles 
+//       : [to.meta.allowedRoles]
+    
+//     console.log('  🔍 Role check:')
+//     console.log('    User role:', userRole)
+//     console.log('    Allowed roles:', allowedRoles)
+//     console.log('    Includes? ', allowedRoles.includes(userRole))
+    
+//     if (!allowedRoles.includes(userRole)) {
+//       console. log('❌ BLOCKED: Role not in allowedRoles')
+//       console.log('  Redirecting to /403')
+//       return next({ name: 'Forbidden' })
+//     }
+//   }
+  
+//   console.log('✅ Access granted')
+//   next()
+// })
 
 router.afterEach(() => {
-  // Hide loading (optional)
-  // You can remove loading state here
 })
 
 // ==========================================

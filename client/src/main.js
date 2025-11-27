@@ -51,7 +51,5 @@ app.config.warnHandler = (msg, instance, trace) => {
   console.warn('Trace:', trace)
 }
 
-
-
 app.mount('#app')
 

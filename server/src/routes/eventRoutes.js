@@ -400,7 +400,7 @@ router.get('/:eventId/members',
   authenticateToken,
   validateUUIDParam('eventId'),
   authorizeEventOrganizer('eventId'),
-  requireEventRole('owner', 'manager'),
+  requireEventRole('owner', 'manager', 'checkin_staff'),
   EventController.getEventMembers
 );
 
