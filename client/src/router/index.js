@@ -316,42 +316,6 @@ const routes = [
         component: EventStatistics,
         meta: { title: 'Event Statistics - Organizer' }
       },
-      {
-        path: 'events/:id/orders',
-        name: 'OrderManagement',
-        component: OrderManagement,
-        meta: { title: 'Order Management - Organizer' }
-      },
-      {
-        path: 'events/:id/team',
-        name: 'TeamManagement',
-        component: TeamManagement,
-        meta: { title: 'Team Management - Organizer' }
-      },
-      {
-        path: 'events/:id/checkin',
-        name: 'CheckinPage',
-        component: CheckinPage,
-        meta: { title: 'Check-in - Organizer' }
-      },
-      {
-        path: 'events/:id/checkin/scanner',  
-        name: 'CheckinScanner',
-        component: CheckinScanner,
-        meta: { title: 'Check-in Scanner - Organizer' }
-      },
-      {
-        path: 'events/:id/coupons',
-        name: 'CouponManagement',
-        component: CouponManagement,
-        meta: { title: 'Coupon Management - Organizer' }
-      },
-      {
-        path: 'events/:id/sessions', 
-        name: 'SessionManagement',
-        component: SessionManagement,
-        meta: { title: 'Sessions & Tickets - Organizer' }
-      },
     ]
   },
 
@@ -377,7 +341,7 @@ const routes = [
     component: OrganizerLayout,
     meta: { 
       requiresAuth: true,
-      allowedRoles: ['organizer', 'participant']
+      allowedRoles: ['organizer', 'participant']  
     },
     children: [
       {
@@ -397,6 +361,37 @@ const routes = [
         name: 'TeamMemberOrders',
         component: OrderManagement,
         meta: { title: 'Orders' }
+      },
+      // ✅ THÊM CÁC ROUTES KHÁC
+      {
+        path: 'team',
+        name: 'TeamManagement',
+        component: TeamManagement,
+        meta: { title: 'Team Management' }
+      },
+      {
+        path: 'checkin/scanner',
+        name: 'CheckinScanner',
+        component: CheckinScanner,
+        meta: { title: 'Check-in Scanner' }
+      },
+      {
+        path: 'coupons',
+        name: 'CouponManagement',
+        component: CouponManagement,
+        meta: { title: 'Coupon Management' }
+      },
+      {
+        path: 'sessions',
+        name: 'SessionManagement',
+        component: SessionManagement,
+        meta: { title: 'Sessions & Tickets' }
+      },
+      {
+        path: 'statistics',
+        name: 'EventStatistics',
+        component: EventStatistics,
+        meta: { title: 'Event Statistics' }
       }
     ]
   },
