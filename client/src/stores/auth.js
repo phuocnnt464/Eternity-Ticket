@@ -15,6 +15,8 @@ export const useAuthStore = defineStore('auth', () => {
   const refreshToken = ref(localStorage.getItem('refresh_token'))
   const loading = ref(false)
   const error = ref(null)
+  const isTeamMember = ref(false)
+  const teamEventsCount = ref(0)
   
   // Getters
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
@@ -93,6 +95,9 @@ export const useAuthStore = defineStore('auth', () => {
       const { user: userData, tokens, membership } = response.data
       
       setAuth(userData, tokens, membership)
+      if (user.value?.role === 'participant') {
+        await checkTeamMembership()
+      }
       return userData
     } catch (err) {
       error.value = err.response?.data?.error?.message || 'Login failed'

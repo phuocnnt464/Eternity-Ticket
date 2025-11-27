@@ -9,7 +9,8 @@ import {
   BellIcon,
   UserCircleIcon,
   MagnifyingGlassIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  UsersIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -163,6 +164,26 @@ const getDashboardLink = computed(() => {
                   Dashboard
                 </RouterLink>
                 
+                <RouterLink 
+                  v-if="authStore.isParticipant && authStore.isTeamMember"
+                  to="/organizer/teams"
+                  class="block px-4 py-2 text-sm hover:bg-gray-100 text-blue-600 font-medium"
+                  @click="showUserMenu = false"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                      <UsersIcon class="w-4 h-4" />
+                      <span>My Team Events</span>
+                    </div>
+                    <span 
+                      v-if="authStore.teamEventsCount > 0"
+                      class="px-2 py-0.5 text-xs font-bold bg-blue-600 text-white rounded-full"
+                    >
+                      {{ authStore.teamEventsCount }}
+                    </span>
+                  </div>
+                </RouterLink>
+
                 <RouterLink 
                   v-if="authStore.isParticipant"
                   to="/participant/membership"
