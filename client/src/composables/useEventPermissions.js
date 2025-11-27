@@ -11,7 +11,7 @@ export function useEventPermissions(eventId) {
   const error = ref(null)
 
   const fetchEventRole = async () => {
-    if (!eventId) {
+    if (!eventId.value) {
       console.warn('No eventId provided')
       return
     }
@@ -20,14 +20,19 @@ export function useEventPermissions(eventId) {
     error. value = null
     
     try {
-      const response = await eventsAPI.getTeamMembers(eventId)
-      const members = response.data.data?. members || response.data.members || []
+      console.log('🔍 Fetching event role for event:', eventId.value)
+
+      const response = await eventsAPI.getTeamMembers(eventId.value)
+      const members = response.data.data?.members || response.data.members || []
       
-      const currentMember = members.find(m => m.user_id === authStore.user?. id)
+      console.log('👥 Team members:', members)
+      console.log('👤 Current user:', authStore.user?.id)
+      
+      const currentMember = members.find(m => m.user_id === authStore.user?.id)
       
       if (currentMember) {
         eventRole.value = currentMember.role
-        isOwner.value = currentMember. role === 'owner'
+        isOwner.value = currentMember.role === 'owner'
         console.log('✅ User role in event:', eventRole.value)
       } else {
         console. warn('⚠️ User is not a member of this event')
@@ -43,8 +48,6 @@ export function useEventPermissions(eventId) {
       loading.value = false
     }
   }
-
-  // ✅ PERMISSIONS ĐÚNG THEO NỘI DUNG DỰ ÁN
   
   // Owner: Thêm Manager hoặc Check-in Staff
   // Manager: CHỈ thêm được Check-in Staff

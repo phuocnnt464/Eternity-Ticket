@@ -37,7 +37,7 @@ const router = express.Router();
 // Rate limiting for event operations
 const eventCreationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // limit each IP to 5 event creations per hour
+  max: 100, // limit each IP to 100 event creations per hour
   message: {
     success: false,
     error: {
@@ -49,7 +49,7 @@ const eventCreationLimiter = rateLimit({
 
 const eventUpdateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // limit each IP to 20 updates per 15 minutes
+  max: 50, // limit each IP to 50 updates per 15 minutes
   message: {
     success: false,
     error: {
@@ -61,7 +61,7 @@ const eventUpdateLimiter = rateLimit({
 // ✅ Thêm limiter cho private event access
 const privateEventLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per 15 minutes
+  max: 50, // 50 attempts per 15 minutes
   message: {
     success: false,
     message: 'Too many failed access attempts. Try again later.'
