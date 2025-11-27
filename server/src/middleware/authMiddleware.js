@@ -537,7 +537,7 @@ const checkEarlyAccess = async (req, res, next) => {
 
     const premium_early_access_minutes = earlyAccessHours * 60;
 
-    console.log(`🔍 Early access setting: ${earlyAccessHours} hours (${PREMIUM_EARLY_ACCESS_MINUTES} minutes)`);
+    console.log(`🔍 Early access setting: ${earlyAccessHours} hours (${premium_early_access_minutes} minutes)`);
 
     const ticketTypeIds = tickets.map(t => t.ticket_type_id);
     const userTier = req.user.membership_tier || 'basic';

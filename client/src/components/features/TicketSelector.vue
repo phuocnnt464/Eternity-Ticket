@@ -1,15 +1,17 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useAuthStore } from '@/stores/auth'  // ✅ ADD
+import { ref, computed, watch, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'  
+import { adminAPI } from '@/api/admin
 import { 
   MinusIcon, 
   PlusIcon,
   InformationCircleIcon,
-  StarIcon  // ✅ ADD
+  StarIcon  
 } from '@heroicons/vue/24/outline'
 import Badge from '@/components/common/Badge.vue'
 
-const authStore = useAuthStore()  // ✅ ADD
+const authStore = useAuthStore()  
+const earlyAccessHours = ref(5)
 
 const props = defineProps({
   ticketTypes: {
@@ -56,16 +58,27 @@ const canAddMore = computed(() => {
   return totalQuantity. value < props.maxPerOrder
 })
 
+const fetchSystemSettings = async () => {
+  try {
+    const response = await adminAPI.getSettings()
+    const settings = response.data.settings || []
+    
+    const earlyAccessSetting = settings.find(s => s.setting_key === 'premium_early_access_hours')
+    if (earlyAccessSetting) {
+      earlyAccessHours.value = parseInt(earlyAccessSetting.setting_value) || 5
+      console.log('TicketSelector: Early access hours =', earlyAccessHours.value)
+    }
+  } catch (error) {
+    console. error('Failed to fetch settings:', error)
+  }
+}
+
 // ✅ ENHANCED: Check early access
 const isInEarlyAccessPeriod = (ticket) => {
-  if (!ticket.premium_early_access_minutes || ticket.premium_early_access_minutes === 0) {
-    return false
-  }
-  
   const now = new Date()
   const saleStart = new Date(ticket.sale_start_time)
   const earlyAccessStart = new Date(
-    saleStart.getTime() - ticket.premium_early_access_minutes * 60000
+    saleStart.getTime() - (earlyAccessHours.value * 60 * 60 * 1000)
   )
   
   return now >= earlyAccessStart && now < saleStart
@@ -220,6 +233,10 @@ const formatPrice = (price) => {
     currency: 'VND'
   }).format(price)
 }
+
+onMounted(async () => {
+  await fetchSystemSettings()
+})
 </script>
 
 <template>

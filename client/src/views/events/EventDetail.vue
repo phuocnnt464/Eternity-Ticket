@@ -368,35 +368,25 @@ const formatPrice = (price) => {
   }).format(price)
 }
 
-onMounted(() => {
+onMounted(async () => {
   fetchEventDetails()
 
    // ✅ Fetch system settings first
   await fetchSystemSettings()
-  
-  // Load user info
-  if (authStore.user) {
-    customerInfo.value = {
-      first_name: authStore.user. first_name || '',
-      last_name: authStore.user.last_name || '',
-      email: authStore. user.email,
-      phone: authStore.user.phone || ''
+
+   // ✅ Start interval to check early access
+  earlyAccessInterval. value = setInterval(() => {
+    if (ticketTypes.value.length > 0) {
+      checkEarlyAccess()
     }
-  }
-
-  // Check existing order
-  const hasExistingOrder = await checkExistingOrder()
-  
-  if (! hasExistingOrder) {
-    await checkQueueStatusAndStartTimer()
-  }
+  }, 60000)
 })
 
-onBeforeUnmount(() => {
-  if (earlyAccessInterval.value) {
-    clearInterval(earlyAccessInterval.value)
-  }
-})
+// onBeforeUnmount(() => {
+//   if (earlyAccessInterval.value) {
+//     clearInterval(earlyAccessInterval.value)
+//   }
+// })
 </script>
 
 <template>
@@ -428,8 +418,8 @@ onBeforeUnmount(() => {
         <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
         
         <!-- ✅ ADD: Early Access Badge (Top Right) -->
-        <div v-if="earlyAccessInfo?. isActive" class="absolute top-4 right-4 z-10">
-          <Badge v-if="earlyAccessInfo. isPremium" variant="warning" size="lg" class="animate-pulse">
+        <div v-if="earlyAccessInfo?.isActive" class="absolute top-4 right-4 z-10">
+          <Badge v-if="earlyAccessInfo.isPremium" variant="warning" size="lg" class="animate-pulse">
             <StarIcon class="w-5 h-5 inline mr-1" />
             Premium Early Access Active! 
           </Badge>
