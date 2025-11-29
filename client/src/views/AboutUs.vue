@@ -156,10 +156,10 @@ const team = [
           Whether you're an event organizer or an attendee, we're here to make your experience unforgettable
         </p>
         <div class="flex items-center justify-center space-x-4">
-          <RouterLink to="/events" class="btn-primary btn-lg">
+          <RouterLink to="/events" class="btn btn-primary btn-lg">
             Browse Events
           </RouterLink>
-          <RouterLink to="/contact" class="btn-secondary btn-lg">
+          <RouterLink to="/contact" class="btn btn-outline btn-lg">
             Contact Us
           </RouterLink>
         </div>

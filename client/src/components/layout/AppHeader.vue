@@ -50,9 +50,14 @@ const getDashboardLink = computed(() => {
         <!-- Logo -->
         <div class="flex items-center">
           <RouterLink to="/" class="flex items-center space-x-2">
-            <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg flex items-center justify-center">
+            <!-- <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg flex items-center justify-center">
               <span class="text-white font-bold text-xl">E</span>
-            </div>
+            </div> -->
+            <img 
+              src="../public/logo_b.png" 
+              alt="Eternity Ticket Logo" 
+              class="w-10 h-10 object-contain"
+            />
             <span class="text-xl font-bold text-gray-900 hidden sm:block">
               Eternity Ticket
             </span>

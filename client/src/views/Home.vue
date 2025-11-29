@@ -98,7 +98,7 @@ const handleSearch = () => {
             <Button variant="secondary" size="lg" @click="router.push('/events')">
               Browse All Events
             </Button>
-            <Button variant="outline" size="lg" @click="router.push('/auth/register?role=organizer')">
+            <Button variant="success" size="lg" @click="router.push('/auth/register?role=organizer')">
               Become an Organizer
             </Button>
           </div>
@@ -174,7 +174,7 @@ const handleSearch = () => {
           <Button variant="secondary" size="lg" @click="router.push('/auth/register')">
             Sign Up Now
           </Button>
-          <Button variant="outline" size="lg" @click="router.push('/about')">
+          <Button variant="success" size="lg" @click="router.push('/about')">
             Learn More
           </Button>
         </div>
