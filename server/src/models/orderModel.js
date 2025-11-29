@@ -708,9 +708,12 @@ class OrderModel {
           o.*,
           e.title as event_title,
           e.venue_name,
+          e.start_time as event_date,
           es.title as session_title,
           es.start_time as session_start_time,
-          u.first_name || ' ' || u.last_name as customer_name
+          u.first_name || ' ' || u.last_name as customer_name,
+          u.email as customer_email,  
+          u.phone as phone 
         FROM orders o
         JOIN events e ON o.event_id = e.id
         JOIN event_sessions es ON o.session_id = es.id
