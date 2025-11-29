@@ -729,7 +729,7 @@ onMounted(async () => {
                 <div v-if="thumbnailPreview" class="relative w-full h-full bg-gray-100 group">
                   <img :src="thumbnailPreview" class="w-full h-full object-cover" />
                   <button
-                    @click. prevent="thumbnailPreview = null; eventForm.thumbnail_image = null"
+                    @click.prevent="thumbnailPreview = null; eventForm.thumbnail_image = null"
                     class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                     title="Remove image"
                   >
@@ -761,7 +761,7 @@ onMounted(async () => {
                 <div v-if="venueMapPreview" class="relative w-full h-full bg-gray-100 group">
                   <img :src="venueMapPreview" class="w-full h-full object-contain bg-gray-100" />
                   <button
-                    @click. prevent="venueMapPreview = null; eventForm.venue_map_image = null"
+                    @click.prevent="venueMapPreview = null; eventForm.venue_map_image = null"
                     class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                     title="Remove image"
                   >
