@@ -390,7 +390,7 @@ onMounted(() => {
     <Modal
       v-model="showDetailModal"
       title="Event Review"
-      size="2xl"
+      size="lg"
     >
       <div v-if="selectedEvent" class="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
         <!-- Event Cover Image -->

@@ -708,7 +708,7 @@ class OrderModel {
           o.*,
           e.title as event_title,
           e.venue_name,
-          e.start_time as event_date,
+          e.start_date as event_date,
           es.title as session_title,
           es.start_time as session_start_time,
           u.first_name || ' ' || u.last_name as customer_name,

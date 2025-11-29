@@ -721,22 +721,22 @@ onMounted(async () => {
         <!-- 3 Image Uploads -->
         <div class="space-y-4">
           <div class="flex flex-col md:flex-row gap-4">
-            <!-- Thumbnail  -->
+            <!-- Thumbnail - Cố định aspect ratio 3:4 -->
             <div class="md:w-1/4 flex-shrink-0">
               <label class="label text-sm">Thumbnail (Ticket/Slider)</label>
               <p class="text-xs text-gray-500 mb-2">720x958px | Max 5MB</p>
-              <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-full">
-                <div v-if="thumbnailPreview" class="relative w-full h-full min-h-[300px] bg-gray-100 group">
+              <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden aspect-[3/4] min-h-[300px]">
+                <div v-if="thumbnailPreview" class="relative w-full h-full bg-gray-100 group">
                   <img :src="thumbnailPreview" class="w-full h-full object-cover" />
                   <button
-                    @click.prevent="thumbnailPreview = null; eventForm.thumbnail_image = null"
+                    @click. prevent="thumbnailPreview = null; eventForm.thumbnail_image = null"
                     class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                     title="Remove image"
                   >
                     <TrashIcon class="w-5 h-5" />
                   </button>
                 </div>
-                <div v-else class="w-full h-full min-h-[300px] bg-gray-50 flex flex-col items-center justify-center p-4">
+                <div v-else class="w-full h-full bg-gray-50 flex flex-col items-center justify-center p-4">
                   <PhotoIcon class="w-10 h-10 text-gray-400 mb-2" />
                   <p class="text-xs text-gray-500 text-center mb-2">Portrait (3:4) |  PNG, JPEG, WEBP</p>
                   <label class="btn-secondary btn-sm text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer">
@@ -750,25 +750,25 @@ onMounted(async () => {
                   </label>
                 </div>
               </div>
-              <p v-if="errors.thumbnail_image" class="error-text mt-1 text-xs">{{ errors.thumbnail_image }}</p>
+              <p v-if="errors. thumbnail_image" class="error-text mt-1 text-xs">{{ errors.thumbnail_image }}</p>
             </div>
 
-            <!-- Venue Map  -->
+            <!-- Venue Map - Cố định height 400px -->
             <div class="md:w-3/4 flex-grow">
               <label class="label text-sm">Venue Map (Seat Diagram)</label>
               <p class="text-xs text-gray-500 mb-2">Flexible size | Max 2MB | PNG, JPEG</p>
-              <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-full">
-                <div v-if="venueMapPreview" class="relative w-full h-full min-h-[300px] bg-gray-100 group">
+              <div class="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-[400px]">
+                <div v-if="venueMapPreview" class="relative w-full h-full bg-gray-100 group">
                   <img :src="venueMapPreview" class="w-full h-full object-contain bg-gray-100" />
                   <button
-                    @click.prevent="venueMapPreview = null; eventForm.venue_map_image = null"
+                    @click. prevent="venueMapPreview = null; eventForm.venue_map_image = null"
                     class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                     title="Remove image"
                   >
                     <TrashIcon class="w-5 h-5" />
                   </button>
                 </div>
-                <div v-else class="w-full h-full min-h-[300px] bg-gray-50 flex flex-col items-center justify-center p-4">
+                <div v-else class="w-full h-full bg-gray-50 flex flex-col items-center justify-center p-4">
                   <PhotoIcon class="w-12 h-12 text-gray-400 mb-2" />
                   <p class="text-xs text-gray-500 mb-2">Seat map or venue layout</p>
                   <label class="btn-secondary btn-sm text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer">
