@@ -78,7 +78,7 @@ const getStatusBadge = (status) => {
     rejected: { variant: 'danger', text: 'Rejected', icon: XCircleIcon },
     draft: { variant: 'secondary', text: 'Draft', icon: NoSymbolIcon },
     // active: { variant: 'success', text: 'Active', icon: CheckCircleIcon },
-    completed: { variant: 'secondary', text: 'Completed', icon: CheckCircleIcon },
+    completed: { variant: 'accent', text: 'Completed', icon: CheckCircleIcon },
     cancelled: { variant: 'danger', text: 'Cancelled', icon: XCircleIcon }
   }
   return badges[status] || { 
