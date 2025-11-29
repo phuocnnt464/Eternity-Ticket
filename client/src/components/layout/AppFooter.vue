@@ -26,9 +26,11 @@ const currentYear = new Date().getFullYear()
         <!-- Brand -->
         <div>
           <div class="flex items-center space-x-2 mb-4">
-            <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg flex items-center justify-center">
-              <span class="text-white font-bold text-xl">ET</span>
-            </div>
+            <img 
+              src="/logo_w.svg" 
+              alt="Eternity Ticket Logo" 
+              class="h-10 w-10 object-contain"
+            />
             <span class="text-xl font-bold">Eternity Ticket</span>
           </div>
           <p class="text-gray-400 text-sm">

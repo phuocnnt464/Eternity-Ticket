@@ -54,9 +54,9 @@ const getDashboardLink = computed(() => {
               <span class="text-white font-bold text-xl">E</span>
             </div> -->
             <img 
-              src="../public/logo_b.png" 
+              src="/logo_b.svg" 
               alt="Eternity Ticket Logo" 
-              class="w-10 h-10 object-contain"
+              class="h-10 w-10 object-contain"
             />
             <span class="text-xl font-bold text-gray-900 hidden sm:block">
               Eternity Ticket
