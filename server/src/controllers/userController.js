@@ -225,6 +225,7 @@ class UserController {
         SELECT 
           t.id,
           t.ticket_code,
+          t.qr_code_data,
           t.status,
           t.is_checked_in,
           t.checked_in_at,
