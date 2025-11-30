@@ -279,6 +279,10 @@ watch(() => route.query. search, (newSearch) => {
           />
         </div>
 
+        <p v-if="searchQuery && searchQuery.length < 2" class="text-sm text-amber-600 mb-4">
+          ⚠️ Please enter at least 2 characters to search
+        </p>
+
         <!-- Active Filters Pills - MOVED OUTSIDE SEARCH ROW -->
         <div v-if="hasActiveFilters" class="flex flex-wrap gap-2">
           <span v-if="searchQuery" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1. 5 rounded-full text-sm font-medium">

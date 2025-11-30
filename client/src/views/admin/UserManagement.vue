@@ -638,7 +638,7 @@ onMounted(() => {
             @click="handleOpenChangeRole(selectedUser)"
             full-width
           >
-            <PencilSquareIcon class="w-5 h-5" />
+            <PencilSquareIcon class="inline w-5 h-5 mb-1" />
             Change Role
           </Button>
 
@@ -650,7 +650,7 @@ onMounted(() => {
             @click="handleDeactivateAccount(selectedUser.id, `${selectedUser.first_name} ${selectedUser.last_name}`)"
             full-width
           >
-            <LockClosedIcon class="w-5 h-5" />
+            <LockClosedIcon class="inline w-5 h-5 mb-1" />
             Deactivate Account
           </Button>
 
@@ -662,7 +662,7 @@ onMounted(() => {
             @click="handleReactivateAccount(selectedUser.id, `${selectedUser.first_name} ${selectedUser.last_name}`)"
             full-width
           >
-            <LockOpenIcon class="w-5 h-5" />
+            <LockOpenIcon class="inline w-5 h-5 mb-1" />
             Reactivate Account
           </Button>
         </div>

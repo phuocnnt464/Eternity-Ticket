@@ -255,7 +255,7 @@ onMounted(() => {
         @click="handleCompletePastEvents"
         :loading="completingEvents"
       >
-        <CheckCircleIcon class="w-5 h-5" />
+        <CheckCircleIcon class="inline w-5 h-5 mb-1" />
         Complete Past Events
       </Button>
     </div>
@@ -362,7 +362,7 @@ onMounted(() => {
                   size="sm"
                   @click="handleViewDetails(event)"
                 >
-                  <EyeIcon class="w-4 h-4" />
+                  <EyeIcon class="inline w-4 h-4 mb-1 " />
                   Review
                 </Button>
               </td>
@@ -643,7 +643,7 @@ onMounted(() => {
             @click="handleReject(selectedEvent.id)"
             full-width
           >
-            <XCircleIcon class="w-5 h-5" />
+            <XCircleIcon class="inline w-5 h-5 mb-1" />
             Reject
           </Button>
           <Button
@@ -652,7 +652,7 @@ onMounted(() => {
             @click="handleApprove(selectedEvent.id)"
             full-width
           >
-            <CheckCircleIcon class="w-5 h-5" />
+            <CheckCircleIcon class="inline w-5 h-5 mb-1" />
             Approve
           </Button>
         </div>
@@ -671,7 +671,7 @@ onMounted(() => {
             @click="handleOpenCancel(selectedEvent)"
             full-width
           >
-            <NoSymbolIcon class="w-5 h-5" />
+            <NoSymbolIcon class="inline w-5 h-5 mb-1" />
             Cancel Event
           </Button>
         </div>

@@ -318,7 +318,7 @@ onMounted(() => {
         <p class="text-gray-600 mt-1">System activity and security logs</p>
       </div>
       <Button variant="secondary" @click="handleExport">
-        <ArrowDownTrayIcon class="w-5 h-5" />
+        <ArrowDownTrayIcon class="inline w-5 h-5 mb-1" />
         Export Logs
       </Button>
     </div>

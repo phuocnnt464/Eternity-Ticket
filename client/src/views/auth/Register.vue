@@ -108,8 +108,9 @@ const handleSubmit = async () => {
       
       <!-- Header -->
       <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-600 rounded-2xl mb-4">
-          <img src="/logo_w.svg" alt="Logo" class="w-10 h-10" />
+        <div class="inline-flex items-center justify-center w-60 h-16 bg-gradient-to-br from-primary-500 to-accent-600 rounded-2xl mb-4">
+          <img src="/logo_w.svg" alt="Logo" class="w-10 h-10 mr-2" />
+          <span class="text-white text-2xl font-bold">Eternity Tickets</span>
         </div>
         <h2 class="text-3xl font-bold text-white mb-2">Create Your Account</h2>
         <p class="text-gray-300">

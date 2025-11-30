@@ -271,7 +271,7 @@ onMounted(() => {
         <p class="text-gray-600 mt-1">Manage administrative team members</p>
       </div>
       <Button variant="primary" @click="showInviteModal = true">
-        <UserPlusIcon class="w-5 h-5" />
+        <UserPlusIcon class="inline w-5 h-5 mb-1" />
         Invite Sub-Admin
       </Button>
     </div>
@@ -340,7 +340,7 @@ onMounted(() => {
           @click="handleDeactivate(admin.id, `${admin.first_name} ${admin.last_name}`)"
           full-width
         >
-          <LockClosedIcon  class="w-4 h-4" />
+          <LockClosedIcon class="inline w-4 h-4 mb-1" />
           Deactivate
         </Button>
       </Card>

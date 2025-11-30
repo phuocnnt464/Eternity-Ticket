@@ -231,7 +231,7 @@ onMounted(() => {
         <p class="text-gray-600 mt-1">Monitor and manage all orders in the system</p>
       </div>
       <Button variant="secondary" @click="handleExport">
-        <ArrowDownTrayIcon class="w-5 h-5" />
+        <ArrowDownTrayIcon class="inline w-5 h-5 mb-1" />
         Export Orders
       </Button>
     </div>
