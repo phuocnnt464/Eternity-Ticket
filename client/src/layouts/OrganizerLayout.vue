@@ -147,7 +147,7 @@ const isActive = (item) => {
             <div class="flex items-center space-x-3">
               <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-600 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0">
                 <span class="text-white font-bold text-sm">
-                  {{ authStore.user?.first_name?. charAt(0) }}{{ authStore.user?.last_name?.charAt(0) }}
+                  {{ authStore.user?.first_name?.charAt(0) }}{{ authStore.user?.last_name?.charAt(0) }}
                 </span>
               </div>
               <div class="flex-1 min-w-0">
@@ -252,13 +252,13 @@ const isActive = (item) => {
               </div>
               
               <!-- Quick Actions -->
-              <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2">
                 <RouterLink
                   v-if="authStore.isOrganizer"
                   to="/organizer/events/create"
                   class="btn btn-primary"
                 >
-                  <PlusCircleIcon class="w-5 h-5 mr-2" />
+                  <PlusCircleIcon class="w-5 h-5 mr-1" />
                   Create Event
                 </RouterLink>
               </div>
