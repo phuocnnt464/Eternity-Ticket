@@ -224,7 +224,7 @@ watch(() => route.query. search, (newSearch) => {
 <template>
   <div class="min-h-screen bg-white">
     <!-- Compact Hero Section -->
-    <section class="relative bg-gradient-to-br from-dark-900 via-primary-900 to-black text-white py-10 overflow-hidden">
+    <section class="relative bg-gradient-to-br from-dark-900 via-primary-900 to-black text-white py-10 overflow-visible">
       <!-- Background Pattern -->
       <div class="absolute inset-0 opacity-10">
         <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;"></div>
@@ -246,7 +246,7 @@ watch(() => route.query. search, (newSearch) => {
         </div>
 
         <!-- Search + Filter Row -->
-        <div class="flex flex-col md:flex-row gap-3">
+        <div class="flex flex-col md:flex-row gap-3 mb-4">
           <!-- Search Bar -->
           <div class="flex-1 flex gap-2">
             <div class="flex-1 relative">
@@ -277,8 +277,8 @@ watch(() => route.query. search, (newSearch) => {
           />
         </div>
 
-        <!-- Active Filters Pills -->
-        <div v-if="hasActiveFilters" class="flex flex-wrap gap-2 mt-4">
+        <!-- Active Filters Pills - MOVED OUTSIDE SEARCH ROW -->
+        <div v-if="hasActiveFilters" class="flex flex-wrap gap-2">
           <span v-if="searchQuery" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1. 5 rounded-full text-sm font-medium">
             Search: "{{ searchQuery }}"
           </span>
@@ -288,7 +288,7 @@ watch(() => route.query. search, (newSearch) => {
           <span v-if="filters.city" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
             City: {{ filters.city }}
           </span>
-          <span v-if="filters.dateFrom || filters. dateTo" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
+          <span v-if="filters.dateFrom || filters.dateTo" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
             Date: {{ filters.dateFrom || 'Start' }} - {{ filters.dateTo || 'End' }}
           </span>
           <span v-if="filters.minPrice || filters.maxPrice" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
