@@ -689,7 +689,7 @@ onBeforeUnmount(() => {
                           class="font-bold text-lg shadow-lg"
                         >
                           <Spinner v-if="joiningQueue" size="sm" class="mr-2" />
-                          <TicketIcon v-else class="w-6 h-6 mr-2" />
+                          <TicketIcon v-else class="inline-flex w-6 h-6 mr-2" />
                           {{ buyButtonText }}
                         </Button>
 
@@ -707,7 +707,7 @@ onBeforeUnmount(() => {
                             @click="handleShare"
                             class="flex items-center justify-center"
                           >
-                            <ShareIcon class="w-5 h-5 mr-2" />
+                            <ShareIcon class="inline-flex w-5 h-5 mr-2" />
                             Share
                           </Button>
                           <Button
@@ -715,7 +715,7 @@ onBeforeUnmount(() => {
                             @click="() => {}"
                             class="flex items-center justify-center"
                           >
-                            <HeartIcon class="w-5 h-5 mr-2" />
+                            <HeartIcon class="inline-flex w-5 h-5 mr-2" />
                             Save
                           </Button>
                         </div>

@@ -1,4 +1,5 @@
 <script setup>
+// ...   existing script (giữ nguyên toàn bộ)
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'  
 import { eventsAPI } from '@/api/events.js'
@@ -6,7 +7,9 @@ import {
   MinusIcon, 
   PlusIcon,
   InformationCircleIcon,
-  StarIcon  
+  StarIcon,
+  TicketIcon,
+  SparklesIcon
 } from '@heroicons/vue/24/outline'
 import Badge from '@/components/common/Badge.vue'
 
@@ -37,26 +40,31 @@ const emit = defineEmits(['update:modelValue'])
 
 const selections = ref({})
 
-// Initialize selections
-props.ticketTypes. forEach(ticket => {
+props.ticketTypes.forEach(ticket => {
   selections.value[ticket.id] = 0
 })
 
-// Watch for external changes
-watch(() => props. modelValue, (newValue) => {
+watch(() => props.modelValue, (newValue) => {
   if (newValue) {
     newValue.forEach(item => {
-      selections.value[item.ticket_type_id] = item.quantity
+      selections.value[item.ticket_type_id] = item. quantity
     })
   }
 }, { immediate: true })
 
 const totalQuantity = computed(() => {
-  return Object.values(selections.value).reduce((sum, qty) => sum + qty, 0)
+  return Object.values(selections.value). reduce((sum, qty) => sum + qty, 0)
+})
+
+const totalPrice = computed(() => {
+  return Object.entries(selections.value). reduce((sum, [ticketId, qty]) => {
+    const ticket = props.ticketTypes.find(t => t.id === ticketId)
+    return sum + (ticket?.price || 0) * qty
+  }, 0)
 })
 
 const canAddMore = computed(() => {
-  return totalQuantity. value < props.maxPerOrder
+  return totalQuantity.value < props.maxPerOrder
 })
 
 const fetchSystemSettings = async () => {
@@ -66,24 +74,21 @@ const fetchSystemSettings = async () => {
     
     const earlyAccessSetting = settings.find(s => s.setting_key === 'premium_early_access_hours')
     if (earlyAccessSetting) {
-      earlyAccessHours.value = parseInt(earlyAccessSetting.setting_value) || 5
-      console.log('TicketSelector: Early access hours =', earlyAccessHours.value)
+      earlyAccessHours. value = parseInt(earlyAccessSetting.setting_value) || 5
     }
 
     const premiumLimitSetting = settings.find(s => s.setting_key === 'premium_early_access_max_tickets')
     if (premiumLimitSetting) {
       premiumEarlyAccessLimit.value = parseInt(premiumLimitSetting.setting_value) || 5
-      console.log('Premium early access limit: ', premiumEarlyAccessLimit.value)
     }
   } catch (error) {
     console.error('Failed to fetch settings:', error)
   }
 }
 
-// ✅ ENHANCED: Check early access
 const isInEarlyAccessPeriod = (ticket) => {
   const now = new Date()
-  const saleStart = new Date(ticket.sale_start_time)
+  const saleStart = new Date(ticket. sale_start_time)
   const earlyAccessStart = new Date(
     saleStart.getTime() - (earlyAccessHours.value * 60 * 60 * 1000)
   )
@@ -91,50 +96,41 @@ const isInEarlyAccessPeriod = (ticket) => {
   return now >= earlyAccessStart && now < saleStart
 }
 
-// ✅ ENHANCED: Check if user can access during early access
 const canAccessEarlyTicket = (ticket) => {
   const userTier = authStore.membershipTier || 'basic'
   
-  // If in early access period, only premium can access
   if (isInEarlyAccessPeriod(ticket)) {
     return userTier === 'premium'
   }
   
-  // Not in early access, everyone can access
   return true
 }
 
-// ✅ ENHANCED: Availability check with early access
 const isAvailable = (ticket) => {
   const now = new Date()
   const saleStart = new Date(ticket.sale_start_time)
-  const saleEnd = new Date(ticket.sale_end_time)
+  const saleEnd = new Date(ticket. sale_end_time)
   
-  // ✅ Check early access first
   if (isInEarlyAccessPeriod(ticket)) {
-    // During early access, only premium members
     if (! canAccessEarlyTicket(ticket)) {
-      return false  // Block non-premium during early access
+      return false
     }
   } else {
-    // After early access, check normal sale time
     if (now < saleStart) return false
   }
   
   if (now > saleEnd) return false
-  if (ticket.available_quantity <= 0) return false
+  if (ticket. available_quantity <= 0) return false
   
   return true
 }
 
-// ✅ ENHANCED: Sale status with early access
 const getSaleStatus = (ticket) => {
   const now = new Date()
   const saleStart = new Date(ticket.sale_start_time)
   const saleEnd = new Date(ticket.sale_end_time)
   const userTier = authStore.membershipTier || 'basic'
   
-  // ✅ Early access period
   if (isInEarlyAccessPeriod(ticket)) {
     if (userTier === 'premium') {
       const minutesRemaining = Math.ceil((saleStart - now) / 60000)
@@ -193,21 +189,19 @@ const updateQuantity = (ticketId, delta) => {
   
   let newQty = current + delta
   
-  // Validate constraints
   if (newQty < 0) newQty = 0
   if (newQty > ticket. max_quantity_per_order) newQty = ticket.max_quantity_per_order
   if (newQty > ticket.available_quantity) newQty = ticket.available_quantity
   
-  // Check total max
   const otherTotal = Object.entries(selections.value)
-    .filter(([id]) => id !== ticketId)
+    . filter(([id]) => id !== ticketId)
     .reduce((sum, [, qty]) => sum + qty, 0)
   
   if (otherTotal + newQty > props.maxPerOrder) {
-    newQty = props.maxPerOrder - otherTotal
+    newQty = props. maxPerOrder - otherTotal
   }
   
-  selections.value[ticketId] = newQty
+  selections. value[ticketId] = newQty
   emitSelections()
 }
 
@@ -215,9 +209,9 @@ const emitSelections = () => {
   const selected = Object.entries(selections.value)
     .filter(([, qty]) => qty > 0)
     .map(([ticketId, quantity]) => {
-      const ticket = props. ticketTypes.find(t => t.id === ticketId)
+      const ticket = props.ticketTypes.find(t => t.id === ticketId)
 
-      if (!ticket) {
+      if (! ticket) {
         console.error(`Ticket not found for ID: ${ticketId}`)
         return null
       }
@@ -226,10 +220,10 @@ const emitSelections = () => {
         ticket_type_id: ticketId,
         ticket_type_name: ticket.name,
         quantity,
-        unit_price: ticket. price,
+        unit_price: ticket.price,
         subtotal: ticket.price * quantity
       }
-    }).filter(item => item !== null)
+    }). filter(item => item !== null)
   
   emit('update:modelValue', selected)
 }
@@ -251,28 +245,24 @@ const canAddMoreTicket = (ticketId) => {
   
   const current = selections.value[ticketId] || 0
   
-  // Check availability
   if (current >= ticket.available_quantity) return false
   if (current >= ticket.max_quantity_per_order) return false
   
-  // Check total session limit
-  const totalOther = Object.entries(selections.value)
+  const totalOther = Object.entries(selections. value)
     .filter(([id]) => id !== ticketId)
     .reduce((sum, [, qty]) => sum + qty, 0)
   
-  // ✅ NEW: Check premium early access limit
-  const hasEarlyAccessTicket = props.ticketTypes. some(t => 
+  const hasEarlyAccessTicket = props.ticketTypes.some(t => 
     isInEarlyAccessPeriod(t) && selections.value[t.id] > 0
   )
   
   if (hasEarlyAccessTicket && authStore.membershipTier === 'premium') {
     const maxAllowed = premiumEarlyAccessLimit.value
     if (totalOther + current + 1 > maxAllowed) {
-      return false  // ✅ Block if exceeds premium limit
+      return false
     }
   }
   
-  // Check session limit
   if (totalOther + current + 1 > props.maxPerOrder) {
     return false
   }
@@ -280,13 +270,12 @@ const canAddMoreTicket = (ticketId) => {
   return true
 }
 
-// ✅ UPDATE: Simplified warning - only show when at limit
 const premiumLimitInfo = computed(() => {
   const hasEarlyAccessTicket = props.ticketTypes.some(ticket => 
     isInEarlyAccessPeriod(ticket) && selections.value[ticket.id] > 0
   )
   
-  if (! hasEarlyAccessTicket) return null
+  if (!hasEarlyAccessTicket) return null
   
   const userTier = authStore.membershipTier || 'basic'
   if (userTier !== 'premium') return null
@@ -294,7 +283,6 @@ const premiumLimitInfo = computed(() => {
   const total = totalSelectedTickets.value
   const maxAllowed = premiumEarlyAccessLimit.value
   
-  // ✅ Only show when reached limit
   if (total >= maxAllowed) {
     return {
       maxAllowed: maxAllowed,
@@ -311,120 +299,201 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-4">
-    <!-- Header Info -->
-    <div class="flex items-start space-x-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <InformationCircleIcon class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-      <div class="text-sm text-blue-800">
-        <p>Select tickets (Min: {{ minPerOrder }}, Max: {{ maxPerOrder }})</p>
-        <p class="mt-1">Current total: <strong>{{ totalQuantity }}</strong> tickets</p>
+    <!-- ✅ Summary Card - Top -->
+    <div class="bg-gradient-to-r from-primary-50 to-accent-50 border-2 border-primary-200 rounded-xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center">
+            <TicketIcon class="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Selected Tickets</p>
+            <p class="text-2xl font-bold text-gray-900">{{ totalQuantity }}</p>
+          </div>
+        </div>
+        
+        <div class="text-right">
+          <p class="text-sm text-gray-600">Total Amount</p>
+          <p class="text-2xl font-bold text-primary-600">
+            {{ formatPrice(totalPrice) }}
+          </p>
+        </div>
+      </div>
+      
+      <div class="flex items-center justify-between text-xs text-gray-600 pt-3 border-t border-primary-200">
+        <span>Min: {{ minPerOrder }} tickets</span>
+        <span>Max: {{ maxPerOrder }} tickets</span>
       </div>
     </div>
 
+    <!-- ✅ Premium Limit Warning -->
     <div 
       v-if="premiumLimitInfo"
-      class="flex items-start gap-3 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg"
+      class="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl p-5 shadow-lg"
     >
-      <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <div class="text-sm text-yellow-800">
-        <p class="font-semibold mb-1">
-          ⏰ Premium Early Access: Maximum {{ premiumLimitInfo.maxAllowed }} tickets per order
-        </p>
-        <p class="text-xs">
-          You've reached the limit ({{ premiumLimitInfo.selected }}/{{ premiumLimitInfo.maxAllowed }}). 
-          After public sale starts, you can buy up to {{ premiumLimitInfo.publicLimit }} tickets per order. 
-        </p>
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+          <StarIcon class="w-6 h-6" />
+        </div>
+        <div>
+          <p class="font-bold text-lg mb-1">
+            Premium Early Access Limit Reached
+          </p>
+          <p class="text-sm text-white/90">
+            You've selected {{ premiumLimitInfo.selected }}/{{ premiumLimitInfo. maxAllowed }} tickets.  
+            After public sale starts, you can buy up to {{ premiumLimitInfo.publicLimit }} tickets. 
+          </p>
+        </div>
       </div>
     </div>
 
-    <!-- Ticket Types -->
+    <!-- ✅ Ticket Types - Redesigned -->
     <div class="space-y-3">
       <div
         v-for="ticket in ticketTypes"
-        :key="ticket. id"
+        :key="ticket.id"
         :class="[
-          'card',
-          ! isAvailable(ticket) && 'opacity-60'
+          'relative bg-white rounded-xl border-2 transition-all overflow-hidden',
+          isAvailable(ticket) 
+            ? 'border-gray-200 hover:border-primary-300 hover:shadow-lg' 
+            : 'border-gray-100 bg-gray-50',
+          selections[ticket.id] > 0 && 'border-primary-400 shadow-md'
         ]"
       >
-        <div class="flex items-start justify-between mb-3">
-          <div class="flex-1">
-            <div class="flex items-center space-x-2 mb-1">
-              <h4 class="font-semibold text-lg">{{ ticket.name }}</h4>
+        <!-- ✅ Selected Indicator -->
+        <div 
+          v-if="selections[ticket.id] > 0" 
+          class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-600 to-accent-600"
+        ></div>
+
+        <div class="p-5">
+          <!-- Header -->
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-2">
+                <h4 class="font-bold text-xl text-gray-900">{{ ticket.name }}</h4>
+                
+                <!-- Status Badge -->
+                <Badge 
+                  v-if="getSaleStatus(ticket).isPremiumAccess === true"
+                  variant="warning"
+                  class="animate-pulse"
+                >
+                  <StarIcon class="w-4 h-4 inline mr-1" />
+                  {{ getSaleStatus(ticket).text }}
+                </Badge>
+                <Badge 
+                  v-else
+                  :variant="getSaleStatus(ticket). variant"
+                >
+                  {{ getSaleStatus(ticket).text }}
+                </Badge>
+              </div>
               
-              <!-- ✅ ENHANCED: Show premium badge -->
-              <Badge 
-                v-if="getSaleStatus(ticket).isPremiumAccess === true"
-                variant="warning"
+              <!-- Description -->
+              <p v-if="ticket.description" class="text-sm text-gray-600 mb-3">
+                {{ ticket.description }}
+              </p>
+              
+              <!-- Early Access Warning -->
+              <div 
+                v-if="isInEarlyAccessPeriod(ticket) && ! canAccessEarlyTicket(ticket)" 
+                class="inline-flex items-center bg-orange-100 text-orange-800 px-3 py-1 rounded-lg text-xs font-medium mb-3"
               >
-                <StarIcon class="w-4 h-4 inline mr-1" />
-                {{ getSaleStatus(ticket).text }}
-              </Badge>
-              <Badge 
-                v-else
-                :variant="getSaleStatus(ticket). variant"
-              >
-                {{ getSaleStatus(ticket).text }}
-              </Badge>
+                <StarIcon class="w-4 h-4 mr-1" />
+                Premium members only
+              </div>
+              
+              <!-- Constraints -->
+              <div class="flex flex-wrap gap-3 text-xs">
+                <span class="inline-flex items-center bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-medium">
+                  Min: {{ ticket.min_quantity_per_order }}
+                </span>
+                <span class="inline-flex items-center bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-medium">
+                  Max: {{ ticket.max_quantity_per_order }}
+                </span>
+                <span 
+                  :class="[
+                    'inline-flex items-center px-3 py-1 rounded-full font-medium',
+                    ticket.available_quantity < 10 
+                      ? 'bg-orange-100 text-orange-700' 
+                      : 'bg-success-100 text-success-700'
+                  ]"
+                >
+                  {{ ticket.available_quantity }} available
+                </span>
+              </div>
             </div>
             
-            <p v-if="ticket.description" class="text-sm text-gray-600 mb-2">
-              {{ ticket.description }}
-            </p>
-            
-            <!-- Early access info -->
-            <div v-if="isInEarlyAccessPeriod(ticket) && ! canAccessEarlyTicket(ticket)" class="text-xs text-orange-600 mb-2 flex items-center">
-              <StarIcon class="w-4 h-4 mr-2" />
-              Early access for Premium members only
+            <!-- Price -->
+            <div class="text-right ml-4">
+              <p class="text-sm text-gray-500 mb-1">Price</p>
+              <div class="text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+                {{ formatPrice(ticket.price) }}
+              </div>
             </div>
-            
-            <div class="flex items-center space-x-4 text-sm text-gray-600">
-              <span>Min: {{ ticket.min_quantity_per_order }}</span>
-              <span>Max: {{ ticket. max_quantity_per_order }}</span>
-              <span>Available: {{ ticket.available_quantity }}</span>
-            </div>
-          </div>
-          
-          <div class="text-right ml-4">
-            <div class="text-xl font-bold text-primary-600">
-              {{ formatPrice(ticket.price) }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Quantity Selector -->
-        <div class="flex items-center justify-between pt-3 border-t">
-          <div class="flex items-center space-x-3">
-            <button
-              @click="updateQuantity(ticket.id, -1)"
-              :disabled="!isAvailable(ticket) || selections[ticket.id] === 0"
-              class="btn-secondary btn-sm w-10 h-10 !p-0"
-            >
-              <MinusIcon class="w-5 h-5" />
-            </button>
-            
-            <span class="font-semibold text-lg w-12 text-center">
-              {{ selections[ticket.id] || 0 }}
-            </span>
-            
-            <button
-              @click="updateQuantity(ticket.id, 1)"
-              :disabled="!isAvailable(ticket) || ! canAddMoreTicket(ticket.id)"
-              class="btn-primary btn-sm w-10 h-10 !p-0"
-            >
-              <PlusIcon class="w-5 h-5" />
-            </button>
           </div>
 
-          <div v-if="selections[ticket.id] > 0" class="text-right">
-            <p class="text-sm text-gray-600">Subtotal</p>
-            <p class="font-semibold text-primary-600">
-              {{ formatPrice(ticket.price * selections[ticket.id]) }}
-            </p>
+          <!-- ✅ Quantity Selector - Enhanced -->
+          <div 
+            :class="[
+              'flex items-center justify-between pt-4 border-t-2',
+              selections[ticket.id] > 0 ?  'border-primary-200' : 'border-gray-200'
+            ]"
+          >
+            <div class="flex items-center space-x-3">
+              <!-- Minus Button -->
+              <button
+                @click="updateQuantity(ticket.id, -1)"
+                :disabled="! isAvailable(ticket) || selections[ticket.id] === 0"
+                :class="[
+                  'w-10 h-10 rounded-xl font-bold transition-all flex items-center justify-center',
+                  (! isAvailable(ticket) || selections[ticket.id] === 0)
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:scale-95'
+                ]"
+              >
+                <MinusIcon class="w-4 h-4" />
+              </button>
+              
+              <!-- Quantity Display -->
+              <div class="w-14 h-10 flex items-center justify-center bg-gray-100 rounded-xl">
+                <span class="text-xl font-bold text-gray-900">
+                  {{ selections[ticket.id] || 0 }}
+                </span>
+              </div>
+              
+              <!-- Plus Button -->
+              <button
+                @click="updateQuantity(ticket.id, 1)"
+                :disabled="! isAvailable(ticket) || ! canAddMoreTicket(ticket. id)"
+                :class="[
+                  'w-10 h-10 rounded-xl font-bold transition-all flex items-center justify-center',
+                  (!isAvailable(ticket) || !canAddMoreTicket(ticket.id))
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-primary-600 to-accent-600 text-white hover:shadow-lg active:scale-95'
+                ]"
+              >
+                <PlusIcon class="w-4 h-4" />
+              </button>
+            </div>
+
+            <!-- Subtotal -->
+            <div v-if="selections[ticket.id] > 0" class="text-right">
+              <p class="text-xs text-gray-500 mb-1">Subtotal</p>
+              <p class="text-lg font-bold text-primary-600">
+                {{ formatPrice(ticket.price * selections[ticket.id]) }}
+              </p>
+            </div>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- ✅ Empty State -->
+    <div v-if="ticketTypes.length === 0" class="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+      <TicketIcon class="w-16 h-16 text-gray-400 mx-auto mb-3" />
+      <p class="text-gray-600 font-medium">No tickets available</p>
     </div>
   </div>
 </template>
