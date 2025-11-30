@@ -488,7 +488,7 @@ onBeforeUnmount(() => {
                 </h2>
                 <div class="rounded-xl overflow-hidden border-2 border-gray-200">
                   <img 
-                    :src="event. venue_map_image" 
+                    :src="event.venue_map_image" 
                     :alt="`${event.venue_name} map`" 
                     class="w-full h-auto object-contain bg-gray-50"
                   />
