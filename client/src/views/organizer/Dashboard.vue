@@ -122,7 +122,7 @@ onMounted(() => {
         <p class="text-gray-600 mt-1">Welcome back! Here's your overview</p>
       </div>
       <Button variant="primary" @click="router.push('/organizer/events/create')">
-        <PlusCircleIcon class="w-5 h-5" />
+        <PlusCircleIcon class="inline-flex w-5 h-5" />
         Create Event
       </Button>
     </div>

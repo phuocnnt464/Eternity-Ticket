@@ -238,33 +238,7 @@ const isActive = (item) => {
 
       <!-- Main Content -->
       <main class="flex-1 min-h-screen">
-        <!-- Top Bar (Desktop) -->
-        <div class="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
-          <div class="px-8 py-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h1 class="text-2xl font-bold text-dark-900">
-                  {{ route.meta.title || layoutTitle }}
-                </h1>
-                <p class="text-sm text-gray-500 mt-1">
-                  Manage your events and grow your audience
-                </p>
-              </div>
-              
-              <!-- Quick Actions -->
-              <div class="flex items-center gap-2">
-                <RouterLink
-                  v-if="authStore.isOrganizer"
-                  to="/organizer/events/create"
-                  class="btn btn-primary"
-                >
-                  <PlusCircleIcon class="w-5 h-5 mr-1" />
-                  Create Event
-                </RouterLink>
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         <!-- Page Content -->
         <div class="p-4 md:p-8">
