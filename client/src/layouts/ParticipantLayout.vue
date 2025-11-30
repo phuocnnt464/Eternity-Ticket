@@ -51,17 +51,17 @@ const navigation = [
     name: 'Membership', 
     href: '/participant/membership', 
     icon: CreditCardIcon,
-    color: 'text-warning-600',
-    bgColor: 'bg-warning-50',
-    hoverBg: 'hover:bg-warning-50'
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-50',
+    hoverBg: 'hover:bg-orange-50'
   },
   { 
     name: 'Notifications', 
     href: '/participant/notifications', 
     icon: BellIcon,
-    color: 'text-info-600',
-    bgColor: 'bg-info-50',
-    hoverBg: 'hover:bg-info-50'
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50',
+    hoverBg: 'hover:bg-blue-50'
   },
 ]
 
