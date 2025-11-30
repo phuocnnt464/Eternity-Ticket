@@ -1,4 +1,5 @@
 <script setup>
+// ...  existing script (giữ nguyên toàn bộ)
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
@@ -21,9 +22,14 @@ import {
   ShareIcon,
   HeartIcon,
   StarIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  BuildingOfficeIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  FireIcon
 } from '@heroicons/vue/24/outline'
 
+// ...  rest of existing script
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -43,10 +49,10 @@ const joiningQueue = ref(false)
 
 const earlyAccessInfo = ref(null)
 const earlyAccessInterval = ref(null)
-const earlyAccessHours = ref(5)  // Default to 5 hours
+const earlyAccessHours = ref(5)
 
 const eventDate = computed(() => {
-  if (!event.value?.start_date) return ''
+  if (!event.value?. start_date) return ''
   const date = new Date(event.value.start_date)
   return date.toLocaleDateString('en-US', {
     weekday: 'long',
@@ -58,30 +64,27 @@ const eventDate = computed(() => {
 
 const eventTime = computed(() => {
   if (!event.value?.start_date || !event.value?.end_date) return ''
-  const start = new Date(event.value.start_date)
-  const end = new Date(event.value.end_date)
+  const start = new Date(event.value. start_date)
+  const end = new Date(event.value. end_date)
   return `${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
 })
 
 const fetchSystemSettings = async () => {
   try {
     const response = await eventsAPI.getPublicSettings()
-    const settings = response. data. settings || []
+    const settings = response.data.settings || []
     
     const earlyAccessSetting = settings.find(s => s.setting_key === 'premium_early_access_hours')
     if (earlyAccessSetting) {
       earlyAccessHours.value = parseInt(earlyAccessSetting.setting_value) || 5
-      console.log('Early access hours from settings:', earlyAccessHours.value)
     }
   } catch (error) {
-    console. error('Failed to fetch settings:', error)
-    earlyAccessHours.value = 5  // Fallback
+    console.error('Failed to fetch settings:', error)
+    earlyAccessHours.value = 5
   }
 }
 
 const checkEarlyAccess = () => {
-  console.log('🔍 Checking early access...')
-
   if (!ticketTypes.value || ticketTypes.value.length === 0) {
     earlyAccessInfo.value = null
     return
@@ -89,28 +92,15 @@ const checkEarlyAccess = () => {
 
   const now = new Date()
   const userTier = authStore.membershipTier || 'basic'
-  
-  console.log(`Early access setting: ${earlyAccessHours.value} hours`)
-  console.log('User tier:', userTier)
 
-  // Check each ticket type
   for (const ticket of ticketTypes.value) {
     const saleStart = new Date(ticket.sale_start_time)
-    
-    // ✅ Use system setting
     const earlyAccessStart = new Date(
-      saleStart. getTime() - (earlyAccessHours.value * 60 * 60 * 1000)
+      saleStart.getTime() - (earlyAccessHours.value * 60 * 60 * 1000)
     )
-
-    console.log('Sale start:', saleStart)
-    console.log('Early access start:', earlyAccessStart)
       
-    // Check if we're in early access period
     if (now >= earlyAccessStart && now < saleStart) {
       const minutesRemaining = Math.ceil((saleStart - now) / 60000)
-      
-      console.log('✅ EARLY ACCESS ACTIVE!')
-      console.log('Minutes remaining:', minutesRemaining)
 
       earlyAccessInfo.value = {
         isActive: true,
@@ -118,38 +108,35 @@ const checkEarlyAccess = () => {
         ticketName: ticket.name,
         publicSaleStart: saleStart,
         minutesRemaining: minutesRemaining,
-        earlyAccessHours: earlyAccessHours.value
+        earlyAccessHours: earlyAccessHours. value
       }
         
       return
     }
   }
   
-  // No early access period
   earlyAccessInfo.value = null
 }
 
 const canPurchase = computed(() => {
-  // return event.value?.status === 'approved' && selectedTickets.value.length > 0
   if (!event.value || event.value.status !== 'approved') return false
   if (selectedTickets.value.length === 0) return false
   
-  // ✅ Check early access blocking
-  if (earlyAccessInfo.value?. isActive && ! earlyAccessInfo.value?.isPremium) {
-    return false  // Block non-premium during early access
+  if (earlyAccessInfo.value?.isActive && !earlyAccessInfo.value?.isPremium) {
+    return false
   }
   
   return true
 })
 
 const buyButtonText = computed(() => {
-  if (joiningQueue.value) return 'Joining Queue...'
+  if (joiningQueue.value) return 'Joining Queue.. .'
   
-  if (earlyAccessInfo.value?.isActive) {
+  if (earlyAccessInfo. value?.isActive) {
     if (earlyAccessInfo.value. isPremium) {
       return 'Premium Early Access - Buy Now'
     } else {
-      return `Available in ${earlyAccessInfo.value.minutesRemaining} min`
+      return `Available in ${earlyAccessInfo.value. minutesRemaining} min`
     }
   }
   
@@ -160,10 +147,9 @@ const fetchEventDetails = async () => {
   loading.value = true
   try {
     const slug = route.params.slug
-    const response = await eventsAPI.getEventBySlug(slug)
+    const response = await eventsAPI. getEventBySlug(slug)
     event.value = response.data.event
     
-    // Fetch sessions
     await fetchSessions()
   } catch (error) {
     console.error('Failed to fetch event:', error)
@@ -176,9 +162,8 @@ const fetchEventDetails = async () => {
 const fetchSessions = async () => {
   try {
     const response = await sessionsAPI.getEventSessions(event.value.id)
-    sessions.value = response.data.sessions || []
+    sessions.value = response.data. sessions || []
     
-    // Auto-select first session if only one
     if (sessions.value.length === 1) {
       selectSession(sessions.value[0])
     }
@@ -195,20 +180,17 @@ const selectSession = async (session) => {
   try {
     const response = await sessionsAPI.getSessionTicketTypes(session.id)
     ticketTypes.value = response.data.ticket_types || []
-
-    // console.log('🎫 Ticket types received:', ticketTypes.value)
-    // console.log('🔍 First ticket structure:', ticketTypes.value[0])
     checkEarlyAccess()
   } catch (error) {
     console.error('Failed to fetch ticket types:', error)
   } finally {
-    loadingTickets.value = false
+    loadingTickets. value = false
   }
 }
 
 const handlePurchase = async () => {
-  if (earlyAccessInfo.value?.isActive && ! earlyAccessInfo.value?.isPremium) {
-    alert(`This ticket is in Premium early access period.\nPublic sale starts in ${earlyAccessInfo.value. minutesRemaining} minutes.\n\nUpgrade to Premium to buy now! `)
+  if (earlyAccessInfo.value?.isActive && !earlyAccessInfo.value?.isPremium) {
+    alert(`This ticket is in Premium early access period.\nPublic sale starts in ${earlyAccessInfo.value.minutesRemaining} minutes.\n\nUpgrade to Premium to buy now! `)
     router.push('/participant/membership')
     return
   }
@@ -221,37 +203,26 @@ const handlePurchase = async () => {
     return
   }
 
-   if (!selectedTickets.value || selectedTickets.value.length === 0) {
+  if (! selectedTickets.value || selectedTickets.value.length === 0) {
     alert('Please select at least one ticket')
     return
   }
 
   joiningQueue.value = true
 
-  // Add to cart
   try {
-    // Validate selected tickets
-    // if (!selectedTickets.value || selectedTickets.value.length === 0) {
-    //   alert('Please select at least one ticket')
-    //   return
-    // }
-
-    // ✅ 1. Clear cart items TRƯỚC (không xóa event/session nếu chưa có)
     if (cartStore.items.length > 0) {
-      cartStore.items = []  // Chỉ xóa items, không dùng clear()
+      cartStore.items = []
     }
 
-    // 1. Set event and session
     cartStore.setEventAndSession(event.value, selectedSession.value)
     
-    // 3. Add selected tickets to cart
-    selectedTickets.value.forEach(ticket => {
-      // Find original ticket type to get constraints
+    selectedTickets.value. forEach(ticket => {
       const ticketType = ticketTypes.value.find(
         t => t.id === ticket.ticket_type_id
       )
       
-      if (!ticketType) {
+      if (! ticketType) {
         console.error(`Ticket type not found: ${ticket.ticket_type_id}`)
         return
       }
@@ -268,25 +239,13 @@ const handlePurchase = async () => {
       })
     })
 
-    console.log('✅ Cart prepared:', cartStore.items)
-
-    // ✅ 2. JOIN QUEUE
     const response = await queueAPI.joinQueue({
-      session_id: selectedSession.value.id
+      session_id: selectedSession.value. id
     })
     
     const data = response.data
-    console.log('🔍 Queue response:', data)
 
-    // console.log('✅ Cart after adding:', {
-    //   event: cartStore.event,
-    //   session: cartStore.session,
-    //   items: cartStore.items
-    // })
-
-    if (!data.waiting_room_enabled) {
-      // Không có waiting room → Vào checkout ngay
-      console.log('✅ No waiting room, proceed to checkout')
+    if (! data.waiting_room_enabled) {
       router.push({
         name: 'EventCheckout',
         params: { slug: route.params.slug }
@@ -295,45 +254,30 @@ const handlePurchase = async () => {
     }
 
     if (data.can_purchase) {
-      // ✅ Có active slot ngay → Vào checkout
-      console.log('✅ Active slot available, proceed to checkout')
       router.push({
         name: 'EventCheckout',
         params: { slug: route.params.slug }
       })
     } else {
-      // ✅ Phải chờ trong queue
-      console.log(`⏳ In queue at position ${data.queue_position}`)
       showWaitingRoom.value = true
       queuePosition.value = data.queue_position
     }
-
-    // Go to checkout
-    // router.push({
-    //   name: 'EventCheckout',
-    //   params: { slug: route.params.slug }
-    // })
   } catch (error) {
     console.error('Failed to join queue:', error)
-    alert(error.response?.data?.message || 'Failed to join waiting room. Please try again.')
+    alert(error.response?.data?.message || 'Failed to join waiting room.  Please try again.')
   } finally {
     joiningQueue.value = false
   }
 }
 
-
-// ✅ Callback khi waiting room ready
 const handleWaitingRoomReady = () => {
-  console.log('✅ Your turn! Proceeding to checkout...')
   showWaitingRoom.value = false
-  
   router.push({
     name: 'EventCheckout',
-    params: { slug: route.params.slug }
+    params: { slug: route.params. slug }
   })
 }
 
-// ✅ Callback khi waiting room error/expired
 const handleWaitingRoomError = (message) => {
   console.error('Waiting room error:', message)
   showWaitingRoom.value = false
@@ -354,7 +298,6 @@ const handleShare = async () => {
       console.log('Share cancelled')
     }
   } else {
-    // Fallback: copy to clipboard
     navigator.clipboard.writeText(url)
     alert('Link copied to clipboard!')
   }
@@ -369,12 +312,9 @@ const formatPrice = (price) => {
 
 onMounted(async () => {
   fetchEventDetails()
-
-   // ✅ Fetch system settings first
   await fetchSystemSettings()
-
-   // ✅ Start interval to check early access
-  earlyAccessInterval. value = setInterval(() => {
+  
+  earlyAccessInterval.value = setInterval(() => {
     if (ticketTypes.value.length > 0) {
       checkEarlyAccess()
     }
@@ -383,13 +323,13 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (earlyAccessInterval.value) {
-    clearInterval(earlyAccessInterval.value)
+    clearInterval(earlyAccessInterval. value)
   }
 })
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-white">
     <!-- WAITING ROOM MODAL -->
     <WaitingRoom
       v-if="showWaitingRoom"
@@ -400,303 +340,408 @@ onBeforeUnmount(() => {
     />
 
     <!-- Loading -->
-    <div v-if="loading" class="flex justify-center items-center py-20">
+    <div v-if="loading" class="flex flex-col justify-center items-center py-20">
       <Spinner size="xl" />
+      <p class="text-gray-500 mt-4">Loading event details...</p>
     </div>
 
     <!-- Event Details -->
     <div v-else-if="event">
-      <!-- Cover Image -->
-      <section class="relative h-96 bg-gray-200">
-        <img
-          v-if="event.cover_image"
-          :src="event.cover_image"
-          :alt="event.title"
-          class="w-full h-full object-cover"
-        />
-        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-        
-        <!-- ✅ ADD: Early Access Badge (Top Right) -->
-        <div v-if="earlyAccessInfo?.isActive" class="absolute top-4 right-4 z-10">
-          <Badge v-if="earlyAccessInfo.isPremium" variant="warning" size="lg" class="animate-pulse">
-            <StarIcon class="w-5 h-5 inline mr-1" />
-            Premium Early Access Active! 
-          </Badge>
+      <!-- Hero Section - Fixed Opacity -->
+      <section class="relative h-[500px] bg-gradient-to-br from-dark-900 via-primary-900 to-black overflow-hidden">
+        <!-- Background Image with LIGHTER Overlay -->
+        <div class="absolute inset-0">
+          <img
+            v-if="event.cover_image"
+            :src="event.cover_image"
+            :alt="event.title"
+            class="w-full h-full object-cover opacity-70"
+          />
+          <!-- ✅ LIGHTER gradient - from 30% to transparent -->
+          <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-black/30 to-transparent"></div>
         </div>
 
-        <!-- Event Title Overlay -->
-        <div class="absolute bottom-0 left-0 right-0 p-8 text-white">
-          <div class="container-custom">
-            <Badge v-if="event.category_name" variant="primary" class="mb-2">
-              {{ event.category_name }}
-            </Badge>
-            <h1 class="text-4xl md:text-5xl font-bold mb-2">{{ event.title }}</h1>
-            <p class="text-lg text-gray-200">by {{ event.organizer_name }}</p>
+        <!-- Decorative Elements - REDUCED opacity -->
+        <div class="absolute top-0 right-0 w-96 h-96 bg-primary-500 rounded-full blur-3xl opacity-10"></div>
+        <div class="absolute bottom-0 left-0 w-96 h-96 bg-accent-500 rounded-full blur-3xl opacity-10"></div>
+        
+        <!-- Early Access Badge (Top Right) -->
+        <div v-if="earlyAccessInfo?.isActive" class="absolute top-6 right-6 z-20">
+          <div v-if="earlyAccessInfo. isPremium" class="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-full shadow-2xl flex items-center space-x-2 animate-pulse">
+            <StarIcon class="w-6 h-6" />
+            <span class="font-bold">Premium Early Access Active!</span>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="absolute inset-0 flex items-end">
+          <div class="container-custom pb-12 relative z-10 w-full">
+            <div class="max-w-4xl">
+              <!-- ✅ IMPROVED Category Badge - More Visible -->
+              <div v-if="event.category_name" class="mb-4">
+                <div class="inline-flex items-center bg-primary-600 text-white px-5 py-2 rounded-full shadow-lg border-2 border-white/30 backdrop-blur-sm">
+                  <span class="font-bold text-sm uppercase tracking-wider">{{ event.category_name }}</span>
+                </div>
+              </div>
+
+              <!-- Title with Text Shadow -->
+              <h1 class="text-5xl md:text-6xl font-bold mb-4 text-white leading-tight" style="text-shadow: 2px 4px 8px rgba(0,0,0,0.5)">
+                {{ event.title }}
+              </h1>
+
+              <!-- Meta Info with better contrast -->
+              <div class="flex flex-wrap items-center gap-6 text-white mb-4">
+                <div class="flex items-center space-x-2 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-lg">
+                  <CalendarIcon class="w-5 h-5" />
+                  <span class="font-semibold">{{ eventDate }}</span>
+                </div>
+                <div class="flex items-center space-x-2 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-lg">
+                  <MapPinIcon class="w-5 h-5" />
+                  <span class="font-semibold">{{ event.venue_city }}</span>
+                </div>
+              </div>
+
+              <!-- Organizer -->
+              <div class="flex items-center space-x-3 bg-black/5 backdrop-blur-sm rounded-xl px-4 py-3 inline-flex">
+                <img 
+                  v-if="event.logo_image" 
+                  :src="event.logo_image" 
+                  :alt="event.organizer_name"
+                  class="w-12 h-12 rounded-full border-2 border-white/50 shadow-lg"
+                />
+                <div v-else class="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center border-2 border-white/50 shadow-lg">
+                  <UserGroupIcon class="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p class="text-xs text-gray-300 font-medium">Organized by</p>
+                  <p class="text-lg font-bold text-white">{{ event.organizer_name }}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- Content -->
-      <section class="py-8">
+      <!-- Main Content -->
+      <section class="py-12 bg-gray-50">
         <div class="container-custom">
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Main Content -->
+            <!-- Left Column - Main Content -->
             <div class="lg:col-span-2 space-y-6">
-              <!-- Event Info -->
-              <div class="card">
-                <h2 class="text-2xl font-bold mb-4">Event Details</h2>
-                
-                <div class="space-y-4">
-                  <div class="flex items-start space-x-3">
-                    <CalendarIcon class="w-6 h-6 text-gray-400 flex-shrink-0 mt-1" />
-                    <div>
-                      <p class="font-medium">{{ eventDate }}</p>
-                      <p class="text-sm text-gray-600">{{ eventTime }}</p>
-                    </div>
+              <!-- Quick Info Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Date & Time Card -->
+                <div class="bg-white rounded-xl p-5 shadow-md border-2 border-primary-100 hover:border-primary-300 transition-all">
+                  <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mb-3">
+                    <CalendarIcon class="w-7 h-7 text-white" />
                   </div>
+                  <p class="text-xs text-gray-500 uppercase font-bold mb-2 tracking-wider">Date & Time</p>
+                  <p class="font-bold text-gray-900 text-lg">{{ eventDate }}</p>
+                  <p class="text-sm text-gray-600 mt-1">{{ eventTime }}</p>
+                </div>
 
-                  <div class="flex items-start space-x-3">
-                    <MapPinIcon class="w-6 h-6 text-gray-400 flex-shrink-0 mt-1" />
-                    <div>
-                      <p class="font-medium">{{ event.venue_name }}</p>
-                      <p class="text-sm text-gray-600">{{ event.venue_address }}</p>
-                    </div>
+                <!-- Location Card -->
+                <div class="bg-white rounded-xl p-5 shadow-md border-2 border-accent-100 hover:border-accent-300 transition-all">
+                  <div class="w-12 h-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-xl flex items-center justify-center mb-3">
+                    <MapPinIcon class="w-7 h-7 text-white" />
                   </div>
-
-                  <div v-if="event.total_tickets_sold" class="flex items-start space-x-3">
-                    <UserGroupIcon class="w-6 h-6 text-gray-400 flex-shrink-0 mt-1" />
-                    <div>
-                      <p class="font-medium">{{ event.total_tickets_sold }} attendees</p>
-                    </div>
-                  </div>
+                  <p class="text-xs text-gray-500 uppercase font-bold mb-2 tracking-wider">Location</p>
+                  <p class="font-bold text-gray-900 text-lg">{{ event.venue_name }}</p>
+                  <p class="text-sm text-gray-600 mt-1">{{ event.venue_city }}</p>
                 </div>
               </div>
 
               <!-- Description -->
-              <div class="card">
-                <h2 class="text-2xl font-bold mb-4">About This Event</h2>
+              <div class="bg-white rounded-2xl p-8 shadow-md border border-gray-200">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                  <div class="w-1. 5 h-10 bg-gradient-to-b from-primary-600 to-accent-600 rounded-full mr-4"></div>
+                  About This Event
+                </h2>
                 <div class="prose max-w-none">
-                  <p class="text-gray-700 whitespace-pre-line">{{ event.description }}</p>
+                  <p class="text-gray-700 text-lg leading-relaxed whitespace-pre-line">
+                    {{ event.description }}
+                  </p>
                 </div>
               </div>
 
               <!-- Venue Map -->
-              <div v-if="event.venue_map_image" class="card">
-                <h2 class="text-2xl font-bold mb-4">
-                  <MapPinIcon class="w-6 h-6 inline mr-2 text-primary-600" />
-                  Venue Map
+              <div v-if="event.venue_map_image" class="bg-white rounded-2xl p-8 shadow-md border border-gray-200">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                  <div class="w-1.5 h-10 bg-gradient-to-b from-primary-600 to-accent-600 rounded-full mr-4"></div>
+                  <MapPinIcon class="w-7 h-7 mr-2 text-primary-600" />
+                  Venue & Location
                 </h2>
-                <div class="rounded-xl overflow-hidden border-2 border-gray-200">
-                  <img 
-                    :src="event.venue_map_image" 
-                    :alt="`${event.venue_name} map`" 
-                    class="w-full h-auto object-contain bg-gray-50"
-                  />
+                
+                <div class="space-y-4">
+                  <div class="rounded-xl overflow-hidden border-2 border-gray-200 shadow-lg">
+                    <img 
+                      :src="event. venue_map_image" 
+                      :alt="`${event.venue_name} map`" 
+                      class="w-full h-auto object-contain bg-gray-50"
+                    />
+                  </div>
+
+                  <div class="bg-gradient-to-r from-primary-50 to-accent-50 rounded-xl p-5 border border-primary-200">
+                    <p class="font-bold text-gray-900 text-lg mb-1">{{ event.venue_name }}</p>
+                    <p class="text-gray-700">{{ event.venue_address }}</p>
+                    <p class="text-gray-600">{{ event.venue_city }}</p>
+                  </div>
                 </div>
-                <p v-if="event.venue_address" class="text-sm text-gray-600 mt-3">
-                  <MapPinIcon class="w-4 h-4 inline mr-1" />
-                  {{ event.venue_address }}
-                </p>
               </div>
 
               <!-- Organizer Info -->
-              <div v-if="event.organizer_description || event.organizer_contact_email" class="card">
-                <h2 class="text-2xl font-bold mb-4">
-                  <UserGroupIcon class="w-6 h-6 inline mr-2 text-accent-600" />
+              <div v-if="event.organizer_description || event.organizer_contact_email" 
+                   class="bg-gradient-to-br from-primary-50 to-accent-50 rounded-2xl p-8 shadow-md border-2 border-primary-200">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                  <div class="w-1.5 h-10 bg-gradient-to-b from-primary-600 to-accent-600 rounded-full mr-4"></div>
+                  <UserGroupIcon class="w-7 h-7 mr-2 text-accent-600" />
                   About the Organizer
                 </h2>
                 
-                <div class="flex items-start space-x-4">
+                <div class="flex flex-col md:flex-row items-start gap-6">
                   <div v-if="event.logo_image" class="flex-shrink-0">
                     <img 
                       :src="event.logo_image" 
-                      :alt="event.  organizer_name"
-                      class="w-20 h-20 rounded-lg object-cover border-2 border-gray-200"
+                      :alt="event.organizer_name"
+                      class="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-xl"
                     />
                   </div>
                   
                   <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-3">
                       {{ event.organizer_name }}
                     </h3>
                     
-                    <p v-if="event.organizer_description" class="text-gray-700 mb-3 whitespace-pre-line">
+                    <p v-if="event.organizer_description" class="text-gray-700 mb-4 leading-relaxed whitespace-pre-line">
                       {{ event.organizer_description }}
                     </p>
                     
-                    <div class="space-y-1">
-                      <p v-if="event.organizer_contact_email" class="text-sm text-gray-600">
-                        <span class="font-medium">Email:</span> 
-                        <a :href="`mailto:${event.organizer_contact_email}`" class="text-primary-600 hover:underline">
-                          {{ event. organizer_contact_email }}
-                        </a>
-                      </p>
-                      <p v-if="event.organizer_contact_phone" class="text-sm text-gray-600">
-                        <span class="font-medium">Phone:</span> 
-                        <a :href="`tel:${event.organizer_contact_phone}`" class="text-primary-600 hover:underline">
-                          {{ event.organizer_contact_phone }}
-                        </a>
-                      </p>
+                    <div class="flex flex-wrap gap-3">
+                      <a v-if="event.organizer_contact_email" 
+                         :href="`mailto:${event.organizer_contact_email}`" 
+                         class="inline-flex items-center space-x-2 bg-white px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors shadow-md border border-gray-200 font-medium">
+                        <EnvelopeIcon class="w-5 h-5 text-primary-600" />
+                        <span class="text-sm text-gray-700">{{ event.organizer_contact_email }}</span>
+                      </a>
+                      
+                      <a v-if="event.organizer_contact_phone" 
+                         :href="`tel:${event.organizer_contact_phone}`" 
+                         class="inline-flex items-center space-x-2 bg-white px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors shadow-md border border-gray-200 font-medium">
+                        <PhoneIcon class="w-5 h-5 text-primary-600" />
+                        <span class="text-sm text-gray-700">{{ event.organizer_contact_phone }}</span>
+                      </a>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Terms and Conditions -->
-              <div v-if="event.terms_and_conditions" class="card bg-gray-50 border-2 border-gray-200">
-                <h2 class="text-2xl font-bold mb-4 text-gray-900">
-                  <ExclamationCircleIcon class="w-6 h-6 inline mr-2 text-orange-600" />
+              <!-- Terms & Conditions -->
+              <div v-if="event.terms_and_conditions" 
+                   class="bg-white rounded-2xl p-8 shadow-md border-2 border-orange-200">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                  <div class="w-1.5 h-10 bg-gradient-to-b from-orange-600 to-red-600 rounded-full mr-4"></div>
+                  <ExclamationCircleIcon class="w-7 h-7 mr-2 text-orange-600" />
                   Terms & Conditions
                 </h2>
-                <div class="prose max-w-none">
-                  <p class="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
-                    {{ event.terms_and_conditions }}
+                
+                <div class="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-5 mb-6 border-2 border-orange-300 shadow-sm">
+                  <p class="text-sm text-orange-900 font-bold flex items-start">
+                    <ExclamationCircleIcon class="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+                    <span><strong>Important:</strong> By purchasing tickets, you agree to these terms and conditions.</span>
                   </p>
                 </div>
-                <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p class="text-xs text-yellow-800">
-                    <strong>Important:</strong> By purchasing tickets, you agree to these terms and conditions.
+
+                <div class="prose max-w-none">
+                  <p class="text-gray-700 leading-relaxed whitespace-pre-line">
+                    {{ event.terms_and_conditions }}
                   </p>
                 </div>
               </div>
 
-              <!-- Sessions -->
-              <div v-if="sessions.length > 1" class="card">
-                <h2 class="text-2xl font-bold mb-4">Select Session</h2>
-                <div class="space-y-3">
+              <!-- Sessions (if multiple) -->
+              <div v-if="sessions.length > 1" class="bg-white rounded-2xl p-8 shadow-md border border-gray-200">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                  <div class="w-1.5 h-10 bg-gradient-to-b from-primary-600 to-accent-600 rounded-full mr-4"></div>
+                  <ClockIcon class="w-7 h-7 mr-2 text-success-600" />
+                  Select Session
+                </h2>
+                
+                <div class="grid grid-cols-1 gap-4">
                   <button
                     v-for="session in sessions"
                     :key="session.session_id"
                     @click="selectSession(session)"
                     :class="[
-                      'w-full text-left p-4 rounded-lg border-2 transition-all',
-                      selectedSession?.session_id === session.session_id
-                        ? 'border-primary-600 bg-primary-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                      'group text-left p-6 rounded-xl border-2 transition-all transform hover:scale-[1.02]',
+                      selectedSession?. session_id === session.session_id
+                        ? 'border-primary-600 bg-gradient-to-r from-primary-50 to-accent-50 shadow-xl'
+                        : 'border-gray-200 hover:border-primary-300 bg-white hover:shadow-lg'
                     ]"
                   >
                     <div class="flex items-center justify-between">
                       <div>
-                        <p class="font-semibold">{{ session.title }}</p>
-                        <p class="text-sm text-gray-600">
-                          {{ new Date(session.start_time).toLocaleString() }}
+                        <p class="font-bold text-lg text-gray-900 mb-1">{{ session.title }}</p>
+                        <p class="text-sm text-gray-600 flex items-center">
+                          <ClockIcon class="w-4 h-4 mr-1" />
+                          {{ new Date(session.start_time). toLocaleString() }}
                         </p>
                       </div>
-                      <Badge variant="success" size="md">
-                        {{ session.available_quantity }} left
-                      </Badge>
+                      <div class="text-right">
+                        <Badge 
+                          :variant="session.available_quantity > 50 ? 'success' : 'warning'" 
+                          size="lg"
+                          class="font-bold"
+                        >
+                          {{ session.available_quantity }} left
+                        </Badge>
+                      </div>
                     </div>
                   </button>
                 </div>
               </div>
             </div>
 
-            <!-- Sidebar - Ticket Selection -->
+            <!-- Right Column - Ticket Sidebar -->
             <div class="lg:col-span-1">
               <div class="sticky top-24 space-y-4">
-                <Card 
-                  v-if="earlyAccessInfo?.isActive && !earlyAccessInfo?.isPremium"
-                  class="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-400"
+                <!-- Early Access Warning -->
+                <div 
+                  v-if="earlyAccessInfo?. isActive && ! earlyAccessInfo?. isPremium"
+                  class="bg-gradient-to-br from-yellow-500 to-orange-600 text-white rounded-2xl p-6 shadow-2xl"
                 >
                   <div class="flex items-start space-x-3">
-                    <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <ExclamationCircleIcon class="w-6 h-6 text-yellow-600" />
+                    <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
+                      <StarIcon class="w-7 h-7" />
                     </div>
                     <div class="flex-1">
-                      <h3 class="font-semibold text-yellow-900 mb-1">⭐ Premium Early Access Period</h3>
-                      <p class="text-sm text-yellow-800 mb-3">
+                      <h3 class="font-bold text-xl mb-2">Premium Early Access</h3>
+                      <p class="text-white/90 text-sm mb-4">
                         Premium members are buying now! <br>
-                        Public sale starts in <strong>{{ earlyAccessInfo.minutesRemaining }} minutes</strong>
+                        Public sale in <strong class="text-2xl">{{ earlyAccessInfo.minutesRemaining }}</strong> minutes
                       </p>
                       <Button 
-                        variant="warning" 
-                        size="sm"
-                        class="btn btn-accent"
+                        variant="secondary" 
+                        size="md"
+                        full-width
+                        class="bg-white text-orange-600 hover:bg-gray-100 font-bold"
                         @click="router.push('/participant/membership')"
                       >
+                        <StarIcon class="w-5 h-5 mr-2" />
                         Upgrade to Premium
                       </Button>
                     </div>
                   </div>
-                </Card>
+                </div>
 
-                <div class="card">
-                  <h2 class="text-xl font-bold mb-4">Get Tickets</h2>
-
-                  <!-- No Session Selected -->
-                  <div v-if="sessions.length > 1 && !selectedSession" class="text-center py-8">
-                    <TicketIcon class="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p class="text-gray-600">Please select a session first</p>
+                <!-- Ticket Card -->
+                <div class="bg-white rounded-2xl shadow-xl border-2 border-gray-200 overflow-hidden">
+                  <!-- Header -->
+                  <div class="bg-gradient-to-r from-primary-600 to-accent-600 p-6 text-white">
+                    <h2 class="text-2xl font-bold flex items-center">
+                      <TicketIcon class="w-7 h-7 mr-2" />
+                      Get Tickets
+                    </h2>
                   </div>
 
-                  <!-- Loading Tickets -->
-                  <div v-else-if="loadingTickets" class="flex justify-center py-8">
-                    <Spinner />
-                  </div>
-
-                  <!-- Ticket Selector -->
-                  <div v-else-if="ticketTypes.length > 0">
-                    <div v-if="earlyAccessInfo?.isActive && earlyAccessInfo?. isPremium" class="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-300 rounded-lg">
-                      <div class="flex items-center space-x-2 text-sm">
-                        <StarIcon class="w-5 h-5 text-yellow-600" />
-                        <span class="font-semibold text-yellow-900">
-                          Premium Early Access Active!
-                        </span>
+                  <!-- Content -->
+                  <div class="p-6">
+                    <!-- No Session Selected -->
+                    <div v-if="sessions.length > 1 && ! selectedSession" class="text-center py-12">
+                      <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <TicketIcon class="w-10 h-10 text-gray-400" />
                       </div>
-                      <p class="text-xs text-yellow-800 mt-1">
-                        Remaining {{ earlyAccessInfo.minutesRemaining }} minutes before public sale
-                      </p>
+                      <p class="text-gray-600 font-medium">Please select a session first</p>
                     </div>
 
-                    <TicketSelector
-                      v-model="selectedTickets"
-                      :ticket-types="ticketTypes"
-                      :max-per-order="10"
-                    />
+                    <!-- Loading Tickets -->
+                    <div v-else-if="loadingTickets" class="flex flex-col justify-center items-center py-12">
+                      <Spinner size="lg" />
+                      <p class="text-gray-500 mt-3">Loading tickets...</p>
+                    </div>
 
-                    <div class="mt-6 space-y-3">
-                      <Button
-                        variant="primary"
-                        size="lg"
-                        full-width
-                        :disabled="!canPurchase || joiningQueue"
-                        @click="handlePurchase"
-                      >
-                        <Spinner v-if="joiningQueue" size="sm" class="mr-2" />
-                        <TicketIcon v-else class="w-5 h-5" />
-                        {{ joiningQueue ? 'Joining Queue...' : 'Buy Tickets' }}
-                      </Button>
+                    <!-- Ticket Selector -->
+                    <div v-else-if="ticketTypes.length > 0" class="space-y-4">
+                      <!-- Premium Badge -->
+                      <div v-if="earlyAccessInfo?. isActive && earlyAccessInfo?. isPremium" 
+                           class="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl p-4">
+                        <div class="flex items-center space-x-2 mb-1">
+                          <StarIcon class="w-5 h-5 text-yellow-600" />
+                          <span class="font-bold text-yellow-900">Premium Early Access! </span>
+                        </div>
+                        <p class="text-xs text-yellow-800">
+                          You have {{ earlyAccessInfo.minutesRemaining }} minutes advantage
+                        </p>
+                      </div>
 
-                      <p v-if="! canPurchase && selectedTickets.length > 0" class="text-sm text-center text-orange-600">
-                        {{ earlyAccessInfo?. isActive && ! earlyAccessInfo?.isPremium 
-                           ? '⏰ Upgrade to Premium to buy now' 
-                           : 'Please select tickets' }}
-                      </p>
+                      <TicketSelector
+                        v-model="selectedTickets"
+                        :ticket-types="ticketTypes"
+                        :max-per-order="10"
+                      />
 
-                      <div class="flex space-x-2">
+                      <div class="space-y-3 pt-4">
                         <Button
-                          variant="secondary"
+                          variant="primary"
+                          size="lg"
                           full-width
-                          @click="handleShare"
+                          :disabled="!canPurchase || joiningQueue"
+                          @click="handlePurchase"
+                          class="font-bold text-lg shadow-lg"
                         >
-                          <ShareIcon class="w-5 h-5" />
-                          Share
+                          <Spinner v-if="joiningQueue" size="sm" class="mr-2" />
+                          <TicketIcon v-else class="w-6 h-6 mr-2" />
+                          {{ buyButtonText }}
                         </Button>
-                        <Button
-                          variant="secondary"
-                          @click="() => {}"
-                        >
-                          <HeartIcon class="w-5 h-5" />
-                        </Button>
+
+                        <p v-if="! canPurchase && selectedTickets.length > 0" 
+                           class="text-sm text-center text-orange-600 font-medium">
+                          {{ earlyAccessInfo?. isActive && ! earlyAccessInfo?.isPremium 
+                             ? '⏰ Upgrade to Premium to buy now' 
+                             : 'Please select tickets' }}
+                        </p>
+
+                        <!-- Share Buttons -->
+                        <div class="grid grid-cols-2 gap-2 pt-2">
+                          <Button
+                            variant="secondary"
+                            @click="handleShare"
+                            class="flex items-center justify-center"
+                          >
+                            <ShareIcon class="w-5 h-5 mr-2" />
+                            Share
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            @click="() => {}"
+                            class="flex items-center justify-center"
+                          >
+                            <HeartIcon class="w-5 h-5 mr-2" />
+                            Save
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <!-- No Tickets -->
-                  <div v-else class="text-center py-8">
-                    <TicketIcon class="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p class="text-gray-600">No tickets available</p>
+                    <!-- No Tickets -->
+                    <div v-else class="text-center py-12">
+                      <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <TicketIcon class="w-10 h-10 text-gray-400" />
+                      </div>
+                      <p class="text-gray-600 font-medium mb-2">No tickets available</p>
+                      <p class="text-sm text-gray-500">Check back later for updates</p>
+                    </div>
                   </div>
+                </div>
+
+                <!-- Event Safety Notice -->
+                <div class="bg-blue-50 rounded-xl p-5 border border-blue-200">
+                  <h3 class="font-bold text-blue-900 mb-2 flex items-center">
+                    <ExclamationCircleIcon class="w-5 h-5 mr-2" />
+                    Event Safety
+                  </h3>
+                  <p class="text-sm text-blue-800">
+                    Your safety is our priority. Please follow all venue guidelines and event policies.
+                  </p>
                 </div>
               </div>
             </div>
