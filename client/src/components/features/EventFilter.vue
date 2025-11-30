@@ -29,7 +29,7 @@ const defaultState = {
   sort: 'date_asc'
 }
 
-const filters = ref({ ...defaultState, ...props.modelValue })
+const filters = ref({ ...defaultState, ...props. modelValue })
 
 watch(() => props.modelValue, (newVal) => {
   filters.value = { 
@@ -47,7 +47,7 @@ const sortOptions = [
 ]
 
 const applyFilters = () => {
-  const filtersToEmit = { ...filters.value }
+  const filtersToEmit = { ...filters. value }
   emit('update:modelValue', filtersToEmit)
   emit('apply', filtersToEmit)
   showFilters.value = false
@@ -66,7 +66,7 @@ const clearFilters = () => {
 const hasActiveFilters = () => {
   const f = filters.value
   
-  const hasCategory = f.category && f.category !== ''
+  const hasCategory = f. category && f.category !== ''
   const hasCity = f.city && f.city. trim() !== ''
   const hasDateFrom = f.dateFrom && f.dateFrom !== ''
   const hasDateTo = f.dateTo && f.dateTo !== ''
@@ -86,8 +86,8 @@ const hasActiveFilters = () => {
       @click="showFilters = ! showFilters"
       class="relative whitespace-nowrap"
     >
-      <FunnelIcon class="w-5 h-5" />
-      <span>Filters</span>
+      <FunnelIcon class=" inline-flex w-5 h-5" />
+      <span class="ml-1">Filters</span>
       
       <!-- Active Indicator -->
       <span 
@@ -138,7 +138,7 @@ const hasActiveFilters = () => {
           <h3 class="font-bold text-lg text-gray-900">Filter Events</h3>
           <button 
             @click="showFilters = false" 
-            class="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-200 rounded-lg"
+            class="text-gray-500 hover:text-gray-700 transition-colors p-1 hover:bg-gray-200 rounded-lg"
           >
             <XMarkIcon class="w-5 h-5" />
           </button>
@@ -148,10 +148,10 @@ const hasActiveFilters = () => {
         <div class="px-5 py-4 space-y-4 overflow-y-auto max-h-[calc(100vh-280px)]">
           <!-- Category -->
           <div>
-            <label class="label text-sm">Category</label>
-            <select v-model="filters.category" class="select w-full text-sm">
-              <option value="">All Categories</option>
-              <option v-for="category in categories" :key="category.id" :value="category.id">
+            <label class="block text-sm font-semibold text-gray-700 mb-1. 5">Category</label>
+            <select v-model="filters. category" class="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+              <option value="" class="text-gray-900">All Categories</option>
+              <option v-for="category in categories" :key="category.id" :value="category.id" class="text-gray-900">
                 {{ category.name }}
               </option>
             </select>
@@ -159,37 +159,37 @@ const hasActiveFilters = () => {
 
           <!-- Date Range -->
           <div>
-            <label class="label text-sm">Date Range</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Date Range</label>
             <div class="grid grid-cols-2 gap-2">
               <input 
                 v-model="filters.dateFrom" 
                 type="date" 
-                class="input w-full text-sm" 
+                class="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
               />
               <input 
                 v-model="filters.dateTo" 
                 type="date" 
-                class="input w-full text-sm" 
+                class="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
               />
             </div>
           </div>
 
           <!-- Price Range -->
           <div>
-            <label class="label text-sm">Price Range (VND)</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Price Range (VND)</label>
             <div class="grid grid-cols-2 gap-2">
               <input 
-                v-model.number="filters.minPrice" 
+                v-model.number="filters. minPrice" 
                 type="number" 
                 placeholder="Min" 
-                class="input w-full text-sm" 
+                class="w-full px-3 py-2 text-sm text-gray-900 placeholder-gray-400 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
                 min="0"
               />
               <input 
                 v-model.number="filters. maxPrice" 
                 type="number" 
                 placeholder="Max" 
-                class="input w-full text-sm" 
+                class="w-full px-3 py-2 text-sm text-gray-900 placeholder-gray-400 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
                 min="0"
               />
             </div>
@@ -197,20 +197,20 @@ const hasActiveFilters = () => {
 
           <!-- City -->
           <div>
-            <label class="label text-sm">City</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">City</label>
             <input 
-              v-model="filters. city" 
+              v-model="filters.city" 
               type="text" 
               placeholder="Enter city..." 
-              class="input w-full text-sm" 
+              class="w-full px-3 py-2 text-sm text-gray-900 placeholder-gray-400 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
             />
           </div>
 
           <!-- Sort -->
           <div>
-            <label class="label text-sm">Sort By</label>
-            <select v-model="filters.sort" class="select w-full text-sm">
-              <option v-for="option in sortOptions" :key="option. value" :value="option.value">
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Sort By</label>
+            <select v-model="filters.sort" class="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+              <option v-for="option in sortOptions" :key="option. value" :value="option.value" class="text-gray-900">
                 {{ option.label }}
               </option>
             </select>

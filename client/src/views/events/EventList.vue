@@ -255,15 +255,15 @@ watch(() => route.query. search, (newSearch) => {
                 @keyup.enter="handleSearch"
                 type="text"
                 placeholder="Search events by name, location, organizer..."
-                class="w-full px-4 py-3 pl-11 text-gray-900 bg-white rounded-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                class="w-full h-12 px-4 pl-11 text-gray-900 bg-white rounded-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
-              <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             <!-- Search Button -->
             <button 
               @click="handleSearch"
-              class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors shadow-lg whitespace-nowrap"
+              class="h-12 bg-primary-600 hover:bg-primary-700 text-white px-6 rounded-xl font-semibold transition-colors shadow-lg whitespace-nowrap"
             >
               Search
             </button>
