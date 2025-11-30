@@ -59,7 +59,7 @@ const stats = [
 onMounted(async () => {
   try {
     const response = await eventsAPI.getFeaturedEvents({ limit: 6 })
-    featuredEvents. value = response.data.events || []
+    featuredEvents.value = response.data.events || []
   } catch (error) {
     console.error('Failed to load featured events:', error)
   } finally {

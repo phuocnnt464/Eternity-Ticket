@@ -6,7 +6,7 @@ import EventCard from '@/components/features/EventCard.vue'
 import EventFilter from '@/components/features/EventFilter.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import Spinner from '@/components/common/Spinner.vue'
-import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
+import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,7 +14,7 @@ const router = useRouter()
 const events = ref([])
 const categories = ref([])
 const loading = ref(true)
-const error = ref(null) 
+const error = ref(null)
 const searchQuery = ref(route.query.search || '')
 
 const pagination = ref({
@@ -41,7 +41,7 @@ const filters = ref({
   category: route.query.category || '',
   city: route.query.city || '',
   dateFrom: route.query.dateFrom || '',
-  dateTo: route.query.dateTo || '',
+  dateTo: route. query.dateTo || '',
   minPrice: route.query.minPrice || '',
   maxPrice: route.query.maxPrice || '',
   status: 'approved',
@@ -50,7 +50,7 @@ const filters = ref({
 
 const fetchEvents = async () => {
   loading.value = true
-  error.value = null
+  error. value = null
 
   try {
     const params = {
@@ -59,9 +59,8 @@ const fetchEvents = async () => {
       status: 'approved'
     }
 
-    // Chỉ thêm params nếu có giá trị và không rỗng
     if (filters.value.search && filters.value.search.trim()) {
-      params.search = filters.value.search.trim()
+      params.search = filters.value.search. trim()
     }
     
     if (filters.value.category && filters.value.category.trim()) {
@@ -74,12 +73,10 @@ const fetchEvents = async () => {
 
     const response = await eventsAPI.getPublicEvents(params)
 
-    const responseData = response.data.data || response.data
+    const responseData = response.data. data || response.data
     let eventsList = responseData.events || responseData || []
     
-    // CLIENT-SIDE FILTERING cho các filter chưa được backend hỗ trợ
-    
-    // Filter theo date range
+    // CLIENT-SIDE FILTERING
     if (filters.value.dateFrom) {
       eventsList = eventsList.filter(e => {
         const eventDate = new Date(e.start_date)
@@ -96,11 +93,10 @@ const fetchEvents = async () => {
       })
     }
     
-    // Filter theo price range
     if (filters.value.minPrice) {
       eventsList = eventsList.filter(e => {
         const minPrice = e.min_price || 0
-        return minPrice >= parseFloat(filters.value.minPrice)
+        return minPrice >= parseFloat(filters. value.minPrice)
       })
     }
     
@@ -112,13 +108,13 @@ const fetchEvents = async () => {
     }
     
     // Sort
-    if (filters.value.sort) {
+    if (filters.value. sort) {
       switch (filters.value.sort) {
         case 'date_asc':
           eventsList.sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
           break
         case 'date_desc':
-          eventsList.sort((a, b) => new Date(b.start_date) - new Date(a.start_date))
+          eventsList.sort((a, b) => new Date(b.start_date) - new Date(a. start_date))
           break
         case 'price_asc':
           eventsList.sort((a, b) => (a.min_price || 0) - (b.min_price || 0))
@@ -127,17 +123,17 @@ const fetchEvents = async () => {
           eventsList.sort((a, b) => (b.min_price || 0) - (a.min_price || 0))
           break
         case 'popular':
-          eventsList.sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+          eventsList.sort((a, b) => (b. view_count || 0) - (a.view_count || 0))
           break
       }
     }
     
     events.value = eventsList
-    pagination.value.totalItems = response.data.pagination?.total || eventsList.length
+    pagination.value.totalItems = response.data.pagination?. total || eventsList.length
     pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
-  } catch (error) {
-    console.error('Failed to fetch events:', error)
-    error.value = err.response?.data?.error?.message || 'Failed to load events'
+  } catch (err) {
+    console.error('Failed to fetch events:', err)
+    error.value = err.response?. data?.error?. message || 'Failed to load events'
   } finally {
     loading.value = false
   }
@@ -149,7 +145,7 @@ const fetchCategories = async () => {
     let cats = response.data.categories || []
 
     cats = cats.sort((a, b) => {
-      if (a.name.toLowerCase() === 'others') return 1
+      if (a.name. toLowerCase() === 'others') return 1
       if (b.name.toLowerCase() === 'others') return -1
       return a.name.localeCompare(b.name)
     })
@@ -161,8 +157,7 @@ const fetchCategories = async () => {
 }
 
 const handleSearch = () => {
-  filters.value.search = searchQuery.value 
-  filters.value = { ...filters.value }
+  filters.value.search = searchQuery. value
   pagination.value.currentPage = 1
   updateQueryParams()
   fetchEvents()
@@ -170,7 +165,6 @@ const handleSearch = () => {
 
 const handleFilterApply = (newFilters) => {
   filters.value = newFilters
-  // Đồng bộ ngược lại ô search nếu filter thay đổi search
   if (newFilters.search !== undefined) {
     searchQuery.value = newFilters.search
   }
@@ -179,14 +173,6 @@ const handleFilterApply = (newFilters) => {
   updateQueryParams()
   fetchEvents()
 }
-// const handleFilterApply = (newFilters) => {
-//   console.log('🔍 [EventList] Received filters from EventFilter:', newFilters)
-//   filters.value = newFilters
-//   console.log('🔍 [EventList] Updated filters.value:', filters.value)
-//   pagination.value.currentPage = 1
-//   updateQueryParams()
-//   fetchEvents()
-// }
 
 const handlePageChange = (page) => {
   pagination.value.currentPage = page
@@ -197,45 +183,41 @@ const handlePageChange = (page) => {
 
 const updateQueryParams = () => {
   const query = {
-    page: pagination.value.currentPage,
+    page: pagination.value. currentPage,
     search: searchQuery.value || undefined,
     category: filters.value.category || undefined,
     dateFrom: filters.value.dateFrom || undefined,
     dateTo: filters.value.dateTo || undefined,
-    minPrice: filters.value.minPrice || undefined,
-    maxPrice: filters.value.maxPrice || undefined,
+    minPrice: filters. value.minPrice || undefined,
+    maxPrice: filters.value. maxPrice || undefined,
     sort: filters.value.sort
   }
 
-  // Remove undefined values
   Object.keys(query).forEach(key => query[key] === undefined && delete query[key])
-
   router.replace({ query })
 }
 
 const handleClearAll = () => {
-  // Xóa ô tìm kiếm
   searchQuery.value = ''
-  
-  // Reset filters về mặc định
-  // Việc gán lại object mới này sẽ kích hoạt cái `watch` bên trong EventFilter
-  // giúp EventFilter tự động xóa trắng các ô input.
   filters.value = { ...defaultFilters }
-  
-  // Reset trang về 1
   pagination.value.currentPage = 1
-  
-  // Cập nhật URL và gọi API
   updateQueryParams()
   fetchEvents()
 }
+
+const hasActiveFilters = computed(() => {
+  return filters.value.category || filters.value.city || 
+         filters.value.dateFrom || filters.value.dateTo ||
+         filters.value.minPrice || filters.value.maxPrice ||
+         searchQuery.value
+})
 
 onMounted(async () => {
   await fetchCategories()
   await fetchEvents()
 })
 
-watch(() => route.query.search, (newSearch) => {
+watch(() => route.query. search, (newSearch) => {
   if (newSearch !== searchQuery.value) {
     searchQuery.value = newSearch || ''
     fetchEvents()
@@ -244,63 +226,142 @@ watch(() => route.query.search, (newSearch) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <section class="bg-white border-b py-8">
-      <div class="container-custom">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Browse Events</h1>
-        <p class="text-gray-600">Discover amazing events happening near you</p>
+  <div class="min-h-screen bg-white">
+    <!-- Compact Hero Section -->
+    <section class="relative bg-gradient-to-br from-dark-900 via-primary-900 to-black text-white py-12 overflow-hidden">
+      <!-- Background Pattern -->
+      <div class="absolute inset-0 opacity-10">
+        <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;"></div>
       </div>
-    </section>
 
-    <!-- Search & Filter Bar -->
-    <section class="bg-white border-b py-4 sticky top-16 z-10">
-      <div class="container-custom">
-        <div class="flex items-center space-x-4">
-          <!-- Search -->
-          <div class="flex-1 max-w-md">
-            <div class="relative">
-              <input
-                v-model="searchQuery"
-                @keyup.enter="handleSearch"
-                type="text"
-                placeholder="Search events..."
-                class="input pl-10"
+      <!-- Decorative blobs -->
+      <div class="absolute top-0 right-0 w-72 h-72 bg-primary-500 rounded-full blur-3xl opacity-20"></div>
+      <div class="absolute bottom-0 left-0 w-72 h-72 bg-accent-500 rounded-full blur-3xl opacity-20"></div>
+
+      <div class="container-custom relative z-10">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <!-- Title -->
+          <div>
+            <h1 class="text-3xl md:text-4xl font-bold mb-2">
+              Discover Events
+            </h1>
+            <p class="text-gray-300">
+              {{ pagination.totalItems }}+ amazing events available
+            </p>
+          </div>
+
+          <!-- Search + Filter Inline -->
+          <div class="flex-1 max-w-2xl">
+            <div class="flex gap-2">
+              <!-- Search Bar -->
+              <div class="flex-1 relative">
+                <input
+                  v-model="searchQuery"
+                  @keyup.enter="handleSearch"
+                  type="text"
+                  placeholder="Search events..."
+                  class="w-full px-4 py-3 pl-11 text-gray-900 bg-white rounded-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
+
+              <!-- Search Button -->
+              <button 
+                @click="handleSearch"
+                class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors shadow-lg whitespace-nowrap"
+              >
+                Search
+              </button>
+
+              <!-- Filter Button -->
+              <EventFilter
+                v-model="filters"
+                :categories="categories"
+                @apply="handleFilterApply"
               />
-              <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
           </div>
+        </div>
 
-          <!-- Filter -->
-          <EventFilter
-            v-model="filters"
-            :categories="categories"
-            @apply="handleFilterApply"
-          />
+        <!-- Active Filters Pills -->
+        <div v-if="hasActiveFilters" class="flex flex-wrap gap-2 mt-4">
+          <span v-if="searchQuery" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
+            🔍 "{{ searchQuery }}"
+          </span>
+          <span v-if="filters.category" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
+            📂 {{ categories.find(c => c.id == filters.category)?.name }}
+          </span>
+          <span v-if="filters.city" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
+            📍 {{ filters.city }}
+          </span>
+          <span v-if="filters.dateFrom || filters.dateTo" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
+            📅 {{ filters.dateFrom || 'Start' }} - {{ filters.dateTo || 'End' }}
+          </span>
+          <span v-if="filters.minPrice || filters.maxPrice" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
+            💰 {{ filters.minPrice || '0' }} - {{ filters.maxPrice || '∞' }}
+          </span>
+          <button
+            @click="handleClearAll"
+            class="inline-flex items-center bg-red-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
+          >
+            <XMarkIcon class="w-4 h-4 mr-1" />
+            Clear All
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- Results -->
-    <section class="py-8">
+    <!-- Results Section -->
+    <section class="py-8 bg-gray-50">
       <div class="container-custom">
-        <!-- Results Info -->
-        <div class="flex items-center justify-between mb-6">
-          <div class="text-sm text-gray-600">
-            <span v-if="!loading">
-              Showing <strong>{{ events.length }}</strong> of <strong>{{ pagination.totalItems }}</strong> events
-            </span>
+        <!-- Results Header with Sort -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 bg-white p-4 rounded-xl shadow-sm">
+          <div>
+            <h2 class="text-xl font-bold text-gray-900">
+              <span v-if="! loading">{{ events.length }}</span>
+              <span v-if="pagination.totalItems > events.length"> of {{ pagination.totalItems }}</span>
+              Event<span v-if="pagination.totalItems !== 1">s</span>
+            </h2>
+          </div>
+          
+          <!-- Sort Dropdown -->
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-600">Sort:</span>
+            <select
+              v-model="filters.sort"
+              @change="handleFilterApply(filters)"
+              class="select ! py-2 text-sm border-gray-300"
+            >
+              <option value="date_asc">📅 Date (Earliest)</option>
+              <option value="date_desc">📅 Date (Latest)</option>
+              <option value="price_asc">💰 Price (Low to High)</option>
+              <option value="price_desc">💰 Price (High to Low)</option>
+              <option value="popular">🔥 Most Popular</option>
+            </select>
           </div>
         </div>
 
-        <!-- Loading -->
-        <div v-if="loading" class="flex justify-center py-20">
+        <!-- Loading State -->
+        <div v-if="loading" class="flex flex-col items-center justify-center py-20">
           <Spinner size="xl" />
+          <p class="text-gray-500 mt-4 text-lg">Finding amazing events...</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="error" class="text-center py-20 bg-white rounded-2xl shadow-lg">
+          <div class="w-24 h-24 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
+            <XMarkIcon class="w-12 h-12 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-2">Oops! Something went wrong</h3>
+          <p class="text-gray-600 mb-8 max-w-md mx-auto">{{ error }}</p>
+          <button @click="fetchEvents" class="btn btn-primary btn-lg shadow-xl">
+            Try Again
+          </button>
         </div>
 
         <!-- Events Grid -->
         <div v-else-if="events.length > 0">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
             <EventCard
               v-for="event in events"
               :key="event.event_id"
@@ -309,7 +370,7 @@ watch(() => route.query.search, (newSearch) => {
           </div>
 
           <!-- Pagination -->
-          <div v-if="pagination.totalPages > 1" class="flex justify-center mt-8">
+          <div v-if="pagination.totalPages > 1" class="flex justify-center">
             <Pagination
               v-model:current-page="pagination.currentPage"
               :total-pages="pagination.totalPages"
@@ -319,18 +380,25 @@ watch(() => route.query.search, (newSearch) => {
         </div>
 
         <!-- Empty State -->
-        <div v-else class="text-center py-20">
-          <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MagnifyingGlassIcon class="w-10 h-10 text-gray-400" />
+        <div v-else class="text-center py-20 bg-white rounded-2xl shadow-lg">
+          <div class="relative inline-block mb-8">
+            <div class="w-32 h-32 bg-gradient-to-br from-primary-100 to-accent-100 rounded-full flex items-center justify-center mx-auto">
+              <MagnifyingGlassIcon class="w-16 h-16 text-primary-600" />
+            </div>
+            <div class="absolute -top-2 -right-2 w-12 h-12 bg-accent-500 rounded-full flex items-center justify-center shadow-lg">
+              <span class="text-white text-2xl font-bold">0</span>
+            </div>
           </div>
-          <h3 class="text-xl font-semibold text-gray-900 mb-2">No events found</h3>
-          <p class="text-gray-600 mb-6">Try adjusting your search or filters</p>
-          <!-- <button @click="() => { searchQuery = ''; filters = { status: 'approved', sort: 'date_asc' }; handleSearch(); }" class="btn-secondary"> -->
+          <h3 class="text-3xl font-bold text-gray-900 mb-3">No Events Found</h3>
+          <p class="text-lg text-gray-600 mb-8 max-w-md mx-auto">
+            We couldn't find any events matching your criteria. Try adjusting your search or filters.
+          </p>
           <button 
             @click="handleClearAll" 
-            class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+            class="inline-flex items-center bg-gradient-to-r from-primary-600 to-accent-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all"
           >  
-            Clear Filters
+            <XMarkIcon class="w-6 h-6 mr-2" />
+            Clear All Filters
           </button>
         </div>
       </div>
