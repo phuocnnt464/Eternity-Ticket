@@ -481,9 +481,83 @@ onBeforeUnmount(() => {
               </div>
 
               <!-- Venue Map -->
-              <div v-if="event.venue_map" class="card">
-                <h2 class="text-2xl font-bold mb-4">Venue</h2>
-                <img :src="event.venue_map" alt="Venue Map" class="w-full rounded-lg" />
+              <div v-if="event.venue_map_image" class="card">
+                <h2 class="text-2xl font-bold mb-4">
+                  <MapPinIcon class="w-6 h-6 inline mr-2 text-primary-600" />
+                  Venue Map
+                </h2>
+                <div class="rounded-xl overflow-hidden border-2 border-gray-200">
+                  <img 
+                    :src="event. venue_map_image" 
+                    :alt="`${event.venue_name} map`" 
+                    class="w-full h-auto object-contain bg-gray-50"
+                  />
+                </div>
+                <p v-if="event.venue_address" class="text-sm text-gray-600 mt-3">
+                  <MapPinIcon class="w-4 h-4 inline mr-1" />
+                  {{ event.venue_address }}
+                </p>
+              </div>
+
+              <!-- Organizer Info -->
+              <div v-if="event.organizer_description || event.organizer_contact_email" class="card">
+                <h2 class="text-2xl font-bold mb-4">
+                  <UserGroupIcon class="w-6 h-6 inline mr-2 text-accent-600" />
+                  About the Organizer
+                </h2>
+                
+                <div class="flex items-start space-x-4">
+                  <div v-if="event.logo_image" class="flex-shrink-0">
+                    <img 
+                      :src="event.logo_image" 
+                      :alt="event.  organizer_name"
+                      class="w-20 h-20 rounded-lg object-cover border-2 border-gray-200"
+                    />
+                  </div>
+                  
+                  <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                      {{ event.organizer_name }}
+                    </h3>
+                    
+                    <p v-if="event.organizer_description" class="text-gray-700 mb-3 whitespace-pre-line">
+                      {{ event.organizer_description }}
+                    </p>
+                    
+                    <div class="space-y-1">
+                      <p v-if="event.organizer_contact_email" class="text-sm text-gray-600">
+                        <span class="font-medium">Email:</span> 
+                        <a :href="`mailto:${event.organizer_contact_email}`" class="text-primary-600 hover:underline">
+                          {{ event. organizer_contact_email }}
+                        </a>
+                      </p>
+                      <p v-if="event.organizer_contact_phone" class="text-sm text-gray-600">
+                        <span class="font-medium">Phone:</span> 
+                        <a :href="`tel:${event.organizer_contact_phone}`" class="text-primary-600 hover:underline">
+                          {{ event.organizer_contact_phone }}
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Terms and Conditions -->
+              <div v-if="event.terms_and_conditions" class="card bg-gray-50 border-2 border-gray-200">
+                <h2 class="text-2xl font-bold mb-4 text-gray-900">
+                  <ExclamationCircleIcon class="w-6 h-6 inline mr-2 text-orange-600" />
+                  Terms & Conditions
+                </h2>
+                <div class="prose max-w-none">
+                  <p class="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
+                    {{ event.terms_and_conditions }}
+                  </p>
+                </div>
+                <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p class="text-xs text-yellow-800">
+                    <strong>Important:</strong> By purchasing tickets, you agree to these terms and conditions.
+                  </p>
+                </div>
               </div>
 
               <!-- Sessions -->

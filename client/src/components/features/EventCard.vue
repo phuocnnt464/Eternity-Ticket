@@ -82,7 +82,7 @@ const statusBadge = computed(() => {
 
 <template>
   <RouterLink 
-    :to="`/events/${event.slug || event.id}`"
+    :to="`/events/${event.slug}`"
     :class="[
       'card block overflow-hidden group',
       hover && 'card-hover'
