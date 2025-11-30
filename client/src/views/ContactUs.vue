@@ -6,7 +6,9 @@ import {
   EnvelopeIcon,
   PhoneIcon,
   MapPinIcon,
-  UserIcon
+  ClockIcon,
+  ChatBubbleLeftRightIcon,
+  QuestionMarkCircleIcon
 } from '@heroicons/vue/24/outline'
 
 const form = ref({
@@ -32,7 +34,7 @@ const validate = () => {
 }
 
 const handleSubmit = async () => {
-  if (!validate()) return
+  if (! validate()) return
   
   loading.value = true
   
@@ -53,146 +55,196 @@ const contactInfo = [
     icon: EnvelopeIcon,
     title: 'Email',
     value: 'support@eternityticket.com',
-    link: 'mailto:support@eternityticket.com'
+    link: 'mailto:support@eternityticket.com',
+    gradient: 'from-primary-500 to-primary-700'
   },
   {
     icon: PhoneIcon,
     title: 'Phone',
     value: '+84 123 456 789',
-    link: 'tel:+84123456789'
+    link: 'tel:+84123456789',
+    gradient: 'from-success-500 to-success-700'
   },
   {
     icon: MapPinIcon,
-    title: 'Address',
-    value: '123 Business St, Ho Chi Minh City, Vietnam',
-    link: null
+    title: 'Office',
+    value: '123 Business St, District 1, Ho Chi Minh City, Vietnam',
+    link: null,
+    gradient: 'from-accent-500 to-accent-700'
+  },
+  {
+    icon: ClockIcon,
+    title: 'Working Hours',
+    value: 'Mon - Fri: 9:00 AM - 6:00 PM',
+    link: null,
+    gradient: 'from-primary-600 to-accent-600'
+  }
+]
+
+const faqs = [
+  {
+    icon: QuestionMarkCircleIcon,
+    question: 'How do I purchase tickets?',
+    answer: 'Browse events, select your tickets, and complete the secure checkout process.'
+  },
+  {
+    icon: QuestionMarkCircleIcon,
+    question: 'Can I get a refund?',
+    answer: 'Refund policies vary by event. Check the event details or contact the organizer.'
+  },
+  {
+    icon: QuestionMarkCircleIcon,
+    question: 'How do I become an organizer?',
+    answer: 'Sign up with an organizer account and start creating your events right away.'
   }
 ]
 </script>
 
 <template>
-  <div>
+  <div class="bg-white">
     <!-- Hero Section -->
-    <section class="bg-gradient-to-br from-primary-600 to-accent-600 text-white py-20">
-      <div class="container-custom text-center">
-        <h1 class="text-4xl md:text-5xl font-bold mb-4">Contact Us</h1>
-        <p class="text-xl text-primary-100 max-w-2xl mx-auto">
-          Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+    <section class="relative bg-gradient-to-br from-dark-900 via-primary-900 to-black text-white py-24 overflow-hidden">
+      <div class="absolute inset-0 opacity-10">
+        <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;"></div>
+      </div>
+
+      <div class="container-custom relative z-10 text-center">
+        <div class="inline-flex items-center space-x-2 bg-primary-500/20 backdrop-blur-sm border border-primary-500/30 rounded-full px-4 py-2 mb-6">
+          <ChatBubbleLeftRightIcon class="w-4 h-4 text-primary-400" />
+          <span class="text-sm font-medium text-primary-300">We're here to help</span>
+        </div>
+
+        <h1 class="text-5xl md:text-6xl font-bold mb-6">Get in Touch</h1>
+        <p class="text-xl text-gray-300 max-w-2xl mx-auto">
+          Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible. 
         </p>
       </div>
+
+      <div class="absolute top-20 right-10 w-72 h-72 bg-primary-500 rounded-full blur-3xl opacity-20"></div>
+      <div class="absolute bottom-20 left-10 w-96 h-96 bg-accent-500 rounded-full blur-3xl opacity-20"></div>
     </section>
 
-    <!-- Contact Section -->
-    <section class="py-16">
+    <!-- Main Content -->
+    <section class="py-20">
       <div class="container-custom">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <!-- Contact Info -->
-          <div class="lg:col-span-1">
-            <h2 class="text-2xl font-bold mb-6">Get in Touch</h2>
-            <div class="space-y-6">
-              <div
-                v-for="info in contactInfo"
-                :key="info.title"
-                class="flex items-start space-x-4"
-              >
-                <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <component :is="info.icon" class="w-6 h-6 text-primary-600" />
-                </div>
-                <div>
-                  <h3 class="font-semibold mb-1">{{ info.title }}</h3>
-                  <a
-                    v-if="info.link"
-                    :href="info.link"
-                    class="text-gray-600 hover:text-primary-600"
-                  >
-                    {{ info.value }}
-                  </a>
-                  <p v-else class="text-gray-600">{{ info.value }}</p>
-                </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <!-- Contact Form -->
+          <div>
+            <div class="mb-8">
+              <h2 class="text-3xl font-bold text-gray-900 mb-2">Send us a Message</h2>
+              <p class="text-gray-600">Fill out the form and our team will get back to you within 24 hours</p>
+            </div>
+
+            <!-- Success Message -->
+            <div v-if="success" class="bg-success-50 border-2 border-success-500 text-success-800 px-6 py-4 rounded-xl mb-6 animate-fade-in">
+              <div class="flex items-center">
+                <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <p class="font-semibold">Message sent successfully!  We'll get back to you soon.</p>
               </div>
             </div>
 
-            <div class="mt-8">
-              <h3 class="font-semibold mb-4">Follow Us</h3>
-              <div class="flex space-x-4">
-                <a href="#" class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center hover:bg-primary-600 hover:text-white transition-colors">
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
-                  </svg>
-                </a>
-                <a href="#" class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center hover:bg-primary-600 hover:text-white transition-colors">
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                  </svg>
-                </a>
-                <a href="#" class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center hover:bg-primary-600 hover:text-white transition-colors">
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                  </svg>
-                </a>
+            <form @submit.prevent="handleSubmit" class="space-y-6">
+              <Input
+                v-model="form.name"
+                label="Your Name"
+                placeholder="John Doe"
+                :error="errors.name"
+                required
+              />
+
+              <Input
+                v-model="form.email"
+                type="email"
+                label="Email Address"
+                placeholder="your.email@example.com"
+                :error="errors.email"
+                :icon="EnvelopeIcon"
+                required
+              />
+
+              <Input
+                v-model="form.subject"
+                label="Subject"
+                placeholder="How can we help you?"
+                :error="errors.subject"
+                required
+              />
+
+              <div>
+                <label class="label label-required">Message</label>
+                <textarea
+                  v-model="form.message"
+                  rows="6"
+                  placeholder="Tell us more about your inquiry..."
+                  :class="['textarea', errors.message && 'input-error']"
+                ></textarea>
+                <p v-if="errors.message" class="error-text">{{ errors.message }}</p>
               </div>
-            </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                :loading="loading"
+                full-width
+                size="lg"
+              >
+                <EnvelopeIcon class="w-5 h-5 mr-2" />
+                Send Message
+              </Button>
+            </form>
           </div>
 
-          <!-- Contact Form -->
-          <div class="lg:col-span-2">
-            <div class="card">
-              <h2 class="text-2xl font-bold mb-6">Send us a Message</h2>
-
-              <div v-if="success" class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6">
-                <p class="font-medium">Message sent successfully!</p>
-                <p class="text-sm mt-1">We'll get back to you as soon as possible.</p>
-              </div>
-
-              <form @submit.prevent="handleSubmit" class="space-y-4">
-                <Input
-                  v-model="form.name"
-                  label="Full Name"
-                  placeholder="John Doe"
-                  :error="errors.name"
-                  :icon="UserIcon"
-                  required
-                />
-
-                <Input
-                  v-model="form.email"
-                  type="email"
-                  label="Email"
-                  placeholder="your.email@example.com"
-                  :error="errors.email"
-                  :icon="EnvelopeIcon"
-                  required
-                />
-
-                <Input
-                  v-model="form.subject"
-                  label="Subject"
-                  placeholder="How can we help you?"
-                  :error="errors.subject"
-                  required
-                />
-
-                <div>
-                  <label class="label label-required">Message</label>
-                  <textarea
-                    v-model="form.message"
-                    rows="6"
-                    placeholder="Tell us more about your inquiry..."
-                    :class="['textarea', errors.message && 'input-error']"
-                  ></textarea>
-                  <p v-if="errors.message" class="error-text">{{ errors.message }}</p>
-                </div>
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  :loading="loading"
-                  full-width
-                  size="lg"
+          <!-- Contact Info & FAQs -->
+          <div class="space-y-8">
+            <!-- Contact Cards -->
+            <div>
+              <h3 class="text-2xl font-bold text-gray-900 mb-6">Contact Information</h3>
+              <div class="grid grid-cols-1 gap-4">
+                <div
+                  v-for="info in contactInfo"
+                  :key="info.title"
+                  class="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-100 hover:border-primary-300 transition-all group"
                 >
-                  Send Message
-                </Button>
-              </form>
+                  <div class="flex items-start space-x-4">
+                    <div :class="['w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br', info.gradient]">
+                      <component :is="info.icon" class="w-6 h-6 text-white" />
+                    </div>
+                    <div class="flex-1">
+                      <h4 class="font-semibold text-gray-900 mb-1">{{ info.title }}</h4>
+                      <a
+                        v-if="info.link"
+                        :href="info.link"
+                        class="text-primary-600 hover:text-primary-700 group-hover:underline"
+                      >
+                        {{ info.value }}
+                      </a>
+                      <p v-else class="text-gray-600">{{ info.value }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick FAQs -->
+            <div class="bg-gradient-to-br from-primary-50 to-accent-50 rounded-2xl p-8">
+              <h3 class="text-2xl font-bold text-gray-900 mb-6">Quick FAQs</h3>
+              <div class="space-y-4">
+                <div
+                  v-for="faq in faqs"
+                  :key="faq.question"
+                  class="bg-white rounded-xl p-4 shadow-sm"
+                >
+                  <div class="flex items-start space-x-3">
+                    <component :is="faq.icon" class="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 class="font-semibold text-gray-900 mb-1">{{ faq.question }}</h4>
+                      <p class="text-sm text-gray-600">{{ faq.answer }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -200,10 +252,15 @@ const contactInfo = [
     </section>
 
     <!-- Map Section (Optional) -->
-    <section class="bg-gray-100 py-16">
+    <section class="py-16 bg-gray-50">
       <div class="container-custom">
-        <div class="bg-gray-300 rounded-xl h-96 flex items-center justify-center">
-          <p class="text-gray-600">Map Placeholder (Integrate Google Maps here)</p>
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div class="aspect-video bg-gray-200 flex items-center justify-center">
+            <div class="text-center">
+              <MapPinIcon class="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p class="text-gray-600">Map integration coming soon</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
