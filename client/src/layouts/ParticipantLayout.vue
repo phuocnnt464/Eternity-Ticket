@@ -72,6 +72,11 @@ const handleLogout = async () => {
   router.push('/')
 }
 
+const userAvatar = computed(() => {
+  return authStore.user?.avatar || authStore.user?.profile_picture || null
+})
+
+
 const membershipBadge = computed(() => {
   if (authStore.membershipTier === 'premium') {
     return {
@@ -100,7 +105,7 @@ const membershipBadge = computed(() => {
             <img 
               src="/logo_b.svg" 
               alt="Eternity Tickets" 
-              class="h-10 w-auto"
+              class="h-8 w-auto"
               @error="$event.target.src = '/logo_b.svg'"
             />
           </RouterLink>
@@ -135,8 +140,8 @@ const membershipBadge = computed(() => {
             <img 
               src="/logo_b.svg" 
               alt="Eternity Tickets" 
-              class="h-12 w-auto transform group-hover:scale-110 transition-transform"
-              @error="$event.target. src = '/logo.svg'"
+              class="h-10 w-auto transform group-hover:scale-110 transition-transform"
+              @error="$event.target.src = '/logo_b.svg'"
             />
             <div>
               <span class="text-lg font-bold text-gray-900 block">Eternity Tickets</span>
@@ -149,7 +154,13 @@ const membershipBadge = computed(() => {
         <div class="p-4 border-b border-gray-200">
           <div class="bg-gradient-to-br from-primary-50 via-accent-50 to-primary-50 rounded-xl p-4 border border-primary-100 shadow-sm">
             <div class="flex items-center space-x-3 mb-3">
-              <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <img 
+                v-if="userAvatar"
+                :src="userAvatar" 
+                class="w-11 h-11 rounded-xl object-cover border-2 border-primary-200 shadow-md"
+                @error="$event.target.style.display = 'none'"
+              />
+              <div v-else class="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                 <span class="text-white font-bold text-lg">
                   {{ authStore.user?.first_name?.charAt(0) }}{{ authStore.user?.last_name?.charAt(0) }}
                 </span>
@@ -162,8 +173,8 @@ const membershipBadge = computed(() => {
             
             <!-- Membership Badge -->
             <div v-if="membershipBadge" class="flex items-center justify-center">
-              <div :class="['inline-flex items-center px-4 py-2 rounded-full shadow-md font-bold text-sm', membershipBadge.class]">
-                <component :is="membershipBadge.icon" class="w-4 h-4 mr-1. 5" />
+              <div :class="['inline-flex items-center px-3 py-2 rounded-full shadow-md font-bold text-sm', membershipBadge.class]">
+                <component :is="membershipBadge.icon" class="w-4 h-3 mr-1" />
                 {{ membershipBadge.text }} Member
               </div>
             </div>
@@ -178,7 +189,7 @@ const membershipBadge = computed(() => {
             :to="item.href"
             @click="sidebarOpen = false"
             :class="[
-              'group flex items-center space-x-3 px-4 py-3 rounded-xl transition-all',
+              'group flex items-center space-x-2 px-4 py-2 rounded-xl transition-all',
               isActive(item.href)
                 ? [item.bgColor, item.color, 'font-semibold shadow-md transform scale-105']
                 : ['text-gray-700', item.hoverBg, 'hover:shadow-sm']
@@ -186,7 +197,7 @@ const membershipBadge = computed(() => {
           >
             <div 
               :class="[
-                'w-10 h-10 rounded-lg flex items-center justify-center transition-transform',
+                'w-8 h-8 rounded-lg flex items-center justify-center transition-transform',
                 isActive(item.href) 
                   ? 'bg-white shadow-sm' 
                   : 'bg-gray-100 group-hover:scale-110'
