@@ -18,7 +18,6 @@ const emit = defineEmits(['update:modelValue', 'apply'])
 
 const showFilters = ref(false)
 
-// 1. Định nghĩa trạng thái mặc định chuẩn
 const defaultState = {
   category: '',
   city: '',
@@ -28,18 +27,14 @@ const defaultState = {
   maxPrice: '',
   status: 'approved',
   sort: 'date_asc'
-  // Lưu ý: Không đưa 'search' vào đây vì nó thuộc về thanh tìm kiếm bên ngoài
 }
 
-// Khởi tạo filters từ props
 const filters = ref({ ...defaultState, ...props.modelValue })
 
-// 2. Watcher: Khi Parent (Cha) reset (Clear All), Child (Con) cũng phải reset theo
 watch(() => props.modelValue, (newVal) => {
-  console.log('🔄 [EventFilter] Syncing from parent:', newVal)
   filters.value = { 
-    ...defaultState, // Reset về chuẩn trước
-    ...newVal        // Ghi đè giá trị mới
+    ...defaultState,
+    ...newVal
   }
 }, { deep: true })
 
@@ -52,7 +47,6 @@ const sortOptions = [
 ]
 
 const applyFilters = () => {
-  // Tạo bản sao để emit
   const filtersToEmit = { ...filters.value }
   emit('update:modelValue', filtersToEmit)
   emit('apply', filtersToEmit)
@@ -60,34 +54,24 @@ const applyFilters = () => {
 }
 
 const clearFilters = () => {
-  // Reset về default state nội bộ
   filters.value = { ...defaultState }
   
-  // Nếu prop modelValue có chứa 'search', ta cần giữ lại nó để không làm mất text trong ô tìm kiếm
   if (props.modelValue.search) {
-    filters.value.search = props.modelValue.search
+    filters.value. search = props.modelValue.search
   }
 
   applyFilters()
 }
 
-// 3. LOGIC QUAN TRỌNG NHẤT: Kiểm tra xem có đang filter không?
 const hasActiveFilters = () => {
   const f = filters.value
   
-  // Chúng ta kiểm tra thủ công từng trường để đảm bảo chính xác tuyệt đối.
-  // Tuyệt đối KHÔNG kiểm tra f.search ở đây.
-  
   const hasCategory = f.category && f.category !== ''
-  const hasCity = f.city && f.city.trim() !== ''
+  const hasCity = f.city && f.city. trim() !== ''
   const hasDateFrom = f.dateFrom && f.dateFrom !== ''
   const hasDateTo = f.dateTo && f.dateTo !== ''
-  
-  // Với số (Price), cần kiểm tra > 0 (tránh trường hợp '0' hoặc null)
   const hasMinPrice = f.minPrice && Number(f.minPrice) > 0
   const hasMaxPrice = f.maxPrice && Number(f.maxPrice) > 0
-  
-  // Sort khác mặc định mới tính là filter
   const hasSort = f.sort && f.sort !== 'date_asc'
 
   return hasCategory || hasCity || hasDateFrom || hasDateTo || hasMinPrice || hasMaxPrice || hasSort
@@ -95,27 +79,40 @@ const hasActiveFilters = () => {
 </script>
 
 <template>
-  <div class="relative" :class="{ 'z-50': showFilters }">
+  <div class="relative">
+    <!-- Filter Button -->
     <Button
       variant="secondary"
-      @click="showFilters = !showFilters"
-      class="relative"
+      @click="showFilters = ! showFilters"
+      class="relative whitespace-nowrap"
     >
       <FunnelIcon class="w-5 h-5" />
       <span>Filters</span>
       
+      <!-- Active Indicator -->
       <span 
         v-if="hasActiveFilters()" 
         class="absolute -top-1 -right-1 w-3 h-3 bg-primary-600 rounded-full border-2 border-white"
       ></span>
     </Button>
 
-    <div 
-      v-if="showFilters"
-      @click="showFilters = false"
-      class="fixed inset-0 z-40 bg-black/50"
-    ></div>
+    <!-- Backdrop -->
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-150"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div 
+        v-if="showFilters"
+        @click="showFilters = false"
+        class="fixed inset-0 bg-black/50 z-[100]"
+      ></div>
+    </Transition>
 
+    <!-- Filter Modal -->
     <Transition 
       enter-active-class="transition duration-200 ease-out"
       enter-from-class="translate-y-1 opacity-0"
@@ -126,21 +123,23 @@ const hasActiveFilters = () => {
     >
       <div 
         v-if="showFilters"
-        class="
-          bg-white rounded-lg shadow-xl border p-6 z-50
-          fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-h-[85vh] overflow-y-auto
-          md:absolute md:top-full md:right-0 md:left-auto md:translate-x-0 md:translate-y-0 
-          md:w-[450px] md:max-h-none md:mt-2
-        "
+        @click. stop
+        class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] md:w-[500px] max-h-[85vh] bg-white rounded-2xl shadow-2xl border border-gray-200 z-[101] overflow-hidden"
       >
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-semibold text-lg">Filters</h3>
-          <button @click="showFilters = false" class="text-gray-400 hover:text-gray-600">
-            <XMarkIcon class="w-5 h-5" />
+        <!-- Header -->
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
+          <h3 class="font-bold text-xl text-gray-900">Filter Events</h3>
+          <button 
+            @click="showFilters = false" 
+            class="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-200 rounded-lg"
+          >
+            <XMarkIcon class="w-6 h-6" />
           </button>
         </div>
 
-        <div class="space-y-4">
+        <!-- Filter Form -->
+        <div class="p-6 space-y-5 overflow-y-auto max-h-[calc(85vh-140px)]">
+          <!-- Category -->
           <div>
             <label class="label">Category</label>
             <select v-model="filters.category" class="select w-full">
@@ -151,33 +150,66 @@ const hasActiveFilters = () => {
             </select>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
-             <div>
-                <label class="label">From</label>
-                <input v-model="filters.dateFrom" type="date" class="input w-full" />
-             </div>
-             <div>
-                <label class="label">To</label>
-                <input v-model="filters.dateTo" type="date" class="input w-full" />
-             </div>
+          <!-- Date Range -->
+          <div>
+            <label class="label">Date Range</label>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <input 
+                  v-model="filters.dateFrom" 
+                  type="date" 
+                  class="input w-full" 
+                  placeholder="From"
+                />
+              </div>
+              <div>
+                <input 
+                  v-model="filters.dateTo" 
+                  type="date" 
+                  class="input w-full" 
+                  placeholder="To"
+                />
+              </div>
+            </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="label">Min (VND)</label>
-              <input v-model.number="filters.minPrice" type="number" placeholder="0" class="input w-full" />
-            </div>
-            <div>
-              <label class="label">Max (VND)</label>
-              <input v-model.number="filters.maxPrice" type="number" placeholder="Max" class="input w-full" />
+          <!-- Price Range -->
+          <div>
+            <label class="label">Price Range (VND)</label>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <input 
+                  v-model.number="filters.minPrice" 
+                  type="number" 
+                  placeholder="Min price" 
+                  class="input w-full" 
+                  min="0"
+                />
+              </div>
+              <div>
+                <input 
+                  v-model.number="filters. maxPrice" 
+                  type="number" 
+                  placeholder="Max price" 
+                  class="input w-full" 
+                  min="0"
+                />
+              </div>
             </div>
           </div>
 
+          <!-- City -->
           <div>
             <label class="label">City</label>
-            <input v-model="filters.city" type="text" placeholder="City..." class="input w-full" />
+            <input 
+              v-model="filters.city" 
+              type="text" 
+              placeholder="Enter city name..." 
+              class="input w-full" 
+            />
           </div>
 
+          <!-- Sort -->
           <div>
             <label class="label">Sort By</label>
             <select v-model="filters.sort" class="select w-full">
@@ -186,15 +218,24 @@ const hasActiveFilters = () => {
               </option>
             </select>
           </div>
+        </div>
 
-          <div class="flex items-center space-x-3 pt-4 border-t mt-4">
-            <Button variant="secondary" @click="clearFilters" class="w-full justify-center">
-              Clear
-            </Button>
-            <Button variant="primary" @click="applyFilters" class="w-full justify-center">
-              Apply
-            </Button>
-          </div>
+        <!-- Footer Actions -->
+        <div class="flex items-center gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <Button 
+            variant="secondary" 
+            @click="clearFilters" 
+            class="flex-1 justify-center"
+          >
+            Clear All
+          </Button>
+          <Button 
+            variant="primary" 
+            @click="applyFilters" 
+            class="flex-1 justify-center"
+          >
+            Apply Filters
+          </Button>
         </div>
       </div>
     </Transition>

@@ -8,6 +8,7 @@ import Pagination from '@/components/common/Pagination.vue'
 import Spinner from '@/components/common/Spinner.vue'
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
+// ...  rest of script giữ nguyên như trước
 const route = useRoute()
 const router = useRouter()
 
@@ -54,12 +55,12 @@ const fetchEvents = async () => {
 
   try {
     const params = {
-      page: pagination.value.currentPage,
+      page: pagination. value.currentPage,
       limit: pagination.value.perPage,
       status: 'approved'
     }
 
-    if (filters.value.search && filters.value.search.trim()) {
+    if (filters.value.search && filters.value.search. trim()) {
       params.search = filters.value.search. trim()
     }
     
@@ -72,7 +73,6 @@ const fetchEvents = async () => {
     }
 
     const response = await eventsAPI.getPublicEvents(params)
-
     const responseData = response.data. data || response.data
     let eventsList = responseData.events || responseData || []
     
@@ -86,17 +86,17 @@ const fetchEvents = async () => {
     }
     
     if (filters.value.dateTo) {
-      eventsList = eventsList.filter(e => {
-        const eventDate = new Date(e.start_date)
+      eventsList = eventsList. filter(e => {
+        const eventDate = new Date(e. start_date)
         const filterDate = new Date(filters.value.dateTo)
         return eventDate <= filterDate
       })
     }
     
     if (filters.value.minPrice) {
-      eventsList = eventsList.filter(e => {
+      eventsList = eventsList. filter(e => {
         const minPrice = e.min_price || 0
-        return minPrice >= parseFloat(filters. value.minPrice)
+        return minPrice >= parseFloat(filters.value.minPrice)
       })
     }
     
@@ -108,7 +108,7 @@ const fetchEvents = async () => {
     }
     
     // Sort
-    if (filters.value. sort) {
+    if (filters.value.sort) {
       switch (filters.value.sort) {
         case 'date_asc':
           eventsList.sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
@@ -123,7 +123,7 @@ const fetchEvents = async () => {
           eventsList.sort((a, b) => (b.min_price || 0) - (a.min_price || 0))
           break
         case 'popular':
-          eventsList.sort((a, b) => (b. view_count || 0) - (a.view_count || 0))
+          eventsList. sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
           break
       }
     }
@@ -133,7 +133,7 @@ const fetchEvents = async () => {
     pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
   } catch (err) {
     console.error('Failed to fetch events:', err)
-    error.value = err.response?. data?.error?. message || 'Failed to load events'
+    error.value = err.response?.data?.error?. message || 'Failed to load events'
   } finally {
     loading.value = false
   }
@@ -143,13 +143,11 @@ const fetchCategories = async () => {
   try {
     const response = await eventsAPI.getCategories()
     let cats = response.data.categories || []
-
     cats = cats.sort((a, b) => {
       if (a.name. toLowerCase() === 'others') return 1
       if (b.name.toLowerCase() === 'others') return -1
       return a.name.localeCompare(b.name)
     })
-
     categories.value = cats
   } catch (error) {
     console.error('Failed to fetch categories:', error)
@@ -168,7 +166,6 @@ const handleFilterApply = (newFilters) => {
   if (newFilters.search !== undefined) {
     searchQuery.value = newFilters.search
   }
-  
   pagination.value.currentPage = 1
   updateQueryParams()
   fetchEvents()
@@ -183,23 +180,22 @@ const handlePageChange = (page) => {
 
 const updateQueryParams = () => {
   const query = {
-    page: pagination.value. currentPage,
+    page: pagination.value.currentPage,
     search: searchQuery.value || undefined,
-    category: filters.value.category || undefined,
+    category: filters. value.category || undefined,
     dateFrom: filters.value.dateFrom || undefined,
     dateTo: filters.value.dateTo || undefined,
     minPrice: filters. value.minPrice || undefined,
     maxPrice: filters.value. maxPrice || undefined,
     sort: filters.value.sort
   }
-
   Object.keys(query).forEach(key => query[key] === undefined && delete query[key])
   router.replace({ query })
 }
 
 const handleClearAll = () => {
   searchQuery.value = ''
-  filters.value = { ...defaultFilters }
+  filters. value = { ...defaultFilters }
   pagination.value.currentPage = 1
   updateQueryParams()
   fetchEvents()
@@ -228,7 +224,7 @@ watch(() => route.query. search, (newSearch) => {
 <template>
   <div class="min-h-screen bg-white">
     <!-- Compact Hero Section -->
-    <section class="relative bg-gradient-to-br from-dark-900 via-primary-900 to-black text-white py-12 overflow-hidden">
+    <section class="relative bg-gradient-to-br from-dark-900 via-primary-900 to-black text-white py-10 overflow-hidden">
       <!-- Background Pattern -->
       <div class="absolute inset-0 opacity-10">
         <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;"></div>
@@ -239,70 +235,68 @@ watch(() => route.query. search, (newSearch) => {
       <div class="absolute bottom-0 left-0 w-72 h-72 bg-accent-500 rounded-full blur-3xl opacity-20"></div>
 
       <div class="container-custom relative z-10">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <!-- Title -->
-          <div>
-            <h1 class="text-3xl md:text-4xl font-bold mb-2">
-              Discover Events
-            </h1>
-            <p class="text-gray-300">
-              {{ pagination.totalItems }}+ amazing events available
-            </p>
-          </div>
+        <!-- Title -->
+        <div class="mb-6">
+          <h1 class="text-3xl md:text-4xl font-bold mb-2">
+            Discover Events
+          </h1>
+          <p class="text-gray-300">
+            <span v-if="! loading">{{ pagination.totalItems }}+ amazing events available</span>
+          </p>
+        </div>
 
-          <!-- Search + Filter Inline -->
-          <div class="flex-1 max-w-2xl">
-            <div class="flex gap-2">
-              <!-- Search Bar -->
-              <div class="flex-1 relative">
-                <input
-                  v-model="searchQuery"
-                  @keyup.enter="handleSearch"
-                  type="text"
-                  placeholder="Search events..."
-                  class="w-full px-4 py-3 pl-11 text-gray-900 bg-white rounded-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              </div>
-
-              <!-- Search Button -->
-              <button 
-                @click="handleSearch"
-                class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors shadow-lg whitespace-nowrap"
-              >
-                Search
-              </button>
-
-              <!-- Filter Button -->
-              <EventFilter
-                v-model="filters"
-                :categories="categories"
-                @apply="handleFilterApply"
+        <!-- Search + Filter Row -->
+        <div class="flex flex-col md:flex-row gap-3">
+          <!-- Search Bar -->
+          <div class="flex-1 flex gap-2">
+            <div class="flex-1 relative">
+              <input
+                v-model="searchQuery"
+                @keyup.enter="handleSearch"
+                type="text"
+                placeholder="Search events by name, location, organizer..."
+                class="w-full px-4 py-3 pl-11 text-gray-900 bg-white rounded-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
+              <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
+
+            <!-- Search Button -->
+            <button 
+              @click="handleSearch"
+              class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors shadow-lg whitespace-nowrap"
+            >
+              Search
+            </button>
           </div>
+
+          <!-- Filter Button -->
+          <EventFilter
+            v-model="filters"
+            :categories="categories"
+            @apply="handleFilterApply"
+          />
         </div>
 
         <!-- Active Filters Pills -->
         <div v-if="hasActiveFilters" class="flex flex-wrap gap-2 mt-4">
-          <span v-if="searchQuery" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
-            🔍 "{{ searchQuery }}"
+          <span v-if="searchQuery" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1. 5 rounded-full text-sm font-medium">
+            Search: "{{ searchQuery }}"
           </span>
-          <span v-if="filters.category" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
-            📂 {{ categories.find(c => c.id == filters.category)?.name }}
+          <span v-if="filters.category" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
+            Category: {{ categories.find(c => c.id == filters.category)?.name }}
           </span>
-          <span v-if="filters.city" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
-            📍 {{ filters.city }}
+          <span v-if="filters.city" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
+            City: {{ filters.city }}
           </span>
-          <span v-if="filters.dateFrom || filters.dateTo" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
-            📅 {{ filters.dateFrom || 'Start' }} - {{ filters.dateTo || 'End' }}
+          <span v-if="filters.dateFrom || filters. dateTo" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
+            Date: {{ filters.dateFrom || 'Start' }} - {{ filters.dateTo || 'End' }}
           </span>
-          <span v-if="filters.minPrice || filters.maxPrice" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
-            💰 {{ filters.minPrice || '0' }} - {{ filters.maxPrice || '∞' }}
+          <span v-if="filters.minPrice || filters.maxPrice" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
+            Price: {{ filters.minPrice || '0' }} - {{ filters.maxPrice || '∞' }} VND
           </span>
           <button
             @click="handleClearAll"
-            class="inline-flex items-center bg-red-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
+            class="inline-flex items-center bg-red-500/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
           >
             <XMarkIcon class="w-4 h-4 mr-1" />
             Clear All
@@ -318,25 +312,25 @@ watch(() => route.query. search, (newSearch) => {
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 bg-white p-4 rounded-xl shadow-sm">
           <div>
             <h2 class="text-xl font-bold text-gray-900">
-              <span v-if="! loading">{{ events.length }}</span>
+              <span v-if="!loading">{{ events.length }}</span>
               <span v-if="pagination.totalItems > events.length"> of {{ pagination.totalItems }}</span>
-              Event<span v-if="pagination.totalItems !== 1">s</span>
+              Event<span v-if="pagination.totalItems !== 1">s</span> Found
             </h2>
           </div>
           
           <!-- Sort Dropdown -->
           <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-600">Sort:</span>
+            <span class="text-sm text-gray-600 font-medium">Sort:</span>
             <select
               v-model="filters.sort"
               @change="handleFilterApply(filters)"
               class="select ! py-2 text-sm border-gray-300"
             >
-              <option value="date_asc">📅 Date (Earliest)</option>
-              <option value="date_desc">📅 Date (Latest)</option>
-              <option value="price_asc">💰 Price (Low to High)</option>
-              <option value="price_desc">💰 Price (High to Low)</option>
-              <option value="popular">🔥 Most Popular</option>
+              <option value="date_asc">Date: Earliest First</option>
+              <option value="date_desc">Date: Latest First</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
+              <option value="popular">Most Popular</option>
             </select>
           </div>
         </div>
@@ -391,7 +385,7 @@ watch(() => route.query. search, (newSearch) => {
           </div>
           <h3 class="text-3xl font-bold text-gray-900 mb-3">No Events Found</h3>
           <p class="text-lg text-gray-600 mb-8 max-w-md mx-auto">
-            We couldn't find any events matching your criteria. Try adjusting your search or filters.
+            We couldn't find any events matching your criteria.  Try adjusting your search or filters.
           </p>
           <button 
             @click="handleClearAll" 
