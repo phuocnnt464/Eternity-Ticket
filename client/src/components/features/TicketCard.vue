@@ -184,7 +184,7 @@ const canUseTicket = computed(() => {
         @click="emit('view-qr', ticket)"
         full-width
       >
-        <QrCodeIcon class="w-4 h-4" />
+        <QrCodeIcon class="inline w-4 h-4" />
         View QR
       </Button>
       

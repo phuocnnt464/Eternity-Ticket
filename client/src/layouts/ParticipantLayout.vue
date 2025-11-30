@@ -73,7 +73,7 @@ const handleLogout = async () => {
 }
 
 const userAvatar = computed(() => {
-  return authStore.user?.avatar || authStore.user?.profile_picture || null
+  return authStore.user?.avatar_url 
 })
 
 
@@ -257,34 +257,7 @@ const membershipBadge = computed(() => {
       ></div>
 
       <!-- ✅ Main Content - Clean White Background -->
-      <main class="flex-1 min-h-screen">
-        <!-- Top Bar (Desktop) -->
-        <div class="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
-          <div class="px-8 py-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h1 class="text-2xl font-bold text-gray-900">
-                  {{ route.meta.title || 'My Dashboard' }}
-                </h1>
-                <p class="text-sm text-gray-500 mt-1">
-                  Manage your tickets, orders, and profile
-                </p>
-              </div>
-              
-              <!-- Quick Actions -->
-              <div class="flex items-center gap-3">
-                <RouterLink
-                  to="/"
-                  class="btn btn-secondary"
-                >
-                  <HomeIcon class="w-5 h-5 mr-2" />
-                  Browse Events
-                </RouterLink>
-              </div>
-            </div>
-          </div>
-        </div>
-
+      <main class="flex-1">
         <!-- Page Content -->
         <div class="p-4 md:p-8">
           <RouterView />

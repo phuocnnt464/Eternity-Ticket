@@ -217,7 +217,7 @@ onMounted(() => {
               size="sm"
               @click="handleDownloadTickets(order.id)"
             >
-              <ArrowDownTrayIcon class="w-4 h-4" />
+              <ArrowDownTrayIcon class="inline w-4 h-4 mr-1" />
               Download Tickets
             </Button>
 
@@ -264,7 +264,7 @@ onMounted(() => {
           : 'You haven\'t made any purchases yet' 
         }}
       </p>
-      <RouterLink to="/events" class="btn-primary">
+      <RouterLink to="/events" class="btn btn-primary">
         Browse Events
       </RouterLink>
     </div>

@@ -335,7 +335,7 @@ onMounted(() => {
               variant="primary" 
               @click="handleDownload(selectedTicket)"
             >
-              <ArrowDownTrayIcon class="w-5 h-5 mr-2" />
+              <ArrowDownTrayIcon class="inline w-5 h-5 mr-1" />
               Download PDF
             </Button>
           </div>
