@@ -29,15 +29,23 @@ const navigation = [
 
 onMounted(async () => {
   if (authStore.isAuthenticated) {
-     try {
-      const response = await notificationsAPI.getUnreadCount()
-      if (response.success) {
-        notificationStore.setUnreadCount(response.data?.unread_count || 0)
+    try {
+      const countResponse = await notificationsAPI.getUnreadCount()
+      if (countResponse.success) {
+        notificationStore.setUnreadCount(countResponse.data?.unread_count || 0)
+      }
+      const notificationsResponse = await notificationsAPI.getNotifications({
+        page: 1,
+        limit: 10
+      })
+      
+      if (notificationsResponse. success) {
+        notificationStore.setNotifications(notificationsResponse.data?. notifications || [])
       }
     } catch (error) {
-      console.error('Failed to fetch unread count:', error)
-      // Set to 0 on error to prevent UI issues
+      console. error('Failed to fetch notifications:', error)
       notificationStore.setUnreadCount(0)
+      notificationStore.setNotifications([])
     }
   }
 })

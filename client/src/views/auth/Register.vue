@@ -11,7 +11,8 @@ import {
   PhoneIcon,
   UserGroupIcon,
   SparklesIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  ArrowLeftIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -94,6 +95,17 @@ const handleSubmit = async () => {
     <div class="absolute bottom-20 left-20 w-96 h-96 bg-success-500 rounded-full blur-3xl opacity-20"></div>
 
     <div class="max-w-2xl w-full relative z-10">
+       <!-- Back to Home Button -->
+      <div class="mb-6">
+        <RouterLink 
+          to="/" 
+          class="inline-flex items-center space-x-2 text-white/80 hover:text-white transition-colors group"
+        >
+          <ArrowLeftIcon class="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          <span class="font-medium">Back to Home</span>
+        </RouterLink>
+      </div>
+      
       <!-- Header -->
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-600 rounded-2xl mb-4">
@@ -240,7 +252,7 @@ const handleSubmit = async () => {
             size="lg"
             class="shadow-lg"
           >
-            <ShieldCheckIcon class="w-5 h-5 mr-2" />
+            <ShieldCheckIcon class="inline-flex w-5 h-5 mr-2" />
             Create Account
           </Button>
         </form>

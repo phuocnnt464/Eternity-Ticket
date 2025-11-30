@@ -33,7 +33,7 @@ const isFullScreen = computed(() => fullScreenPages.includes(route.path))
             <img src="/logo_w.svg" alt="Logo" class="w-8 h-8" />
           </div>
           <span class="text-2xl font-bold text-white">
-            Eternity Ticket
+            Eternity Tickets
           </span>
         </RouterLink>
       </div>

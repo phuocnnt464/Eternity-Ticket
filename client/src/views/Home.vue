@@ -87,7 +87,7 @@ const handleSearch = () => {
         <div class="max-w-4xl mx-auto text-center">
           <!-- Badge -->
           <div class="inline-flex items-center space-x-2 bg-primary-500/20 backdrop-blur-sm border border-primary-500/30 rounded-full px-4 py-2 mb-6 animate-fade-in">
-            <StarIcon class="w-4 h-4 text-primary-400" />
+            <StarIcon class="inline-flex w-4 h-4 text-primary-400" />
             <span class="text-sm font-medium text-primary-300">Trusted by 50,000+ event-goers</span>
           </div>
 
@@ -119,7 +119,7 @@ const handleSearch = () => {
                 @click="handleSearch"
                 class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full"
               >
-                <MagnifyingGlassIcon class="w-5 h-5 mr-2" />
+                <MagnifyingGlassIcon class="inline-flex w-5 h-5 mr-2" />
                 Search
               </Button>
             </div>
@@ -132,7 +132,7 @@ const handleSearch = () => {
               class="bg-white text-gray-900 hover:bg-gray-100 shadow-xl px-8 py-4 text-lg"
               @click="router.push('/events')"
             >
-              <TicketIcon class="w-5 h-5 mr-2" />
+              <TicketIcon class="inline-flex w-5 h-5 mr-2" />
               Explore Events
             </Button>
             <Button 
@@ -141,7 +141,7 @@ const handleSearch = () => {
               class="shadow-xl px-8 py-4 text-lg"
               @click="router.push('/auth/register?role=organizer')"
             >
-              <SparklesIcon class="w-5 h-5 mr-2" />
+              <SparklesIcon class="inline-flex w-5 h-5 mr-2" />
               Create Your Event
             </Button>
           </div>
@@ -209,7 +209,7 @@ const handleSearch = () => {
     <section class="py-20 bg-gradient-to-br from-gray-50 to-primary-50">
       <div class="container-custom">
         <div class="text-center mb-16">
-          <h2 class="text-4xl font-bold text-gray-900 mb-4">Why Choose Eternity Ticket?</h2>
+          <h2 class="text-4xl font-bold text-gray-900 mb-4">Why Choose Eternity Tickets?</h2>
           <p class="text-xl text-gray-600 max-w-2xl mx-auto">
             The most trusted platform for event discovery and ticketing in Vietnam
           </p>
@@ -245,7 +245,7 @@ const handleSearch = () => {
       <div class="container-custom relative z-10 text-center">
         <h2 class="text-4xl md:text-5xl font-bold mb-6">Ready to Start Your Journey?</h2>
         <p class="text-xl mb-10 text-accent-200 max-w-2xl mx-auto">
-          Join thousands of event-goers and organizers who trust Eternity Ticket for seamless experiences
+          Join thousands of event-goers and organizers who trust Eternity Tickets for seamless experiences
         </p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Button 

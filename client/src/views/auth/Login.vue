@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import Input from '@/components/common/Input.vue'
 import Button from '@/components/common/Button.vue'
-import { EnvelopeIcon, LockClosedIcon, ShieldCheckIcon } from '@heroicons/vue/24/outline'
+import { EnvelopeIcon, LockClosedIcon, ShieldCheckIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
 const route = useRoute()
@@ -67,18 +67,30 @@ const handleSubmit = async () => {
       <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;"></div>
     </div>
 
+
     <!-- Decorative blobs -->
     <div class="absolute top-20 right-20 w-96 h-96 bg-primary-500 rounded-full blur-3xl opacity-20"></div>
     <div class="absolute bottom-20 left-20 w-96 h-96 bg-accent-500 rounded-full blur-3xl opacity-20"></div>
 
     <div class="max-w-md w-full relative z-10">
+       <!-- Back to Home Button -->
+      <div class="mb-6">
+        <RouterLink 
+          to="/" 
+          class="inline-flex items-center space-x-2 text-white/80 hover:text-white transition-colors group"
+        >
+          <ArrowLeftIcon class="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          <span class="font-medium">Back to Home</span>
+        </RouterLink>
+      </div>
+
       <!-- Logo -->
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-600 rounded-2xl mb-4">
           <img src="/logo_w.svg" alt="Logo" class="w-10 h-10" />
         </div>
         <h2 class="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-        <p class="text-gray-300">Sign in to your Eternity Ticket account</p>
+        <p class="text-gray-300">Sign in to your Eternity Tickets account</p>
       </div>
 
       <!-- Form Card -->
@@ -138,9 +150,9 @@ const handleSubmit = async () => {
             :loading="loading"
             full-width
             size="lg"
-            class="shadow-lg"
+            class=" shadow-lg"
           >
-            <ShieldCheckIcon class="w-5 h-5 mr-2" />
+            <ShieldCheckIcon class="inline-flex w-5 h-5 mr-2" />
             Sign In
           </Button>
         </form>

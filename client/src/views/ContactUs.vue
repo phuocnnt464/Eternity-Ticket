@@ -54,8 +54,8 @@ const contactInfo = [
   {
     icon: EnvelopeIcon,
     title: 'Email',
-    value: 'support@eternityticket.com',
-    link: 'mailto:support@eternityticket.com',
+    value: 'support@eternitytickets.com',
+    link: 'mailto:support@eternitytickets.com',
     gradient: 'from-primary-500 to-primary-700'
   },
   {
