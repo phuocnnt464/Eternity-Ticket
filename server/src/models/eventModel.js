@@ -284,6 +284,13 @@ class EventModel {
           (SELECT MIN(tt.price) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as min_price,
           (SELECT MAX(tt.price) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as max_price,
           (SELECT SUM(tt.total_quantity) FROM ticket_types tt WHERE tt.event_id = e.id AND tt.is_active = true) as total_tickets,
+          (SELECT SUM(tt.total_quantity - tt.sold_quantity) 
+            FROM ticket_types tt 
+            WHERE tt.event_id = e.id 
+              AND tt.is_active = true
+              AND (tt.sale_start_time IS NULL OR tt.sale_start_time <= NOW())  
+              AND (tt.sale_end_time IS NULL OR tt.sale_end_time > NOW())
+            ) as available_tickets,
           (SELECT COALESCE(SUM(oi.quantity), 0)
             FROM order_items oi
             JOIN orders o ON oi.order_id = o.id
@@ -324,6 +331,7 @@ class EventModel {
 
       const events = eventsResult.rows.map(event => ({
         ...event,
+        id: event.id,
         min_price: event.min_price ? parseFloat(event.min_price) : null,
         max_price: event.max_price ? parseFloat(event.max_price) : null,
         total_tickets: event.total_tickets ? parseInt(event.total_tickets) : 0,

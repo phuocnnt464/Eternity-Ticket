@@ -73,8 +73,10 @@ const fetchEvents = async () => {
     }
 
     const response = await eventsAPI.getPublicEvents(params)
-    const responseData = response.data. data || response.data
+    const responseData = response.data.data || response.data
     let eventsList = responseData.events || responseData || []
+    
+    console.log('📊 Events from API:', eventsList[0])
     
     // CLIENT-SIDE FILTERING
     if (filters.value.dateFrom) {
