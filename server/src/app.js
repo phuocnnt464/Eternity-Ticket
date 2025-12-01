@@ -109,7 +109,7 @@ if (process.env.NODE_ENV === 'development') {
 // =============================================
 const apiLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000,
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -124,7 +124,7 @@ const apiLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 50,
   message: {
     success: false,
     error: {

@@ -111,7 +111,7 @@ const checkEarlyAccess = () => {
         minutesRemaining: minutesRemaining
       }
 
-      if (! earlyAccessInfo.value) {
+      if (!earlyAccessInfo.value) {
         earlyAccessInfo.value = {
           isActive: true,
           isPremium: userTier === 'premium',
@@ -134,7 +134,7 @@ const canPurchase = computed(() => {
   
   const userTier = authStore.membershipTier || 'basic'
 
- for (const selected of selectedTickets.value) {
+  for (const selected of selectedTickets.value) {
     const ticketType = ticketTypes.value.find(t => t.id === selected.ticket_type_id)
     if (ticketType?.isEarlyAccess && userTier !== 'premium') {
       return false
@@ -146,6 +146,8 @@ const canPurchase = computed(() => {
 
 const buyButtonText = computed(() => {
   if (joiningQueue.value) return 'Joining Queue.. .'
+
+  const userTier = authStore.membershipTier || 'basic'
 
   const hasEarlyAccessTicket = selectedTickets.value.some(selected => {
     const ticketType = ticketTypes.value.find(t => t.id === selected.ticket_type_id)
