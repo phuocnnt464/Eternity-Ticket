@@ -129,21 +129,49 @@ class QueueModel {
 
       const redis = redisService.getClient();
       // ✅ Check null
-      if (!redis) {
-        throw new Error('Redis unavailable - cannot get next queue number');
-      }
+      // if (!redis) {
+      //   throw new Error('Redis unavailable - cannot get next queue number');
+      // }
 
-      const counterKey = `queue_counter:${sessionId}`;
+      // const counterKey = `queue_counter:${sessionId}`;
       
       // ✅ Atomic increment
-      const nextNumber = await redis.incr(counterKey);
+      // const nextNumber = await redis.incr(counterKey);
       
       // Set TTL 24 hours nếu chưa có
-      const ttl = await redis.ttl(counterKey);
-      if (ttl === -1) {
-        await redis.expire(counterKey, 86400);
+      // const ttl = await redis.ttl(counterKey);
+      // if (ttl === -1) {
+      //   await redis.expire(counterKey, 86400);
+      // }
+
+      if (redis) {
+        try {
+          const counterKey = `queue_counter:${sessionId}`;
+          const nextNumber = await redis.incr(counterKey);
+          
+          const ttl = await redis.ttl(counterKey);
+          if (ttl === -1) {
+            await redis.expire(counterKey, 86400);
+          }
+
+          console.log(`✅ Got queue number ${nextNumber} from Redis`);
+          return nextNumber;
+        } catch (redisError) {
+          console. warn('⚠️ Redis incr failed:', redisError);
+          // Continue to database fallback
+        }
       }
 
+      console.warn('⚠️ Using database for queue number');
+      const result = await pool.query(`
+        SELECT COALESCE(MAX(queue_number), 0) + 1 as next_number
+        FROM waiting_queue
+        WHERE session_id = $1
+      `, [sessionId]);
+      
+      const nextNumber = result.rows[0].next_number;
+      console.log(`✅ Got queue number ${nextNumber} from database`);
+      
       return nextNumber;
     } catch (error) {
       // await client.query('ROLLBACK');
