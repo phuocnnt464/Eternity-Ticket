@@ -276,7 +276,7 @@ const handlePurchase = async () => {
     
     const data = response.data
 
-    if (! data.waiting_room_enabled) {
+    if (!data.waiting_room_enabled) {
       router.push({
         name: 'EventCheckout',
         params: { slug: route.params.slug }
@@ -284,15 +284,19 @@ const handlePurchase = async () => {
       return
     }
 
-    if (data.can_purchase) {
-      router.push({
-        name: 'EventCheckout',
-        params: { slug: route.params.slug }
-      })
-    } else {
-      showWaitingRoom.value = true
-      queuePosition.value = data.queue_position
-    }
+    // if (data.can_purchase) {
+    //   router.push({
+    //     name: 'EventCheckout',
+    //     params: { slug: route.params.slug }
+    //   })
+    // } else {
+    //   showWaitingRoom.value = true
+    //   queuePosition.value = data.queue_position
+    // }
+
+    showWaitingRoom.value = true
+    queuePosition.value = data.queue_position
+    
   } catch (error) {
     console.error('Failed to join queue:', error)
     alert(error.response?.data?.message || 'Failed to join waiting room.  Please try again.')
