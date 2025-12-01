@@ -61,6 +61,10 @@ const inputType = computed(() => {
   return props.type
 })
 
+const hasNativeIcon = computed(() => {
+  return ['datetime-local', 'date', 'time'].includes(props.type)
+})
+
 const inputClass = computed(() => {
   const classes = [props.type === 'textarea' ? 'textarea' : 'input']
   
@@ -78,6 +82,10 @@ const inputClass = computed(() => {
 
   if (props.loading) {
     classes.push('pr-10')
+  }
+
+  if (hasNativeIcon.value && props.error && !props.loading) {
+    classes.push('pr-5') 
   }
   
   return classes.join(' ')
@@ -154,7 +162,10 @@ const handleBlur = (event) => {
       <!-- Error Icon -->
       <ExclamationCircleIcon
         v-if="error && !loading"
-        class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500"
+        :class="[
+          'absolute top-1/2 -translate-y-1/2 w-5 h-5 text-red-500 z-10',
+          hasNativeIcon ?  'right-10' : 'right-3'
+        ]"
       />
     </div>
 
