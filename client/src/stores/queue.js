@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { queueAPI } from '@/api'
 
 export const useQueueStore = defineStore('queue', () => {
   const queuePosition = ref(null)
