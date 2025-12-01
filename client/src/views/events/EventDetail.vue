@@ -583,7 +583,7 @@ onBeforeUnmount(() => {
                         <p class="font-bold text-lg text-gray-900 mb-1">{{ session.title }}</p>
                         <p class="text-sm text-gray-600 flex items-center">
                           <ClockIcon class="w-4 h-4 mr-1" />
-                          {{ new Date(session.start_time). toLocaleString() }}
+                          {{ new Date(session.start_time).toLocaleString() }}
                         </p>
                       </div>
                       <div class="text-right">
@@ -606,7 +606,7 @@ onBeforeUnmount(() => {
               <div class="sticky top-24 space-y-4">
                 <!-- Early Access Warning -->
                 <div 
-                  v-if="earlyAccessInfo?. isActive && ! earlyAccessInfo?. isPremium"
+                  v-if="earlyAccessInfo?.isActive && !earlyAccessInfo?.isPremium"
                   class="bg-gradient-to-br from-yellow-500 to-orange-600 text-white rounded-2xl p-6 shadow-2xl"
                 >
                   <div class="flex items-start space-x-3">
@@ -626,7 +626,7 @@ onBeforeUnmount(() => {
                         class="bg-white text-orange-600 hover:bg-gray-100 font-bold"
                         @click="router.push('/participant/membership')"
                       >
-                        <StarIcon class="w-5 h-5 mr-2" />
+                        <StarIcon class="inline w-5 h-5 mr-1 mb-1" />
                         Upgrade to Premium
                       </Button>
                     </div>
@@ -665,7 +665,7 @@ onBeforeUnmount(() => {
                       <div v-if="earlyAccessInfo?. isActive && earlyAccessInfo?. isPremium" 
                            class="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl p-4">
                         <div class="flex items-center space-x-2 mb-1">
-                          <StarIcon class="w-5 h-5 text-yellow-600" />
+                          <StarIcon class="inline w-5 h-5 text-yellow-600 mb-1" />
                           <span class="font-bold text-yellow-900">Premium Early Access! </span>
                         </div>
                         <p class="text-xs text-yellow-800">

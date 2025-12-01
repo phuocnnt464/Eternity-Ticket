@@ -136,7 +136,7 @@ const getSaleStatus = (ticket) => {
       const minutesRemaining = Math.ceil((saleStart - now) / 60000)
       return {
         variant: 'warning',
-        text: `Premium Early Access (${minutesRemaining}m left)`,
+        text: `Early Access (${minutesRemaining}m left)`,
         isPremiumAccess: true
       }
     } else {
@@ -333,14 +333,14 @@ onMounted(async () => {
     >
       <div class="flex items-start gap-3">
         <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-          <StarIcon class="w-6 h-6" />
+          <StarIcon class="inline w-6 h-6 mb-1" />
         </div>
         <div>
           <p class="font-bold text-lg mb-1">
             Premium Early Access Limit Reached
           </p>
           <p class="text-sm text-white/90">
-            You've selected {{ premiumLimitInfo.selected }}/{{ premiumLimitInfo. maxAllowed }} tickets.  
+            You've selected {{ premiumLimitInfo.selected }}/{{ premiumLimitInfo.maxAllowed }} tickets.  
             After public sale starts, you can buy up to {{ premiumLimitInfo.publicLimit }} tickets. 
           </p>
         </div>
@@ -379,12 +379,12 @@ onMounted(async () => {
                   variant="warning"
                   class="animate-pulse"
                 >
-                  <StarIcon class="w-4 h-4 inline mr-1" />
+                  <StarIcon class="inline-flex w-4 h-4 mr-1 mb-1" />
                   {{ getSaleStatus(ticket).text }}
                 </Badge>
                 <Badge 
                   v-else
-                  :variant="getSaleStatus(ticket). variant"
+                  :variant="getSaleStatus(ticket).variant"
                 >
                   {{ getSaleStatus(ticket).text }}
                 </Badge>
@@ -397,11 +397,11 @@ onMounted(async () => {
               
               <!-- Early Access Warning -->
               <div 
-                v-if="isInEarlyAccessPeriod(ticket) && ! canAccessEarlyTicket(ticket)" 
+                v-if="isInEarlyAccessPeriod(ticket) && !canAccessEarlyTicket(ticket)" 
                 class="inline-flex items-center bg-orange-100 text-orange-800 px-3 py-1 rounded-lg text-xs font-medium mb-3"
               >
-                <StarIcon class="w-4 h-4 mr-1" />
-                Premium members only
+                <StarIcon class="inline w-4 h-4 mr-1 mb-1" />
+                Premium only
               </div>
               
               <!-- Constraints -->
@@ -445,10 +445,10 @@ onMounted(async () => {
               <!-- Minus Button -->
               <button
                 @click="updateQuantity(ticket.id, -1)"
-                :disabled="! isAvailable(ticket) || selections[ticket.id] === 0"
+                :disabled="!isAvailable(ticket) || selections[ticket.id] === 0"
                 :class="[
                   'w-10 h-10 rounded-xl font-bold transition-all flex items-center justify-center',
-                  (! isAvailable(ticket) || selections[ticket.id] === 0)
+                  (!isAvailable(ticket) || selections[ticket.id] === 0)
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:scale-95'
                 ]"
@@ -466,7 +466,7 @@ onMounted(async () => {
               <!-- Plus Button -->
               <button
                 @click="updateQuantity(ticket.id, 1)"
-                :disabled="! isAvailable(ticket) || ! canAddMoreTicket(ticket. id)"
+                :disabled="!isAvailable(ticket) || !canAddMoreTicket(ticket.id)"
                 :class="[
                   'w-10 h-10 rounded-xl font-bold transition-all flex items-center justify-center',
                   (!isAvailable(ticket) || !canAddMoreTicket(ticket.id))

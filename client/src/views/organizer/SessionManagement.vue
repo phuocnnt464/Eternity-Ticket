@@ -323,9 +323,9 @@ const validateTicketForm = () => {
   }
   
   const session = sessions.value.find(s => (s.id || s.session_id) === ticketForm.value.session_id)
-  if (session && ticketForm.value.max_quantity_per_order > session.max_tickets_per_order) {
-    ticketErrors.value.max_quantity_per_order = `Cannot exceed session maximum (${session.max_tickets_per_order})`
-  }
+  // if (session && ticketForm.value.max_quantity_per_order > session.max_tickets_per_order) {
+  //   ticketErrors.value.max_quantity_per_order = `Cannot exceed session maximum (${session.max_tickets_per_order})`
+  // }
   
   return Object.keys(ticketErrors.value).length === 0
 }
@@ -429,7 +429,7 @@ onMounted(() => {
         <p v-if="event" class="text-gray-600 mt-1">{{ event.title }}</p>
       </div>
       <Button variant="primary" @click="openCreateSessionModal">
-        <PlusIcon class="w-5 h-5" />
+        <PlusIcon class="w-5 h-5 inline-flex mb-1" />
         Create Session
       </Button>
     </div>
@@ -519,7 +519,7 @@ onMounted(() => {
                 size="sm"
                 @click="openCreateTicketModal(session.id || session.session_id)"
               >
-                <PlusIcon class="w-4 h-4" />
+                <PlusIcon class="inline w-4 h-4 mb-1" />
                 Add Ticket Type
               </Button>
             </div>
@@ -864,7 +864,7 @@ onMounted(() => {
             full-width
             class="opacity-50 cursor-not-allowed"
           >
-            <LockClosedIcon class="w-4 h-4 mr-2" />
+            <LockClosedIcon class="inline w-4 h-4 mr-2 mb-1" />
             Cannot Update
           </Button>
         </div>
