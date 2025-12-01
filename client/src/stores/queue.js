@@ -162,7 +162,7 @@ export const useQueueStore = defineStore('queue', () => {
     expiresAt.value = null
     eventId.value = null
     sessionId.value = null
-    lastHeartbeat.value = nul
+    lastHeartbeat.value = null
   }
 
   /**
