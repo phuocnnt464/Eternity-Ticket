@@ -112,7 +112,7 @@ class QueueController {
         user_id: userId,
         event_id,
         session_id,
-        queue_number,
+        queue_number: queueNumber,
         priority_score: priorityScore
       });
 

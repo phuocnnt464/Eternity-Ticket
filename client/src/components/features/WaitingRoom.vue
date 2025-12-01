@@ -151,17 +151,46 @@ const pollStatistics = async () => {
 onMounted(async () => {
   try {
     // await queueStore.joinQueue(props.sessionId)
-    const response = await queueAPI.joinQueue({ session_id: props.sessionId })
-    const data = response.data. data || response.data
-    
+    // const response = await queueAPI.joinQueue({ session_id: props.sessionId })
+    const response = await queueAPI.getStatus(props.sessionId)
+    const data = response.data.data || response.data
+
+    console.log('🔍 WaitingRoom mounted, status:', data)
     // Update store với data từ API
-    queueStore.joinQueue(data)
+    // queueStore.joinQueue(data)
+
+    if (data.status) {
+      queueStore.updateStatus(data.status)
+    }
+    if (data.queue_position !== undefined) {
+      queueStore.updatePosition(data.queue_position)
+    }
+    if (data.expires_at) {
+      queueStore.expiresAt = data.expires_at
+    }
 
     startHeartbeat()
     
-    if (isActive.value) {
+     if (data.status === 'active' || data.can_purchase) {
+      console. log('✅ User already active')
+      
+      if (data. expires_at) {
+        queueStore.currentQueue = {
+          status: 'active',
+          position: 0,
+          active_until: data.expires_at
+        }
+      }
+      
       startCountdown()
       emit('ready')
+    } else {
+      console.log(`⏳ User waiting, position: ${data.queue_position}`)
+      queueStore.currentQueue = {
+        status: 'waiting',
+        position: data.queue_position,
+        estimated_wait: data.estimated_wait_minutes
+      }
     }
     
     pollStatistics()

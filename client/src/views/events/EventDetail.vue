@@ -271,7 +271,7 @@ const handlePurchase = async () => {
     })
 
     const response = await queueAPI.joinQueue({
-      session_id: selectedSession.value. id
+      session_id: selectedSession.value.id
     })
     
     const data = response.data
