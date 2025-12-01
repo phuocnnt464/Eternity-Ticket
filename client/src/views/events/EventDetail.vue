@@ -120,9 +120,9 @@ const checkEarlyAccess = () => {
           minutesRemaining: minutesRemaining,
           earlyAccessHours: earlyAccessHours. value
         }
-      } else {
+      } 
+    } else {
         ticket.isEarlyAccess = false
-      }
     }
   }
   // earlyAccessInfo.value = null
