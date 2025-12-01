@@ -702,7 +702,11 @@ class EventController {
           COUNT(*) FILTER (WHERE status = 'draft') as draft_events,
           COUNT(*) as total_events,
           COALESCE(SUM(
-            (SELECT COUNT(*) FROM tickets WHERE tickets.event_id = events.id)
+            (SELECT COUNT(*) 
+            FROM tickets t
+            JOIN orders o ON t.order_id = o.id
+            WHERE t.event_id = events.id
+            AND o.status = 'paid' )
           ), 0) as total_tickets_sold,
           COALESCE(SUM(
             (SELECT COALESCE(SUM(total_amount), 0) 

@@ -221,6 +221,8 @@ watch(() => route.query. search, (newSearch) => {
     fetchEvents()
   }
 })
+
+
 </script>
 
 <template>
@@ -304,7 +306,7 @@ watch(() => route.query. search, (newSearch) => {
             @click="handleClearAll"
             class="inline-flex items-center bg-red-500/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
           >
-            <XMarkIcon class="w-4 h-4 mr-1" />
+            <XMarkIcon class="w-4 h-4 mr-1 mb-1" />
             Clear All
           </button>
         </div>

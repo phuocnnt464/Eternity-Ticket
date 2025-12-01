@@ -17,7 +17,8 @@ import {
   ClockIcon,
   StarIcon,
   CheckCircleIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  ArrowDownIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -43,7 +44,9 @@ const features = [
     icon: SparklesIcon,
     title: 'Premium Membership',
     description: 'Get early access, exclusive discounts, and VIP treatment for major events.',
-    gradient: 'from-accent-500 to-accent-700'
+    gradient: 'from-accent-500 to-accent-700',
+    clickable: true,
+    scrollTo: 'membership-plans'
   },
   {
     icon: UserGroupIcon,
@@ -153,6 +156,22 @@ const handleMembershipClick = (plan) => {
     router.push('/participant/membership')
   }
 }
+
+const scrollToSection = (sectionId) => {
+  const element = document.getElementById(sectionId)
+  if (element) {
+    element.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'start'
+    })
+  }
+}
+
+const handleFeatureClick = (feature) => {
+  if (feature.clickable && feature.scrollTo) {
+    scrollToSection(feature.scrollTo)
+  }
+}
 </script>
 
 <template>
@@ -213,7 +232,7 @@ const handleMembershipClick = (plan) => {
               class="bg-white text-gray-900 hover:bg-gray-100 shadow-xl px-8 py-4 text-lg"
               @click="router.push('/events')"
             >
-              <TicketIcon class="inline-flex w-5 h-5 mr-2" />
+              <TicketIcon class="inline-flex w-5 h-5 mr-2 mb-1" />
               Explore Events
             </Button>
             <Button 
@@ -300,7 +319,11 @@ const handleMembershipClick = (plan) => {
           <div
             v-for="feature in features"
             :key="feature.title"
-            class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-primary-500 group"
+            c:class="[
+              'bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-primary-500 group',
+              feature.clickable && 'cursor-pointer'
+            ]"
+            @click="handleFeatureClick(feature)"
           >
             <div 
               :class="[
@@ -310,15 +333,18 @@ const handleMembershipClick = (plan) => {
             >
               <component :is="feature.icon" class="w-8 h-8 text-white" />
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-3">{{ feature.title }}</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center justify-between">{{ feature.title }}</h3>
             <p class="text-gray-600 leading-relaxed">{{ feature.description }}</p>
+            <p v-if="feature.clickable" class="text-sm text-primary-600 font-medium mt-4 group-hover:underline">
+              View Plans
+            </p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ✅ NEW: Membership Plans Section -->
-    <section class="py-20 bg-white">
+    <!-- Membership Plans Section -->
+    <section  id="membership-plans" class="py-20 bg-white">
       <div class="container-custom">
         <div class="text-center mb-16">
           <div class="inline-flex items-center space-x-2 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-full px-4 py-2 mb-4">
