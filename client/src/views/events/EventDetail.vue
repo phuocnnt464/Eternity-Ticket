@@ -134,7 +134,7 @@ const buyButtonText = computed(() => {
   
   if (earlyAccessInfo. value?.isActive) {
     if (earlyAccessInfo.value. isPremium) {
-      return 'Premium Early Access - Buy Now'
+      return 'Early Access - Buy Now'
     } else {
       return `Available in ${earlyAccessInfo.value. minutesRemaining} min`
     }
@@ -689,7 +689,7 @@ onBeforeUnmount(() => {
                           class="font-bold text-lg shadow-lg"
                         >
                           <Spinner v-if="joiningQueue" size="sm" class="mr-2" />
-                          <TicketIcon v-else class="inline-flex w-6 h-6 mr-2" />
+                          <TicketIcon v-else class="inline-flex w-6 h-6 mr-2 mb-1" />
                           {{ buyButtonText }}
                         </Button>
 

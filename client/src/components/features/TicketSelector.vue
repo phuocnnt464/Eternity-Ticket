@@ -136,14 +136,14 @@ const getSaleStatus = (ticket) => {
       const minutesRemaining = Math.ceil((saleStart - now) / 60000)
       return {
         variant: 'warning',
-        text: `Early Access (${minutesRemaining}m left)`,
+        text: `${minutesRemaining}m left`,
         isPremiumAccess: true
       }
     } else {
       const minutesRemaining = Math.ceil((saleStart - now) / 60000)
       return {
         variant: 'secondary',
-        text: `Premium Only (${minutesRemaining}m)`,
+        text: `${minutesRemaining}m left`,
         isPremiumAccess: false
       }
     }
@@ -377,7 +377,6 @@ onMounted(async () => {
                 <Badge 
                   v-if="getSaleStatus(ticket).isPremiumAccess === true"
                   variant="warning"
-                  class="animate-pulse"
                 >
                   <StarIcon class="inline-flex w-4 h-4 mr-1 mb-1" />
                   {{ getSaleStatus(ticket).text }}
