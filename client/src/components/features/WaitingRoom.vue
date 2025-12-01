@@ -30,6 +30,8 @@ const activeCount = ref(0)
 const previousPosition = ref(null)
 const queueMovement = ref(0)
 
+const statisticsInterval = ref(null)
+
 const queueStatus = computed(() => queueStore.currentQueue)
 
 const isWaiting = computed(() => {
@@ -163,7 +165,7 @@ onMounted(async () => {
     }
     
     pollStatistics()
-    setInterval(pollStatistics, 10000)
+    statisticsInterval.value = setInterval(pollStatistics, 10000)
 
   } catch (error) {
     emit('error', error.message)
@@ -176,6 +178,9 @@ onBeforeUnmount(() => {
   }
   if (countdownInterval.value) {
     clearInterval(countdownInterval.value)
+  }
+  if (statisticsInterval.value) {  
+    clearInterval(statisticsInterval.value)
   }
 })
 </script>
@@ -214,8 +219,8 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- ✅ THÊM: Queue Progress Tracker -->
-      <div v-if="queueStatus && (isWaiting || isActive)" class="card mb-6">
+      <!-- Queue Progress Tracker -->
+      <div v-if="isWaiting" class="card mb-6">
         <h3 class="text-lg font-semibold mb-4 flex items-center">
           <ClockIcon class="w-5 h-5 mr-2 text-primary-600" />
           Queue Progress
