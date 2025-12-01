@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useQueueStore } from '@/stores/queue'
-import queueAPI from '@/api/queue'
+import { queueAPI } from '@/api/queue'
 import { 
   ClockIcon, 
   UsersIcon,
