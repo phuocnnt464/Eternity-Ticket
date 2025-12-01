@@ -220,7 +220,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- Queue Progress Tracker -->
-      <div v-if="isWaiting" class="card mb-6">
+      <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
         <h3 class="text-lg font-semibold mb-4 flex items-center">
           <ClockIcon class="w-5 h-5 mr-2 text-primary-600" />
           Queue Progress
