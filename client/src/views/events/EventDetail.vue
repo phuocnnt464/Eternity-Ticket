@@ -724,9 +724,9 @@ onBeforeUnmount(() => {
 
                         <p v-if="! canPurchase && selectedTickets.length > 0" 
                            class="text-sm text-center text-orange-600 font-medium mt-2">
-                          {{ hasEarlyAccessSelected()
-                             ? '⏰ Selected ticket is in Premium Early Access. Upgrade to buy now!' 
-                             : 'Unable to purchase at this time.' }}
+                          {{ earlyAccessInfo?.isActive && ! earlyAccessInfo?.isPremium 
+                             ? '⏰ Upgrade to Premium to buy now' 
+                             : 'Please select tickets' }}
                         </p>
 
                         <!-- Share Buttons -->
