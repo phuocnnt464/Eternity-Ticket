@@ -241,8 +241,8 @@ const handleFeatureClick = (feature) => {
               class="shadow-xl px-8 py-4 text-lg"
               @click="router.push('/auth/register?role=organizer')"
             >
-              <SparklesIcon class="inline-flex w-5 h-5 mr-2" />
-              Create Your Event
+              <SparklesIcon class="inline-flex w-5 h-5 mr-1 mb-1" />
+              Create Events
             </Button>
           </div>
         </div>
