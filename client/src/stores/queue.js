@@ -102,6 +102,15 @@ export const useQueueStore = defineStore('queue', () => {
     }
   }
 
+  const sendHeartbeat = async (sessionId) => {
+    try {
+      await queueAPI.heartbeat({ session_id: sessionId })
+      lastHeartbeat.value = new Date().toISOString()
+    } catch (error) {
+      console.error('Heartbeat failed:', error)
+    }
+  }
+
   /**
    * Start heartbeat
    */
@@ -128,6 +137,16 @@ export const useQueueStore = defineStore('queue', () => {
     }
   }
   
+  // Leave queue
+  const leaveQueue = async (sessionId) => {
+    try {
+      await queueAPI.leaveQueue(sessionId)
+      exitQueue()
+    } catch (error) {
+      throw error
+    }
+  }
+
   /**
    * Exit queue
    */
@@ -213,12 +232,14 @@ export const useQueueStore = defineStore('queue', () => {
     joinQueue,
     updateStatus,
     updatePosition,
+    sendHeartbeat,
     startHeartbeat,
     stopHeartbeat,
     exitQueue,
     completeQueue,
     expireQueue,
-    checkExpiration
+    checkExpiration,
+    leaveQueue
   }
 }, {
   persist: true
