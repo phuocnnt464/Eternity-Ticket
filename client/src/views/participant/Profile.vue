@@ -591,7 +591,7 @@ onMounted(() => {
           size="sm"
           @click="showPasswordForm = true"
         >
-          <KeyIcon class="w-4 h-4" />
+          <KeyIcon class="inline w-4 h-4 mt-1 mb-1" />
           Change Password
         </Button>
       </div>

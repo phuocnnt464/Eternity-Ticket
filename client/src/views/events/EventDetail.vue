@@ -93,6 +93,8 @@ const checkEarlyAccess = () => {
   const now = new Date()
   const userTier = authStore.membershipTier || 'basic'
 
+  earlyAccessInfo.value = null
+
   for (const ticket of ticketTypes.value) {
     const saleStart = new Date(ticket.sale_start_time)
     const earlyAccessStart = new Date(
@@ -102,28 +104,41 @@ const checkEarlyAccess = () => {
     if (now >= earlyAccessStart && now < saleStart) {
       const minutesRemaining = Math.ceil((saleStart - now) / 60000)
 
-      earlyAccessInfo.value = {
-        isActive: true,
+      ticket.isEarlyAccess = true
+      ticket.earlyAccessInfo = {
         isPremium: userTier === 'premium',
-        ticketName: ticket.name,
         publicSaleStart: saleStart,
-        minutesRemaining: minutesRemaining,
-        earlyAccessHours: earlyAccessHours. value
+        minutesRemaining: minutesRemaining
       }
-        
-      return
+
+      if (! earlyAccessInfo.value) {
+        earlyAccessInfo.value = {
+          isActive: true,
+          isPremium: userTier === 'premium',
+          ticketName: ticket.name,
+          publicSaleStart: saleStart,
+          minutesRemaining: minutesRemaining,
+          earlyAccessHours: earlyAccessHours. value
+        }
+      } else {
+        ticket.isEarlyAccess = false
+      }
     }
   }
-  
-  earlyAccessInfo.value = null
+  // earlyAccessInfo.value = null
 }
 
 const canPurchase = computed(() => {
   if (!event.value || event.value.status !== 'approved') return false
   if (selectedTickets.value.length === 0) return false
   
-  if (earlyAccessInfo.value?.isActive && !earlyAccessInfo.value?.isPremium) {
-    return false
+  const userTier = authStore.membershipTier || 'basic'
+
+ for (const selected of selectedTickets.value) {
+    const ticketType = ticketTypes.value.find(t => t.id === selected.ticket_type_id)
+    if (ticketType?.isEarlyAccess && userTier !== 'premium') {
+      return false
+    }
   }
   
   return true
@@ -131,12 +146,26 @@ const canPurchase = computed(() => {
 
 const buyButtonText = computed(() => {
   if (joiningQueue.value) return 'Joining Queue.. .'
+
+  const hasEarlyAccessTicket = selectedTickets.value.some(selected => {
+    const ticketType = ticketTypes.value.find(t => t.id === selected.ticket_type_id)
+    return ticketType?.isEarlyAccess
+  })
   
-  if (earlyAccessInfo. value?.isActive) {
-    if (earlyAccessInfo.value. isPremium) {
+  if (hasEarlyAccessTicket) {
+    if (userTier === 'premium') {
       return 'Early Access - Buy Now'
     } else {
-      return `Available in ${earlyAccessInfo.value. minutesRemaining} min`
+      // ✅ Tìm ticket early access được chọn
+      const earlyTicket = selectedTickets.value.find(selected => {
+        const ticketType = ticketTypes.value.find(t => t.id === selected.ticket_type_id)
+        return ticketType?.isEarlyAccess
+      })
+      
+      if (earlyTicket) {
+        const ticketType = ticketTypes.value.find(t => t.id === earlyTicket.ticket_type_id)
+        return `Available in ${ticketType?.earlyAccessInfo?.minutesRemaining || 0} min`
+      }
     }
   }
   
@@ -694,10 +723,10 @@ onBeforeUnmount(() => {
                         </Button>
 
                         <p v-if="! canPurchase && selectedTickets.length > 0" 
-                           class="text-sm text-center text-orange-600 font-medium">
-                          {{ earlyAccessInfo?. isActive && ! earlyAccessInfo?.isPremium 
-                             ? '⏰ Upgrade to Premium to buy now' 
-                             : 'Please select tickets' }}
+                           class="text-sm text-center text-orange-600 font-medium mt-2">
+                          {{ hasEarlyAccessSelected()
+                             ? '⏰ Selected ticket is in Premium Early Access. Upgrade to buy now!' 
+                             : 'Unable to purchase at this time.' }}
                         </p>
 
                         <!-- Share Buttons -->
