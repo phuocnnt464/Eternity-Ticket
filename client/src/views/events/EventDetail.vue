@@ -45,7 +45,6 @@ const loadingTickets = ref(false)
 
 const showWaitingRoom = ref(false) 
 const queuePosition = ref(null)
-const queueData = ref(null) 
 const joiningQueue = ref(false)
 
 const earlyAccessInfo = ref(null)
@@ -272,12 +271,12 @@ const handlePurchase = async () => {
     })
 
     const response = await queueAPI.joinQueue({
-      session_id: selectedSession.value.id
+      session_id: selectedSession.value. id
     })
     
     const data = response.data
 
-    if (!data.waiting_room_enabled) {
+    if (! data.waiting_room_enabled) {
       router.push({
         name: 'EventCheckout',
         params: { slug: route.params.slug }
@@ -285,20 +284,15 @@ const handlePurchase = async () => {
       return
     }
 
-    // if (data.can_purchase) {
-    //   router.push({
-    //     name: 'EventCheckout',
-    //     params: { slug: route.params.slug }
-    //   })
-    // } else {
-    //   showWaitingRoom.value = true
-    //   queuePosition.value = data.queue_position
-    // }
-
-    queueData.value = data
-    showWaitingRoom.value = true
-    queuePosition.value = data.queue_position
-
+    if (data.can_purchase) {
+      router.push({
+        name: 'EventCheckout',
+        params: { slug: route.params.slug }
+      })
+    } else {
+      showWaitingRoom.value = true
+      queuePosition.value = data.queue_position
+    }
   } catch (error) {
     console.error('Failed to join queue:', error)
     alert(error.response?.data?.message || 'Failed to join waiting room.  Please try again.')
@@ -371,7 +365,6 @@ onBeforeUnmount(() => {
     <WaitingRoom
       v-if="showWaitingRoom"
       :session-id="selectedSession?.id"
-      :initial-data="queueData"
       @ready="handleWaitingRoomReady"
       @error="handleWaitingRoomError"
       @expired="handleWaitingRoomError"

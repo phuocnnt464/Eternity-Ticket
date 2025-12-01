@@ -15,10 +15,6 @@ const props = defineProps({
   sessionId: {
     type: String,
     required: true
-  },
-  initialData: {
-    type: Object,
-    default: null
   }
 })
 
@@ -155,31 +151,17 @@ const pollStatistics = async () => {
 onMounted(async () => {
   try {
     // await queueStore.joinQueue(props.sessionId)
-    // const response = await queueAPI.joinQueue({ session_id: props.sessionId })
-    // const data = response.data.data || response.data
+    const response = await queueAPI.joinQueue({ session_id: props.sessionId })
+    const data = response.data. data || response.data
     
-    let statusData
-    
-    if (props. initialData) {
-      console.log('✅ Using initial queue data:', props.initialData)
-      statusData = props.initialData
-    } else {
-      console.log('⚠️ No initial data, fetching status...')
-      const response = await queueAPI.getStatus(props.sessionId)
-      statusData = response.data.data || response.data
-    }
-
     // Update store với data từ API
-    queueStore.joinQueue(statusData)
+    queueStore.joinQueue(data)
 
     startHeartbeat()
     
-    if (statusData.can_purchase || statusData.status === 'active') {
-      console.log('✅ User is active, starting countdown and emitting ready')
+    if (isActive.value) {
       startCountdown()
       emit('ready')
-    } else {
-      console.log(`⏳ User waiting at position ${statusData.queue_position}`)
     }
     
     pollStatistics()
