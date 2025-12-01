@@ -174,23 +174,22 @@ onMounted(async () => {
      if (data.status === 'active' || data.can_purchase) {
       console. log('✅ User already active')
       
-      if (data. expires_at) {
-        queueStore.currentQueue = {
-          status: 'active',
-          position: 0,
-          active_until: data.expires_at
-        }
+      // ✅ Update store
+      queueStore.status = 'active'
+      queueStore.queuePosition = 0
+      if (data.expires_at) {
+        queueStore.expiresAt = data.expires_at
       }
       
+      startHeartbeat()
       startCountdown()
       emit('ready')
     } else {
       console.log(`⏳ User waiting, position: ${data.queue_position}`)
-      queueStore.currentQueue = {
-        status: 'waiting',
-        position: data.queue_position,
-        estimated_wait: data.estimated_wait_minutes
-      }
+      queueStore.status = 'waiting'
+      queueStore.queuePosition = data.queue_position
+      queueStore.estimatedWait = data.estimated_wait_minutes
+      startHeartbeat()
     }
     
     pollStatistics()
