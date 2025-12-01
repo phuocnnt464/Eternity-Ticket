@@ -65,14 +65,14 @@ const eventForm = ref({
 // ✅ ĐÚNG: Sessions với min/max tickets per order CỦA SESSION
 const sessions = ref([
   {
-    title: 'Main Session',
+    title: '',
     start_time: '',
     end_time: '',
     min_tickets_per_order: 1,    // ✅ Min tổng vé cho mỗi đơn hàng
     max_tickets_per_order: 10,   // ✅ Max tổng vé cho mỗi đơn hàng
     ticket_types: [
       {
-        name: 'General Admission',
+        name: '',
         price: 0,
         total_quantity: 0,
         min_quantity_per_order: 1,          // ✅ Min của LOẠI VÉ này
@@ -328,6 +328,30 @@ const sessionValidationErrors = computed(() => {
   return errors
 })
 
+const getSessionError = (sessionIndex, field) => {
+  const errors = sessionValidationErrors. value
+  const prefix = `Session ${sessionIndex + 1}:`
+  
+  for (const error of errors) {
+    if (error.startsWith(prefix) && error.toLowerCase().includes(field.toLowerCase())) {
+      return error. replace(prefix, '').trim()
+    }
+  }
+  return null
+}
+
+const getTicketError = (sessionIndex, ticketIndex, field) => {
+  const errors = sessionValidationErrors.value
+  const prefix = `Session ${sessionIndex + 1}, Ticket ${ticketIndex + 1}:`
+  
+  for (const error of errors) {
+    if (error.startsWith(prefix) && error.toLowerCase().includes(field.toLowerCase())) {
+      return error.replace(prefix, '').trim()
+    }
+  }
+  return null
+}
+
 const handleSubmit = async (status = 'draft') => {
   if (status === 'pending') {
     // Validate payment info khi submit for approval
@@ -365,7 +389,7 @@ const handleSubmit = async (status = 'draft') => {
     if (eventForm.value.category_id) formData.append('category_id', eventForm.value.category_id)
 
     if (eventForm.value.start_date) formData.append('start_date', eventForm.value.start_date)
-if (eventForm.value.end_date) formData.append('end_date', eventForm.value.end_date)
+    if (eventForm.value.end_date) formData.append('end_date', eventForm.value.end_date)
     
     // Venue Info
     if (eventForm.value.venue_name) formData.append('venue_name', eventForm.value.venue_name)
@@ -976,20 +1000,6 @@ onMounted(async () => {
 
     <!-- Step 5: Sessions & Tickets -->
     <div v-show="currentStep === 5" class="space-y-4">
-       <!-- Validation errors -->
-      <div v-if="sessionValidationErrors.length > 0" class="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div class="flex items-start space-x-2">
-          <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-          </svg>
-          <div class="flex-1">
-            <h4 class="font-semibold text-red-900">Please fix the following issues:</h4>
-            <ul class="mt-2 space-y-1 text-sm text-red-700">
-              <li v-for="(error, idx) in sessionValidationErrors" :key="idx">• {{ error }}</li>
-            </ul>
-          </div>
-        </div>
-      </div>
 
       <!-- Info box -->
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -1009,235 +1019,249 @@ onMounted(async () => {
       <Card
         v-for="(session, sessionIndex) in sessions"
         :key="sessionIndex"
+        class="relative"
       >
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold">{{ session.title }}</h3>
-          <Button
+        <!-- Session Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold">Session {{ sessionIndex + 1 }}</h3>
+          <button
             v-if="sessions.length > 1"
-            variant="danger"
-            size="sm"
             @click="removeSession(sessionIndex)"
+            class="text-red-600 hover:text-red-700 flex items-center space-x-1"
           >
-            <TrashIcon class="w-4 h-4" />
-          </Button>
+            <TrashIcon class="w-5 h-5" />
+            <span class="text-sm">Remove</span>
+          </button>
         </div>
 
-        <div class="space-y-4 mb-6">
+        <div class="space-y-4">
+          <!-- Session Title -->
           <Input
             v-model="session.title"
-            label="Session Name"
-            placeholder="e.g. Main Session, Day 1, Session 1"
+            label="Session Title"
+            placeholder="e. g. Opening Night, Day 2"
+            required
           />
 
+          <!-- Session Times -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Input
+                v-model="session. start_time"
+                type="datetime-local"
+                label="Start Time"
+                :icon="CalendarIcon"
+                :error="getSessionError(sessionIndex, 'start time')"
+                required
+              />
+            </div>
+
+            <div>
+              <Input
+                v-model="session. end_time"
+                type="datetime-local"
+                label="End Time"
+                :icon="CalendarIcon"
+                :error="getSessionError(sessionIndex, 'end time')"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Tickets per Order Limits -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              v-model="session.start_time"
-              type="datetime-local"
-              label="Session Start"
+              v-model.number="session.min_tickets_per_order"
+              type="number"
+              label="Min Tickets per Order"
+              placeholder="1"
+              min="1"
+              :max="session.max_tickets_per_order"
               required
             />
+
             <Input
-              v-model="session.end_time"
-              type="datetime-local"
-              label="Session End"
+              v-model.number="session.max_tickets_per_order"
+              type="number"
+              label="Max Tickets per Order"
+              placeholder="10"
+              :min="session.min_tickets_per_order"
+              max="100"
               required
             />
           </div>
 
-          <!-- ✅ SESSION LEVEL: Min/Max tickets per order -->
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div class="flex items-start space-x-2 mb-3">
-              <InformationCircleIcon class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p class="font-medium text-blue-900">Order Limits for This Session</p>
-                <p class="text-sm text-blue-700 mt-1">
-                  Set the minimum and maximum TOTAL tickets a customer can buy in one order for this session (across all ticket types)
-                </p>
-              </div>
+          <!-- Ticket Types -->
+          <div class="border-t pt-4 space-y-4">
+            <div class="flex items-center justify-between">
+              <h4 class="font-semibold text-gray-900">Ticket Types</h4>
+              <button
+                @click="addTicketType(sessionIndex)"
+                class="btn-secondary btn-sm"
+              >
+                <PlusIcon class="w-4 h-4" />
+                Add Ticket Type
+              </button>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-              <Input
-                v-model.number="session.min_tickets_per_order"
-                type="number"
-                label="Min Tickets Per Order"
-                placeholder="1"
-                required
-              />
-              <Input
-                v-model.number="session.max_tickets_per_order"
-                type="number"
-                label="Max Tickets Per Order"
-                placeholder="10"
-                required
-              />
-            </div>
-          </div>
-        </div>
 
-        <!-- Ticket Types -->
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <h4 class="font-medium">Ticket Types</h4>
-            <Button
-              variant="secondary"
-              size="sm"
-              @click="addTicketType(sessionIndex)"
-            >
-              <PlusIcon class="w-4 h-4" />
-              Add Ticket Type
-            </Button>
-          </div>
-
-          <div class="space-y-4">
+            <!-- Each Ticket Type -->
             <div
-              v-for="(ticket, ticketIndex) in session.ticket_types"
+              v-for="(ticket, ticketIndex) in session. ticket_types"
               :key="ticketIndex"
-              class="border border-gray-200 rounded-lg p-4"
+              class="bg-gray-50 rounded-lg p-4 space-y-4"
             >
-              <div class="flex items-start justify-between mb-3">
-                <p class="font-medium text-sm">Ticket Type {{ ticketIndex + 1 }}</p>
-                <Button
+              <div class="flex items-center justify-between">
+                <h5 class="font-medium text-gray-700">Ticket {{ ticketIndex + 1 }}</h5>
+                <button
                   v-if="session.ticket_types.length > 1"
-                  variant="ghost"
-                  size="sm"
                   @click="removeTicketType(sessionIndex, ticketIndex)"
+                  class="text-red-600 hover:text-red-700"
                 >
-                  <TrashIcon class="w-4 h-4 text-red-600" />
-                </Button>
+                  <TrashIcon class="w-4 h-4" />
+                </button>
               </div>
 
-              <div class="space-y-3">
-                <!-- Row 1: Name & Price -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <Input
-                    v-model="ticket.name"
-                    label="Ticket Name"
-                    placeholder="e.g. VIP, General, Early Bird"
-                    required
-                  />
-                  <Input
-                    v-model.number="ticket.price"
-                    type="number"
-                    label="Price (VND)"
-                    placeholder="0"
-                    required
-                  />
-                </div>
+              <!-- Ticket Name -->
+              <Input
+                v-model="ticket.name"
+                label="Ticket Name"
+                placeholder="e.g. VIP, General Admission"
+                :error="getTicketError(sessionIndex, ticketIndex, 'name')"
+                required
+              />
 
-                <!-- Row 2: Quantity -->
-                <div>
-                  <Input
-                    v-model.number="ticket.total_quantity"
-                    type="number"
-                    label="Total Quantity"
-                    placeholder="100"
-                    min="1"
-                    max="100000"
-                    required
-                    :class="ticket.total_quantity > 100000 ? 'border-red-500' : ''"
-                  />
-                  <p class="text-xs text-gray-500 mt-1">
-                    Max: 100,000 tickets
-                  </p>
-                  <p v-if="ticket.total_quantity > 100000" class="text-xs text-red-600 mt-1 font-semibold">
-                    ⚠️ Exceeds maximum limit!
-                  </p>
-                </div>
+              <!-- Price & Quantity -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  v-model.number="ticket.price"
+                  type="number"
+                  label="Price (VND)"
+                  placeholder="0"
+                  min="0"
+                  max="100000000"
+                  :error="getTicketError(sessionIndex, ticketIndex, 'price')"
+                  required
+                />
 
-                <!-- ✅ TICKET TYPE LEVEL: Min/Max per order CHO LOẠI VÉ NÀY -->
-                <div class="bg-gray-50 border border-gray-200 rounded p-3">
-                  <p class="text-sm font-medium text-gray-700 mb-2">
-                    Limits for This Ticket Type
-                  </p>
-                  <p class="text-xs text-gray-600 mb-3">
-                    Min/max quantity customer can buy of THIS ticket type (must not exceed session max: {{ session.max_tickets_per_order }})
-                  </p>
-                  <div class="grid grid-cols-2 gap-3">
-                    <Input
-                      v-model.number="ticket.min_quantity_per_order"
-                      type="number"
-                      label="Min Per Order"
-                      placeholder="1"
-                      required
-                    />
-                    <Input
-                      v-model.number="ticket.max_quantity_per_order"
-                      type="number"
-                      label="Max Per Order"
-                      placeholder="10"
-                      :max="session.max_tickets_per_order"
-                      required
-                    />
-                  </div>
-                </div>
+                <Input
+                  v-model.number="ticket.total_quantity"
+                  type="number"
+                  label="Total Quantity"
+                  placeholder="100"
+                  min="1"
+                  max="100000"
+                  :error="getTicketError(sessionIndex, ticketIndex, 'quantity')"
+                  required
+                />
+              </div>
 
-                <!-- Sale Time -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Min/Max per Order -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  v-model.number="ticket.min_quantity_per_order"
+                  type="number"
+                  label="Min per Order"
+                  placeholder="1"
+                  min="1"
+                  :max="ticket.max_quantity_per_order"
+                  required
+                />
+
+                <Input
+                  v-model.number="ticket.max_quantity_per_order"
+                  type="number"
+                  label="Max per Order"
+                  placeholder="5"
+                  :min="ticket.min_quantity_per_order"
+                  :max="session.max_tickets_per_order"
+                  required
+                />
+              </div>
+
+              <!-- Sale Times (Optional) -->
+              <div class="border-t pt-4">
+                <p class="text-sm font-medium text-gray-700 mb-3">Sale Period (Optional)</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
                     v-model="ticket.sale_start_time"
                     type="datetime-local"
-                    label="Sale Start Time (Optional)"
-                    placeholder="When tickets go on sale"
+                    label="Sale Start"
+                    :icon="CalendarIcon"
+                    :error="getTicketError(sessionIndex, ticketIndex, 'sale start')"
                   />
+
                   <Input
                     v-model="ticket.sale_end_time"
                     type="datetime-local"
-                    label="Sale End Time (Optional)"
-                    placeholder="When tickets stop selling"
+                    label="Sale End"
+                    :icon="CalendarIcon"
+                    :error="getTicketError(sessionIndex, ticketIndex, 'sale end')"
                   />
                 </div>
+              </div>
+
+              <!-- Ticket Description (Optional) -->
+              <div>
+                <label class="label">Description (Optional)</label>
+                <textarea
+                  v-model="ticket. description"
+                  rows="2"
+                  maxlength="500"
+                  placeholder="Brief description of this ticket type..."
+                  class="textarea"
+                ></textarea>
+                <p class="text-xs text-gray-500 mt-1">
+                  {{ ticket.description?. length || 0 }}/500 characters
+                </p>
               </div>
             </div>
           </div>
         </div>
       </Card>
 
-      <Button
-        variant="secondary"
+      <button
         @click="addSession"
-        full-width
+        class="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-gray-600 hover:border-primary-500 hover:text-primary-600 hover:bg-primary-50 transition-all"
       >
-        <PlusIcon class="w-5 h-5" />
-        Add Another Session
-      </Button>
-    </div>
+        <PlusIcon class="w-6 h-6 mx-auto mb-2" />
+        <span class="font-medium">Add Another Session</span>
+      </button>
+  </div>
 
     <!-- Navigation Buttons -->
-    <div class="card">
-      <div class="flex items-center justify-between">
-        <Button
-          v-if="currentStep > 1"
-          variant="secondary"
-          @click="prevStep"
-        >
-          ← Previous
-        </Button>
-        <div v-else></div>
+    <div class="flex items-center justify-between pt-6 border-t">
+      <Button
+        v-if="currentStep > 1"
+        variant="secondary"
+        @click="prevStep"
+      >
+        Previous
+      </Button>
+      <div v-else></div>
 
-        <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-3">
+        <Button
+          v-if="currentStep < totalSteps"
+          variant="primary"
+          @click="nextStep"
+          :disabled="!canProceed"
+        >
+          Next Step
+        </Button>
+
+        <div v-else class="flex space-x-3">
           <Button
-            v-if="currentStep === totalSteps"
             variant="secondary"
-            :loading="loading"
             @click="handleSubmit('draft')"
+            :loading="loading"
           >
             Save as Draft
           </Button>
-          
           <Button
-            v-if="currentStep < totalSteps"
             variant="primary"
-            :disabled="!canProceed"
-            @click="nextStep"
-          >
-            Next →
-          </Button>
-          
-          <Button
-            v-else
-            variant="primary"
-            :loading="loading"
             @click="handleSubmit('pending')"
+            :loading="loading"
+            :disabled="sessionValidationErrors.length > 0"
           >
             Submit for Approval
           </Button>
