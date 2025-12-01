@@ -45,6 +45,7 @@ const loadingTickets = ref(false)
 
 const showWaitingRoom = ref(false) 
 const queuePosition = ref(null)
+const queueData = ref(null) 
 const joiningQueue = ref(false)
 
 const earlyAccessInfo = ref(null)
@@ -271,7 +272,7 @@ const handlePurchase = async () => {
     })
 
     const response = await queueAPI.joinQueue({
-      session_id: selectedSession.value. id
+      session_id: selectedSession.value.id
     })
     
     const data = response.data
@@ -294,9 +295,10 @@ const handlePurchase = async () => {
     //   queuePosition.value = data.queue_position
     // }
 
+    queueData.value = data
     showWaitingRoom.value = true
     queuePosition.value = data.queue_position
-    
+
   } catch (error) {
     console.error('Failed to join queue:', error)
     alert(error.response?.data?.message || 'Failed to join waiting room.  Please try again.')
@@ -369,6 +371,7 @@ onBeforeUnmount(() => {
     <WaitingRoom
       v-if="showWaitingRoom"
       :session-id="selectedSession?.id"
+      :initial-data="queueData"
       @ready="handleWaitingRoomReady"
       @error="handleWaitingRoomError"
       @expired="handleWaitingRoomError"
