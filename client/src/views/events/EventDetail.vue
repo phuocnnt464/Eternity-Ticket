@@ -362,13 +362,19 @@ onBeforeUnmount(() => {
 <template>
   <div class="min-h-screen bg-white">
     <!-- WAITING ROOM MODAL -->
-    <WaitingRoom
-      v-if="showWaitingRoom"
-      :session-id="selectedSession?.id"
-      @ready="handleWaitingRoomReady"
-      @error="handleWaitingRoomError"
-      @expired="handleWaitingRoomError"
-    />
+    <Teleport to="body">
+      <div 
+        v-if="showWaitingRoom" 
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm"
+      >
+        <WaitingRoom
+          :session-id="selectedSession?.id"
+          @ready="handleWaitingRoomReady"
+          @error="handleWaitingRoomError"
+          @expired="handleWaitingRoomError"
+        />
+      </div>
+    </Teleport>
 
     <!-- Loading -->
     <div v-if="loading" class="flex flex-col justify-center items-center py-20">
