@@ -185,6 +185,14 @@ export const useQueueStore = defineStore('queue', () => {
     status.value = 'expired'
     stopHeartbeat()
   }
+
+  const currentQueue = computed(() => ({
+    status: status.value,
+    position: queueNumber.value,
+    active_until: expiresAt.value,
+    estimated_wait: estimatedWait.value
+  }))
+
   
   /**
    * Check if queue expired
@@ -219,6 +227,7 @@ export const useQueueStore = defineStore('queue', () => {
     lastHeartbeat,
     queueTimeout,
     heartbeatFrequency,
+    currentQueue,
     
     // Getters
     canPurchase,
