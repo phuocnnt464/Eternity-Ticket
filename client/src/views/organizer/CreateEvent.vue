@@ -255,6 +255,10 @@ const validateForm = () => {
   return Object.keys(errors.value).length === 0
 }
 
+const touchedFields = ref({
+  sessions: {}
+})
+
 // Computed để validate sessions
 const sessionValidationErrors = computed(() => {
   const errors = []
@@ -329,18 +333,29 @@ const sessionValidationErrors = computed(() => {
 })
 
 const getSessionError = (sessionIndex, field) => {
-  const errors = sessionValidationErrors. value
+  const fieldKey = `session_${sessionIndex}_${field}`
+  if (!touchedFields.value.sessions[fieldKey]) {
+    return null
+  }
+  
+  const errors = sessionValidationErrors.value
   const prefix = `Session ${sessionIndex + 1}:`
   
   for (const error of errors) {
     if (error.startsWith(prefix) && error.toLowerCase().includes(field.toLowerCase())) {
-      return error. replace(prefix, '').trim()
+      return error.replace(prefix, '').trim()
     }
   }
   return null
 }
 
 const getTicketError = (sessionIndex, ticketIndex, field) => {
+  const fieldKey = `ticket_${sessionIndex}_${ticketIndex}_${field}`
+  
+  // Chưa touch → không hiện lỗi
+  if (!touchedFields.value.sessions[fieldKey]) {
+    return null
+  }
   const errors = sessionValidationErrors.value
   const prefix = `Session ${sessionIndex + 1}, Ticket ${ticketIndex + 1}:`
   
@@ -350,6 +365,16 @@ const getTicketError = (sessionIndex, ticketIndex, field) => {
     }
   }
   return null
+}
+
+const markTouched = (sessionIndex, ticketIndex, field) => {
+  if (ticketIndex !== null) {
+    const key = `ticket_${sessionIndex}_${ticketIndex}_${field}`
+    touchedFields.value. sessions[key] = true
+  } else {
+    const key = `session_${sessionIndex}_${field}`
+    touchedFields.value.sessions[key] = true
+  }
 }
 
 const handleSubmit = async (status = 'draft') => {
@@ -1040,6 +1065,7 @@ onMounted(async () => {
             v-model="session.title"
             label="Session Title"
             placeholder="e. g. Opening Night, Day 2"
+            @blur="markTouched(sessionIndex, null, 'title')"
             required
           />
 
@@ -1047,22 +1073,24 @@ onMounted(async () => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Input
-                v-model="session. start_time"
+                v-model="session.start_time"
                 type="datetime-local"
                 label="Start Time"
                 :icon="CalendarIcon"
                 :error="getSessionError(sessionIndex, 'start time')"
+                @blur="markTouched(sessionIndex, null, 'start time')"
                 required
               />
             </div>
 
             <div>
               <Input
-                v-model="session. end_time"
+                v-model="session.end_time"
                 type="datetime-local"
                 label="End Time"
                 :icon="CalendarIcon"
                 :error="getSessionError(sessionIndex, 'end time')"
+                @blur="markTouched(sessionIndex, null, 'end time')"
                 required
               />
             </div>
@@ -1106,7 +1134,7 @@ onMounted(async () => {
 
             <!-- Each Ticket Type -->
             <div
-              v-for="(ticket, ticketIndex) in session. ticket_types"
+              v-for="(ticket, ticketIndex) in session.ticket_types"
               :key="ticketIndex"
               class="bg-gray-50 rounded-lg p-4 space-y-4"
             >
@@ -1127,6 +1155,7 @@ onMounted(async () => {
                 label="Ticket Name"
                 placeholder="e.g. VIP, General Admission"
                 :error="getTicketError(sessionIndex, ticketIndex, 'name')"
+                @blur="markTouched(sessionIndex, ticketIndex, 'name')"
                 required
               />
 
@@ -1140,6 +1169,7 @@ onMounted(async () => {
                   min="0"
                   max="100000000"
                   :error="getTicketError(sessionIndex, ticketIndex, 'price')"
+                  @blur="markTouched(sessionIndex, ticketIndex, 'price')"
                   required
                 />
 
@@ -1151,6 +1181,7 @@ onMounted(async () => {
                   min="1"
                   max="100000"
                   :error="getTicketError(sessionIndex, ticketIndex, 'quantity')"
+                  @blur="markTouched(sessionIndex, ticketIndex, 'quantity')"
                   required
                 />
               </div>
@@ -1188,6 +1219,7 @@ onMounted(async () => {
                     label="Sale Start"
                     :icon="CalendarIcon"
                     :error="getTicketError(sessionIndex, ticketIndex, 'sale start')"
+                    @blur="markTouched(sessionIndex, ticketIndex, 'sale start')"
                   />
 
                   <Input
@@ -1196,6 +1228,7 @@ onMounted(async () => {
                     label="Sale End"
                     :icon="CalendarIcon"
                     :error="getTicketError(sessionIndex, ticketIndex, 'sale end')"
+                    @blur="markTouched(sessionIndex, ticketIndex, 'sale end')"
                   />
                 </div>
               </div>
