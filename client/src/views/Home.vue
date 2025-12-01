@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
+import { useAuthStore } from '@/stores/auth.js'
 import EventCard from '@/components/features/EventCard.vue'
 import Button from '@/components/common/Button.vue'
 import Spinner from '@/components/common/Spinner.vue'
@@ -14,10 +15,13 @@ import {
   BoltIcon,
   CheckBadgeIcon,
   ClockIcon,
-  StarIcon
+  StarIcon,
+  CheckCircleIcon,
+  ArrowRightIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const featuredEvents = ref([])
 const loading = ref(true)
 const searchQuery = ref('')
@@ -52,8 +56,64 @@ const features = [
 const stats = [
   { value: '50K+', label: 'Happy Customers', icon: UserGroupIcon },
   { value: '10K+', label: 'Events Hosted', icon: TicketIcon },
-  { value: '99. 9%', label: 'Uptime', icon: CheckBadgeIcon },
+  { value: '99.9%', label: 'Uptime', icon: CheckBadgeIcon },
   { value: '24/7', label: 'Support', icon: ClockIcon }
+]
+
+const membershipPlans = [
+  {
+    name: 'Basic',
+    value: 'basic',
+    price: 0,
+    period: 'Forever Free',
+    description: 'Perfect for casual event-goers',
+    icon: SparklesIcon,
+    gradient: 'from-gray-500 to-gray-700',
+    borderColor: 'border-gray-200',
+    features: [
+      'Browse all events',
+      'Purchase tickets',
+      'Email support',
+      'Order history'
+    ]
+  },
+  {
+    name: 'Advanced',
+    value: 'advanced',
+    price: 149000,
+    period: 'per month',
+    description: 'Great for regular attendees',
+    icon: BoltIcon,
+    gradient: 'from-blue-500 to-blue-700',
+    borderColor: 'border-blue-300',
+    popular: false,
+    features: [
+      'All Basic features',
+      '5% discount on all tickets',
+      'Event notifications',
+      'Priority support',
+      'Exclusive coupons'
+    ]
+  },
+  {
+    name: 'Premium',
+    value: 'premium',
+    price: 299000,
+    period: 'per month',
+    description: 'Best for event enthusiasts',
+    icon: StarIcon,
+    gradient: 'from-yellow-500 to-orange-600',
+    borderColor: 'border-yellow-400',
+    popular: true,
+    features: [
+      'All Advanced features',
+      '10% discount on all tickets',
+      'Early access (5 hours)',
+      'Max 5 tickets per order',
+      'Premium coupons',
+      'Priority notifications'
+    ]
+  }
 ]
 
 onMounted(async () => {
@@ -70,6 +130,27 @@ onMounted(async () => {
 const handleSearch = () => {
   if (searchQuery.value.trim()) {
     router.push({ path: '/events', query: { search: searchQuery.value } })
+  }
+}
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price)
+}
+
+// ✅ Handle membership CTA
+const handleMembershipClick = (plan) => {
+  if (!authStore.isAuthenticated) {
+    // Redirect to register/login
+    router.push({
+      path: '/auth/login',
+      query: { redirect: '/participant/membership' }
+    })
+  } else {
+    // Go to membership page
+    router.push('/participant/membership')
   }
 }
 </script>
@@ -232,6 +313,98 @@ const handleSearch = () => {
             <h3 class="text-xl font-bold text-gray-900 mb-3">{{ feature.title }}</h3>
             <p class="text-gray-600 leading-relaxed">{{ feature.description }}</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ✅ NEW: Membership Plans Section -->
+    <section class="py-20 bg-white">
+      <div class="container-custom">
+        <div class="text-center mb-16">
+          <div class="inline-flex items-center space-x-2 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-full px-4 py-2 mb-4">
+            <StarIcon class="w-5 h-5 text-orange-600" />
+            <span class="text-sm font-bold text-orange-900">Premium Benefits</span>
+          </div>
+          <h2 class="text-4xl font-bold text-gray-900 mb-4">Unlock Exclusive Access</h2>
+          <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+            Get early access to hottest events, exclusive discounts, and VIP treatment
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div
+            v-for="plan in membershipPlans"
+            :key="plan.value"
+            :class="[
+              'relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2',
+              plan.popular ?  'border-yellow-400 transform scale-105' : plan.borderColor
+            ]"
+          >
+            <!-- Popular Badge -->
+            <div v-if="plan.popular" class="absolute -top-4 left-1/2 -translate-x-1/2">
+              <div class="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg">
+                ⭐ Most Popular
+              </div>
+            </div>
+
+            <!-- Icon -->
+            <div :class="['w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-br', plan.gradient]">
+              <component :is="plan.icon" class="w-8 h-8 text-white" />
+            </div>
+
+            <!-- Plan Name -->
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ plan.name }}</h3>
+            <p class="text-gray-600 mb-4">{{ plan. description }}</p>
+
+            <!-- Price -->
+            <div class="mb-6">
+              <div class="flex items-baseline">
+                <span class="text-4xl font-bold text-gray-900">
+                  {{ plan.price === 0 ? 'Free' : formatPrice(plan.price) }}
+                </span>
+              </div>
+              <p class="text-sm text-gray-600">{{ plan.period }}</p>
+            </div>
+
+            <!-- Features -->
+            <ul class="space-y-3 mb-8">
+              <li
+                v-for="(feature, idx) in plan.features"
+                :key="idx"
+                class="flex items-start space-x-3"
+              >
+                <CheckCircleIcon class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <span class="text-sm text-gray-700">{{ feature }}</span>
+              </li>
+            </ul>
+
+            <!-- CTA Button -->
+            <Button
+              :variant="plan.popular ? 'primary' : 'secondary'"
+              full-width
+              size="lg"
+              @click="handleMembershipClick(plan)"
+              :class="plan.popular && 'shadow-xl'"
+            >
+              <span v-if="authStore.isAuthenticated">
+                {{ authStore.membershipTier === plan.value ? 'Current Plan' : 'Upgrade Now' }}
+              </span>
+              <span v-else>
+                Get Started
+                <ArrowRightIcon class="w-4 h-4 inline ml-2" />
+              </span>
+            </Button>
+          </div>
+        </div>
+
+        <!-- Note for visitors -->
+        <div v-if="!  authStore.isAuthenticated" class="text-center mt-12">
+          <p class="text-gray-600">
+            Already have an account? 
+            <button @click="router.push('/auth/login')" class="text-primary-600 font-semibold hover:underline">
+              Sign in to upgrade
+            </button>
+          </p>
         </div>
       </div>
     </section>
