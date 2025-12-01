@@ -66,16 +66,24 @@ export const useQueueStore = defineStore('queue', () => {
   /**
    * Join queue
    */
-  const joinQueue = (data) => {
-    isInQueue.value = true
-    queueId.value = data.queue_id || data.id
-    queueNumber.value = data.queue_number
-    status.value = data.status || 'waiting'
-    estimatedWait.value = data.estimated_wait_minutes
-    expiresAt.value = data.expires_at
-    eventId.value = data.event_id
-    sessionId.value = data.session_id
-    lastHeartbeat.value = new Date().toISOString()
+  const joinQueue = async (sessionId) => {
+    try {
+      const response = await queueAPI.joinQueue({ session_id: sessionId })
+      const data = response.data.data || response.data
+
+      isInQueue.value = true
+      queueId.value = data.queue_id || data.id
+      queueNumber.value = data.queue_position || data.queue_number
+      status.value = data.can_purchase ?  'active' : 'waiting'
+      estimatedWait.value = data.estimated_wait_minutes
+      expiresAt.value = data.expires_at
+      eventId.value = data.event_id
+      sessionId.value = sessionId
+      lastHeartbeat.value = new Date().toISOString()
+    }
+    catch (error) {
+      throw error
+    }
   }
 
   /**

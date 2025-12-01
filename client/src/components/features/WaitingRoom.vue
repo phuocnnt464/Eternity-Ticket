@@ -111,7 +111,13 @@ const handleProceed = () => {
 
 onMounted(async () => {
   try {
-    await queueStore.joinQueue(props.sessionId)
+    // await queueStore.joinQueue(props.sessionId)
+    const response = await queueAPI.joinQueue({ session_id: props.sessionId })
+    const data = response.data. data || response.data
+    
+    // Update store với data từ API
+    queueStore.joinQueue(data)
+    
     startHeartbeat()
     
     if (isActive.value) {
