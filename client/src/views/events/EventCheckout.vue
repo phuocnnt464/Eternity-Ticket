@@ -29,7 +29,7 @@ const couponDiscount = ref(0)
 const couponApplied = ref(false)
 const validatingCoupon = ref(false)
 const couponError = ref('')
-
+ 
 // Order state
 const createdOrder = ref(null)
 const paymentMethod = ref('vnpay') // vnpay hoặc bank_transfer
@@ -468,6 +468,15 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (countdownInterval.value) {
     clearInterval(countdownInterval.value)
+  }
+
+  if (! paymentSuccess.value && session.value?. id) {
+    try {
+      queueAPI.leaveQueue(session.value.id)
+      console.log('✅ Left queue on checkout unmount')
+    } catch (error) {
+      console.error('Failed to leave queue:', error)
+    }
   }
 })
 </script>

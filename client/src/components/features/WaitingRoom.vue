@@ -162,8 +162,12 @@ onMounted(async () => {
     if (data.status) {
       queueStore.updateStatus(data.status)
     }
-    if (data.queue_position !== undefined) {
-      queueStore.updatePosition(data.queue_position)
+    if (data.queue_position !== undefined || data.queue_number) {
+      queueStore.updatePosition({
+        queue_number: data.queue_number || data.queue_position,
+        estimated_wait_minutes: data.estimated_wait_minutes,
+        status: data.status
+      })
     }
     if (data.expires_at) {
       queueStore.expiresAt = data.expires_at
@@ -173,23 +177,11 @@ onMounted(async () => {
     
      if (data.status === 'active' || data.can_purchase) {
       console. log('✅ User already active')
-      
-      // ✅ Update store
-      queueStore.status = 'active'
-      queueStore.queuePosition = 0
-      if (data.expires_at) {
-        queueStore.expiresAt = data.expires_at
-      }
-      
-      startHeartbeat()
+
       startCountdown()
       emit('ready')
     } else {
       console.log(`⏳ User waiting, position: ${data.queue_position}`)
-      queueStore.status = 'waiting'
-      queueStore.queuePosition = data.queue_position
-      queueStore.estimatedWait = data.estimated_wait_minutes
-      startHeartbeat()
     }
     
     pollStatistics()
@@ -209,6 +201,13 @@ onBeforeUnmount(() => {
   }
   if (statisticsInterval.value) {  
     clearInterval(statisticsInterval.value)
+  }
+
+  try {
+    queueAPI.leaveQueue(props.sessionId)
+    console.log('✅ Left queue on unmount')
+  } catch (error) {
+    console.error('Failed to leave queue:', error)
   }
 })
 </script>

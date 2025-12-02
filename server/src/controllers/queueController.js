@@ -419,10 +419,43 @@ class QueueController {
 
       const activeData = await QueueModel.getActiveUser(sessionId, userId);
 
-      if (!activeData) return false;
+      if (activeData) {
+        const expiresAt = new Date(activeData.expires_at);
+        const isNotExpired = expiresAt > new Date();
+        
+        console.log(`✅ Redis check: active=${isNotExpired}, expires=${activeData.expires_at}`);
+        return isNotExpired;
+      }
 
-      const expiresAt = new Date(activeData.expires_at);
-      return expiresAt > new Date();
+      console.warn('⚠️ User not in Redis, checking database...  ');
+      const dbStatus = await QueueModel.getUserQueueStatus(userId, sessionId);
+      
+      // if (!activeData) return false;
+
+      // const expiresAt = new Date(activeData.expires_at);
+      // return expiresAt > new Date();
+
+      if (dbStatus && dbStatus.status === 'active') {
+        // Check expiry
+        if (dbStatus.expires_at) {
+          const expiresAt = new Date(dbStatus.expires_at);
+          const isNotExpired = expiresAt > new Date();
+          
+          console.log(`✅ DB check: active=${isNotExpired}, expires=${dbStatus.expires_at}`);
+          
+          // ✅ If still valid, restore to Redis
+          if (isNotExpired) {
+            const timeoutMinutes = config.queue_timeout_minutes;
+            await QueueModel.setActiveUser(sessionId, userId, timeoutMinutes);
+            console.log(`✅ Restored user to Redis from DB`);
+          }
+          
+          return isNotExpired;
+        }
+      }
+
+      console.log(`❌ User not active: dbStatus=${dbStatus?.status || 'null'}`);
+      return false;
 
     } catch (error) {
       console.error('Check can purchase error:', error);
