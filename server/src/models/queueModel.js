@@ -379,10 +379,17 @@ class QueueModel {
       const currentStatus = current.rows[0]. status;
       
       // ✅ CHỈ cancel nếu đang waiting (KHÔNG cancel nếu active/completed)
-      if (currentStatus !== 'waiting') {
+      if (currentStatus !== 'completed') {
         console.log(`ℹ️ Not cancelling - user status: ${currentStatus}`);
         return false;
       }
+
+      if (currentStatus === 'cancelled' || currentStatus === 'expired') {
+        console.log(`ℹ️ Already ${currentStatus}`);
+        return false;
+      }
+
+      const newStatus = (currentStatus === 'active') ? 'expired' : 'cancelled';
 
       const query = `
         UPDATE waiting_queue
@@ -390,11 +397,18 @@ class QueueModel {
             completed_at = NOW()
         WHERE user_id = $1 
           AND session_id = $2 
-          AND status IN ('waiting')
+          AND status IN ('waiting','active')
       `;
 
-      const result = await pool.query(query, [userId, sessionId]);
-      return result.rowCount > 0;
+      // const result = await pool.query(query, [userId, sessionId]);
+    const result = await pool.query(query, [userId, sessionId, newStatus]);
+    
+    if (result.rowCount > 0) {
+      console.log(`✅ User ${userId} left queue: ${currentStatus} → ${newStatus}`);
+      return true;
+    }
+    
+    return false;
 
     } catch (error) {
       throw new Error(`Failed to leave queue: ${error.message}`);
