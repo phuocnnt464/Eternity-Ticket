@@ -5,6 +5,7 @@ import { ordersAPI } from '@/api/orders.js'
 import { queueAPI } from '@/api/queue.js'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
+import { useQueueStore } from '@/stores/queue'
 import OrderSummary from '@/components/features/OrderSummary.vue'
 import Button from '@/components/common/Button.vue'
 import Input from '@/components/common/Input.vue'
@@ -15,6 +16,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
+const queueStore = useQueueStore()
 
 const loading = ref(false)
 const currentStep = ref(1) // 1 = Customer Info, 2 = Payment, 3 = Processing
@@ -513,7 +515,7 @@ onMounted(async () => {
     console.log('✅ EventCheckout mounted successfully')
 
   } catch (error) {
-     console.error('❌ EventCheckout onMounted error:', error)
+    console.error('❌ EventCheckout onMounted error:', error)
     alert('Failed to initialize checkout. Please try again.')
     router.push({
       name: 'EventDetail',
