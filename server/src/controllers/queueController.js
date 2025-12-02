@@ -390,7 +390,7 @@ class QueueController {
         const expiresAt = new Date(Date.now() + queue_timeout_minutes * 60 * 1000);
 
         await QueueModel.activateUser(userData.user_id, sessionId, expiresAt);
-        await QueueModel.setActiveUser(sessionId, userData.user_id, queue_timeout_minutes);
+        await QueueModel.setActiveUser(sessionId, userData.user_id, expiresAt);
 
         console.log(`Activated user ${userData.user_id}`);
       }
@@ -453,8 +453,8 @@ class QueueController {
           
           // ✅ If still valid, restore to Redis
           if (isNotExpired) {
-            const timeoutMinutes = config.queue_timeout_minutes;
-            await QueueModel.setActiveUser(sessionId, userId, timeoutMinutes);
+            // const timeoutMinutes = config.queue_timeout_minutes;
+            await QueueModel.setActiveUser(sessionId, userId, expiresAt);
             console.log(`✅ Restored user to Redis from DB`);
           }
           

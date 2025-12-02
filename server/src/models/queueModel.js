@@ -566,7 +566,19 @@ class QueueModel {
 
       const activeSetKey = `active_set:${sessionId}`;
       const activeKey = `active:${sessionId}:${userId}`;
-      const expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
+      let expiresAt;
+      let timeoutSeconds;
+      
+      if (expiresAtOrMinutes instanceof Date) {
+        // ✅ Passed as Date object → use directly
+        expiresAt = expiresAtOrMinutes;
+        timeoutSeconds = Math.ceil((expiresAt - new Date()) / 1000);
+      } else {
+        // ✅ Passed as minutes → calculate
+        const timeoutMinutes = expiresAtOrMinutes;
+        expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
+        timeoutSeconds = timeoutMinutes * 60;
+      }
 
       const data = JSON.stringify({
         status: 'active',
