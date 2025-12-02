@@ -174,6 +174,11 @@ const pollStatus = async () => {
     
     console.log('🔄 Poll status:', data.status, 'Position:', data.queue_position)
     
+    if (data.expires_at) {
+      queueStore.expiresAt = data.expires_at
+      console.log('✅ Updated expires_at:', data.expires_at)
+    }
+
     // Update store
     if (data.status) {
       queueStore.updateStatus(data.status)
@@ -187,14 +192,17 @@ const pollStatus = async () => {
       })
     }
     
-    if (data.expires_at) {
-      queueStore.expiresAt = data.expires_at
-    }
-    
     // ✅ CHECK: Nếu status = 'active' và hiện đang waiting → Emit ready! 
     if ((data.status === 'active' || data.can_purchase) && isWaiting.value) {
-      console.log('✅✅✅ STATUS CHANGED TO ACTIVE!  Emitting ready.. .')
+      console.log('✅✅✅ STATUS CHANGED TO ACTIVE!  Emitting ready.. .', {
+        expires_at: data.expires_at,
+        can_purchase: data.can_purchase
+      })
       
+      if (data.expires_at) {
+        queueStore.expiresAt = data.expires_at
+      }
+
       // Start countdown
       if (data.expires_at) {
         const activeUntil = new Date(data. expires_at)
@@ -393,7 +401,7 @@ onBeforeUnmount(() => {
             Moved up {{ queueMovement }} position{{ queueMovement > 1 ? 's' : '' }}! 
           </p>
         </div>
-        
+
         <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
           <p class="text-xs text-gray-600 mb-2 font-medium">Queue Details:</p>
           <div class="grid grid-cols-2 gap-2 text-xs">

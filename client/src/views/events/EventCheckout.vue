@@ -480,12 +480,33 @@ onMounted(async () => {
     // }
 
     console.log('🔍 Session ID:', session.value.id)
-    
+
     // ✅ CHECK: Có queue store với status active không?
     const queueStore = useQueueStore()
     if (queueStore.status === 'active' && queueStore.expiresAt) {
+     const expiresAt = new Date(queueStore.expiresAt)
+      const now = new Date()
+      
+      console.log('🔍 Queue store check:', {
+        status: queueStore.status,
+        expires_at: queueStore. expiresAt,
+        is_expired: now >= expiresAt,
+        time_remaining: Math.floor((expiresAt - now) / 1000) + 's'
+      })
+      
+      // ✅ CHECK if expired
+      if (now >= expiresAt) {
+        console. error('❌ Queue store has EXPIRED expires_at!')
+        alert('⏰ Your purchase time has expired!  Please join the queue again.')
+        queueStore.$reset()
+        router.push({
+          name: 'EventDetail',
+          params: { slug: route.params.slug }
+        })
+        return
+      }
+      
       console.log('✅ Using queue store - already active, expires:', queueStore.expiresAt)
-      fromWaitingRoom.value = true
       startSlotCountdown(queueStore.expiresAt)
       console.log('✅ EventCheckout mounted successfully (from waiting room)')
       return
@@ -500,7 +521,7 @@ onMounted(async () => {
       console.error('⚠️ Check existing order failed:', orderCheckError)
     }
     
-    if (! hasExistingOrder) {
+    if (!hasExistingOrder) {
       // Check queue status
       console.log('🔍 Calling checkQueueStatusAndStartTimer.. .')
       const canProceed = await checkQueueStatusAndStartTimer()
