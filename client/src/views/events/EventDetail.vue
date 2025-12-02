@@ -222,10 +222,28 @@ const selectSession = async (session) => {
 }
 
 const handlePurchase = async () => {
-  if (earlyAccessInfo.value?.isActive && !earlyAccessInfo.value?.isPremium) {
-    alert(`This ticket is in Premium early access period.\nPublic sale starts in ${earlyAccessInfo.value.minutesRemaining} minutes.\n\nUpgrade to Premium to buy now! `)
-    router.push('/participant/membership')
-    return
+  const userTier = authStore.membershipTier || 'basic'
+  
+  const hasSelectedEarlyAccessTicket = selectedTickets.value.some(selected => {
+    const ticketType = ticketTypes.value.find(t => t.id === selected.ticket_type_id)
+    return ticketType?.isEarlyAccess === true
+  })
+  
+  if (hasSelectedEarlyAccessTicket && userTier !== 'premium') {
+    // Tìm ticket early access được chọn
+    const earlyTicket = selectedTickets.value.find(selected => {
+      const ticketType = ticketTypes.value.find(t => t.id === selected.ticket_type_id)
+      return ticketType?.isEarlyAccess === true
+    })
+    
+    if (earlyTicket) {
+      const ticketType = ticketTypes.value.find(t => t.id === earlyTicket.ticket_type_id)
+      const minutesRemaining = ticketType?. earlyAccessInfo?.minutesRemaining || 0
+      
+      alert(`${ticketType.name} is in Premium early access period.\nPublic sale starts in ${minutesRemaining} minutes.\n\nUpgrade to Premium to buy now!`)
+      router.push('/participant/membership')
+      return
+    }
   }
 
   if (!authStore.isAuthenticated) {
