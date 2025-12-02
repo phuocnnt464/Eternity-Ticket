@@ -25,7 +25,7 @@ const heartbeatInterval = ref(null)
 const countdownInterval = ref(null)
 const remainingTime = ref(0)
 
-const totalInQueue = ref(100)
+const totalInQueue = ref(0)
 const activeCount = ref(0)
 const previousPosition = ref(null)
 const queueMovement = ref(0)
@@ -34,6 +34,20 @@ const statisticsInterval = ref(null)
 
 const statusPollInterval = ref(null)
 const statisticsPollInterval = ref(null)
+
+const statistics = ref({
+  waiting_room: {
+    max_capacity: 100,  
+    concurrent_purchase_limit: 1,
+    queue_timeout_minutes: 15
+  },
+  current: {
+    waiting_count: 0,
+    active_count: 0,
+    available_slots: 0
+  },
+  statistics: {}
+})
 
 const queueStatus = computed(() => queueStore.currentQueue)
 
@@ -47,6 +61,13 @@ const isActive = computed(() => {
 
 const isExpired = computed(() => {
   return queueStatus.value?.status === 'expired'
+})
+
+const peopleAhead = computed(() => {
+  const myPosition = queueStatus.value?.position || 0
+  const active = statistics.value?. current?.active_count || 0
+  
+  return active + Math.max(0, myPosition - 1)
 })
 
 const positionText = computed(() => {
@@ -65,11 +86,33 @@ const positionText = computed(() => {
 const estimatedWait = computed(() => {
   if (!queueStatus.value || !queueStatus.value.position) return ''
   
+  const timeoutMin = statistics.value?.waiting_room?.queue_timeout_minutes || 15
+  const concurrentLimit = statistics.value?.waiting_room?.concurrent_purchase_limit || 1
+  const ahead = peopleAhead.value
+  
   // Estimate 1 minute per person
-  const minutes = queueStatus.value.position
+  const minutes = Math.ceil((ahead / concurrentLimit) * timeoutMin)
   if (minutes < 1) return 'Less than a minute'
   if (minutes === 1) return '1 minute'
   return `${minutes} minutes`
+})
+
+const progressPercent = computed(() => {
+  const maxCap = statistics.value?.waiting_room?.max_capacity || 100
+  const waiting = statistics.value?.current?.waiting_count || 0
+  const active = statistics.value?.current?.active_count || 0
+  const total = waiting + active
+  
+  const percent = Math.round((total / maxCap) * 100)
+  return Math.min(100, Math.max(0, percent))
+})
+
+const estimatedWaitMinutes = computed(() => {
+  const timeoutMin = statistics.value?.waiting_room?.queue_timeout_minutes || 15
+  const concurrentLimit = statistics.value?.waiting_room?.concurrent_purchase_limit || 1
+  const ahead = peopleAhead.value
+  
+  return Math.ceil((ahead / concurrentLimit) * timeoutMin)
 })
 
 const formatTime = (seconds) => {
@@ -85,10 +128,14 @@ const startHeartbeat = () => {
     } catch (error) {
       console.error('Heartbeat error:', error)
     }
-  }, 30000) // Every 30 seconds
+  }, 30000) 
 }
 
 const startCountdown = () => {
+  if (countdownInterval.value) {
+    clearInterval(countdownInterval.value)
+  }
+
   if (queueStatus.value?.active_until) {
     const activeUntil = new Date(queueStatus.value.active_until)
     
@@ -120,17 +167,6 @@ const handleProceed = () => {
   emit('ready')
 }
 
-const progressPercent = computed(() => {
-  if (!queueStatus. value?.position) return 100 // Active
-  const pos = queueStatus.value.position
-  const total = totalInQueue.value || 100
-  return Math.max(0, Math. min(100, Math.round(((total - pos + 1) / total) * 100)))
-})
-
-const estimatedWaitMinutes = computed(() => {
-  return Math.ceil((queueStatus.value?.estimated_wait || 0))
-})
-
 const pollStatus = async () => {
   try {
     const response = await queueAPI.getStatus(props.sessionId)
@@ -145,7 +181,7 @@ const pollStatus = async () => {
     
     if (data.queue_position !== undefined || data.queue_number) {
       queueStore.updatePosition({
-        queue_number: data. queue_number || data.queue_position,
+        queue_number: data.queue_number || data.queue_position,
         estimated_wait_minutes: data.estimated_wait_minutes,
         status: data.status
       })
@@ -187,11 +223,11 @@ const pollStatus = async () => {
 
 const pollStatistics = async () => {
   try {
-    const response = await queueAPI. getStatistics(props.sessionId)
-    const data = response. data.data || response.data
+    const response = await queueAPI.getStatistics(props.sessionId)
+    const data = response.data.data || response.data
     
     totalInQueue.value = data.current?.waiting_count || 0
-    activeCount.value = data. current?.active_count || 0
+    activeCount.value = data.current?.active_count || 0
     
     // Track movement
     const current = queueStatus.value?.position
@@ -324,7 +360,7 @@ onBeforeUnmount(() => {
         <!-- Progress Bar -->
         <div class="mb-4">
           <div class="flex justify-between text-sm mb-2">
-            <span class="font-medium">Position: #{{ queueStatus?.position || '-' }}</span>
+            <span class="font-medium">Position in queue: {{ queueStatus?.position || '-' }}</span>
             <span class="text-primary-600 font-semibold">{{ progressPercent }}%</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-4">
@@ -338,8 +374,8 @@ onBeforeUnmount(() => {
         <!-- Stats Grid -->
         <div class="grid grid-cols-3 gap-4 text-center">
           <div class="bg-blue-50 rounded-lg p-3">
-            <p class="text-2xl font-bold text-blue-700">{{ queueStatus?.position || 0 }}</p>
-            <p class="text-xs text-blue-600">In Queue</p>
+            <p class="text-2xl font-bold text-blue-700">{{ totalInQueue}}</p>
+            <p class="text-xs text-blue-600">Waiting</p>
           </div>
           <div class="bg-orange-50 rounded-lg p-3">
             <p class="text-2xl font-bold text-orange-700">{{ estimatedWaitMinutes }}m</p>
@@ -356,6 +392,36 @@ onBeforeUnmount(() => {
           <p class="text-sm text-green-800">
             Moved up {{ queueMovement }} position{{ queueMovement > 1 ? 's' : '' }}! 
           </p>
+        </div>
+        
+        <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <p class="text-xs text-gray-600 mb-2 font-medium">Queue Details:</p>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Your position:</span>
+              <span class="font-bold">#{{ queueStatus?.position || '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">People ahead:</span>
+              <span class="font-bold">{{ peopleAhead }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Total waiting:</span>
+              <span class="font-bold">{{ totalInQueue }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Active now:</span>
+              <span class="font-bold">{{ activeCount }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Max capacity:</span>
+              <span class="font-bold">{{ statistics.waiting_room?.max_capacity || '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Concurrent limit:</span>
+              <span class="font-bold">{{ statistics.waiting_room?.concurrent_purchase_limit || '-' }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
