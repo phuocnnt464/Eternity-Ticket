@@ -7,11 +7,6 @@ const emailService = require('../services/emailService');
 const { IMAGE_CONFIGS } = require('../middleware/uploadMiddleware')
 
 class EventController {
-  /**
-   * Get all events with filters and pagination
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async getEvents(req, res) {
     try {
       const {
@@ -33,7 +28,6 @@ class EventController {
         city
       };
 
-      // Remove undefined filters
       Object.keys(filters).forEach(key => 
         filters[key] === undefined && delete filters[key]
       );
@@ -54,7 +48,7 @@ class EventController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Get events error:', error.message);
+      console.error('Get events error:', error.message);
       
       const response = createResponse(
         false,
@@ -65,18 +59,13 @@ class EventController {
     }
   }
 
-  /**
-   * Get single event by ID
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async getEventById(req, res) {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
-      const { access_code } = req.query;  // ✅ GET ACCESS CODE FROM QUERY
+      const { access_code } = req.query; 
 
-      console.log(`🎉 Getting event details for ID: ${id}`);
+      // console.log(`Getting event details for ID: ${id}`);
 
       const event = await EventModel.findById(id, userId);
 
@@ -86,7 +75,6 @@ class EventController {
         );
       }
 
-      // ✅ CHECK PRIVATE EVENT ACCESS
       if (event.privacy_type === 'private') {
         const hasAccess = 
           event.user_role_in_event || // Is event member
@@ -94,7 +82,6 @@ class EventController {
           (access_code && access_code === event.private_access_code); // Has correct access code
 
         if (!hasAccess) {
-          // ✅ Log failed attempt
           await pool.query(`
             INSERT INTO activity_logs (action, description, ip_address, metadata)
             VALUES ('failed_private_access', 'Failed private event access', $1, $2)
@@ -109,7 +96,6 @@ class EventController {
         }
       }
 
-      // Increment view count (don't await to avoid slowing response)
       EventModel.incrementViewCount(id);
 
       const response = createResponse(
@@ -132,16 +118,11 @@ class EventController {
     }
   }
 
-  /**
-   * Create new event (Organizer only)
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async createEvent(req, res) {
     try {
-      console.log("📥 req.body in createEvent:", req.body);
-      console.log('📂 req.files:', req.files);
-      console.log('🖼️ req.processedImages:', req.processedImages);
+      // console.log("req.body in createEvent:", req.body);
+      // console.log('req.files:', req.files);
+      // console.log('req.processedImages:', req.processedImages);
 
       const organizerId = req.user.id;
 
@@ -151,9 +132,8 @@ class EventController {
       };
 
 
-      console.log(`🎪 Creating event: ${eventData.title} by organizer: ${organizerId}`);
+      // console.log(`Creating event: ${eventData.title} by organizer: ${organizerId}`);
 
-      // Validate required fields
       const requiredFields = [
         'title', 'description', 'category_id', 'venue_name', 
         'venue_address', 'venue_city', 'organizer_name'
@@ -178,7 +158,7 @@ class EventController {
       res.status(201).json(response);
 
     } catch (error) {
-      console.error('❌ Create event error:', error.message);
+      console.error('Create event error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to create event. Please try again later.';
@@ -193,11 +173,6 @@ class EventController {
     }
   }
 
-  /**
-   * Update event (Event owner/manager only)
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async updateEvent(req, res) {
     try {
       const { id } = req.params;
@@ -208,12 +183,11 @@ class EventController {
       };
 
 
-      console.log(`📝 Updating event ID: ${id} by user: ${userId}`);
-      console.log('📦 Update data received:', JSON.stringify(updateData, null, 2)); // ✅ THÊM DÒNG NÀY
-      console.log('📦 req.body:', JSON.stringify(req.body, null, 2)); // ✅ THÊM DÒNG NÀY
-      console.log('📦 req.processedImages:', JSON.stringify(req.processedImages, null, 2)); // ✅ THÊM DÒNG NÀY
+      // console.log(`Updating event ID: ${id} by user: ${userId}`);
+      // console.log('Update data received:', JSON.stringify(updateData, null, 2)); 
+      // console.log('req.body:', JSON.stringify(req.body, null, 2)); 
+      // console.log('req.processedImages:', JSON.stringify(req.processedImages, null, 2)); 
 
-      // Remove fields that shouldn't be updated via this endpoint
       const forbiddenFields = ['id', 'organizer_id', 'slug', 'status', 'approved_by', 'approved_at', 'created_at', 'updated_at'];
       forbiddenFields.forEach(field => delete updateData[field]);
 
@@ -234,7 +208,7 @@ class EventController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Update event error:', error.message);
+      console.error('Update event error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to update event. Please try again later.';
@@ -255,17 +229,12 @@ class EventController {
     }
   }
 
-  /**
-   * Delete event (Event owner only)
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async deleteEvent(req, res) {
     try {
       const { id } = req.params;
       const userId = req.user.id;
 
-      console.log(`🗑️ Deleting event ID: ${id} by user: ${userId}`);
+      // console.log(`Deleting event ID: ${id} by user: ${userId}`);
 
       await EventModel.delete(id, userId);
 
@@ -277,7 +246,7 @@ class EventController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Delete event error:', error.message);
+      // console.error('Delete event error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to delete event. Please try again later.';
@@ -295,19 +264,13 @@ class EventController {
     }
   }
 
-  /**
-   * Get events for current user (organizer dashboard)
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async getMyEvents(req, res) {
     try {
       const organizerId = req.user.id;
       const { page = 1, limit = 10, status, search } = req.query;
 
-      console.log(`📋 Getting events for organizer: ${organizerId}, status filter: ${status || 'ALL'}`);
+      // console.log(`Getting events for organizer: ${organizerId}, status filter: ${status || 'ALL'}`);
 
-      // Temporary simple query to avoid complex parameter issues
       const offset = (parseInt(page) - 1) * parseInt(limit);
 
       let query = `
@@ -361,7 +324,6 @@ class EventController {
       query += ` ORDER BY e.created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
       queryParams.push(parseInt(limit), offset);
 
-      // Count query
       let countQuery = `
         SELECT COUNT(*) as total 
         FROM events e 
@@ -369,11 +331,6 @@ class EventController {
       `;
       let countParams = [organizerId];
       let countParamCount = 2;
-
-      // if (status && status !== "ALL") {
-      //   countQuery += ' AND e.status = $2::event_status';
-      //   countParams.push(status);
-      // }
 
       if (status && status !== "ALL") {
         countQuery += ` AND e.status = $${countParamCount}::event_status`;
@@ -389,8 +346,8 @@ class EventController {
         countParams.push(`%${search}%`, `%${search}%`);
       }
 
-      console.log(`📋 Executing query:`, query);
-      console.log(`📋 Query params:`, queryParams);
+      // console.log(`Executing query:`, query);
+      // console.log(`Query params:`, queryParams);
 
       const [eventsResult, countResult] = await Promise.all([
         pool.query(query, queryParams),
@@ -401,7 +358,7 @@ class EventController {
       const totalCount = parseInt(countResult.rows[0].total);
       const totalPages = Math.ceil(totalCount / limit);
 
-      console.log(`📋 Found ${events.length} events for organizer`);
+      // console.log(`Found ${events.length} events for organizer`);
 
       const response = createResponse(
         true,
@@ -422,8 +379,8 @@ class EventController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Get my events error:', error.message);
-      console.error('❌ Get my events stack:', error.stack);
+      // console.error('Get my events error:', error.message);
+      // console.error('Get my events stack:', error.stack);
       
       const response = createResponse(
         false,
@@ -434,14 +391,9 @@ class EventController {
     }
   }
 
-  /**
-   * Get event categories
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async getCategories(req, res) {
     try {
-      console.log('📂 Getting event categories');
+      // console.log('Getting event categories');
 
       const categories = await EventModel.getCategories();
 
@@ -454,7 +406,7 @@ class EventController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Get categories error:', error.message);
+      // console.error('Get categories error:', error.message);
       
       const response = createResponse(
         false,
@@ -465,11 +417,6 @@ class EventController {
     }
   }
 
-  /**
-   * Search events
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async searchEvents(req, res) {
     try {
       const { q: search, category, city, page = 1, limit = 12 } = req.query;
@@ -480,7 +427,7 @@ class EventController {
         );
       }
 
-      console.log(`🔎 Searching events for: "${search}"`);
+      // console.log(`Searching events for: "${search}"`);
 
       const filters = {
         search: search.trim(),
@@ -509,29 +456,23 @@ class EventController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Search events error:', error.message);
+      // console.error('Search events error:', error.message);
       
       const response = createResponse(
         false,
-        'Search failed. Please try again later.'
+        'Search failed'
       );
       
       res.status(500).json(response);
     }
   }
 
-  /**
-   * Get featured/trending events
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async getFeaturedEvents(req, res) {
     try {
       const { limit = 6 } = req.query;
 
-      console.log('⭐ Getting featured events');
+      // console.log('Getting featured events');
 
-      // Get events sorted by view count and recent activity
       const query = `
         SELECT 
           e.id, e.title, e.slug, e.short_description, e.cover_image, e.thumbnail_image,
@@ -579,28 +520,23 @@ class EventController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Get featured events error:', error.message);
+      // console.error('Get featured events error:', error.message);
       
       const response = createResponse(
         false,
-        'Failed to retrieve featured events. Please try again later.'
+        'Failed to retrieve featured events'
       );
       
       res.status(500).json(response);
     }
   }
 
-  /**
-   * Submit event for approval
-   * POST /api/events/:id/submit
-   * @access Private (Event Owner)
-   */
   static async submitEventForApproval(req, res) {
     try {
       const { id } = req.params;
       const userId = req.user.id;
 
-      console.log(`📤 Submitting event ${id} for approval`);
+      // console.log(`Submitting event ${id} for approval`);
 
       const event = await EventModel.submitForApproval(id, userId);
 
@@ -613,7 +549,7 @@ class EventController {
       );
 
     } catch (error) {
-      console.error('❌ Submit for approval error:', error.message);
+      console.error('Submit for approval error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to submit event for approval';
@@ -634,11 +570,6 @@ class EventController {
     }
   }
 
-  /**
-   * Get event statistics
-   * GET /api/events/:id/statistics
-   * @access Private (Event Owner/Manager)
-   */
   static async getEventStatistics(req, res) {
     try {
       const { id } = req.params;
@@ -670,7 +601,7 @@ class EventController {
       );
 
     } catch (error) {
-      console.error('❌ Get event statistics error:', error.message);
+      console.error('Get event statistics error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to retrieve event statistics';
@@ -684,16 +615,11 @@ class EventController {
     }
   }
 
-  /**
-   * Get organizer dashboard statistics
-   * GET /api/events/my/stats
-   * @access Private (Organizer)
-   */
   static async getOrganizerStats(req, res) {
     try {
       const organizerId = req.user.id;
       
-      console.log(`📊 Getting stats for organizer: ${organizerId}`);
+      // console.log(`Getting stats for organizer: ${organizerId}`);
       
       const statsQuery = `
         SELECT 
@@ -734,7 +660,7 @@ class EventController {
       });
       
     } catch (error) {
-      console.error('❌ Get organizer stats error:', error);
+      console.error('Get organizer stats error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch organizer statistics'
@@ -742,16 +668,11 @@ class EventController {
     }
   }
 
-  /**
-   * Get events pending approval (Admin only)
-   * GET /api/admin/events/pending
-   * @access Private (Admin only)
-   */
   static async getPendingEvents(req, res) {
     try {
       const { page = 1, limit = 20 } = req.query;
 
-      console.log(`📋 Admin getting pending events`);
+      // console.log(`Admin getting pending events`);
 
       const result = await EventModel.findPendingApproval({
         page: parseInt(page),
@@ -767,24 +688,19 @@ class EventController {
       );
 
     } catch (error) {
-      console.error('❌ Get pending events error:', error.message);
+      console.error('Get pending events error:', error.message);
       res.status(500).json(
         createResponse(false, 'Failed to retrieve pending events')
       );
     }
   }
 
-  /**
-   * Approve event (Admin only)
-   * POST /api/admin/events/:id/approve
-   * @access Private (Admin only)
-   */
   static async approveEvent(req, res) {
     try {
       const { id } = req.params;
       const adminId = req.user.id;
 
-      console.log(`✅ Admin ${adminId} approving event ${id}`);
+      // console.log(`Admin ${adminId} approving event ${id}`);
 
       const event = await EventModel.approve(id, adminId);
 
@@ -807,7 +723,7 @@ class EventController {
             event_id: event.id
           });
         } catch (emailError) {
-          console.error('❌ Failed to send approval email:', emailError);
+          console.error('Failed to send approval email:', emailError);
         }
       }
 
@@ -821,7 +737,7 @@ class EventController {
           event_id: event.id
         });
       } catch (notifError) {
-        console.error('⚠️ Failed to create notification:', notifError);
+        console.error('Failed to create notification:', notifError);
       }
 
       res.json(
@@ -833,7 +749,7 @@ class EventController {
       );
 
     } catch (error) {
-      console.error('❌ Approve event error:', error.message);
+      console.error('Approve event error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to approve event';
@@ -850,11 +766,6 @@ class EventController {
     }
   }
 
-  /**
-   * Reject event (Admin only)
-   * POST /api/admin/events/:id/reject
-   * @access Private (Admin only)
-   */
   static async rejectEvent(req, res) {
     try {
       const { id } = req.params;
@@ -867,7 +778,7 @@ class EventController {
         );
       }
 
-      console.log(`❌ Admin ${adminId} rejecting event ${id}`);
+      // console.log(`Admin ${adminId} rejecting event ${id}`);
 
       const event = await EventModel.reject(id, adminId, reason);
 
@@ -890,7 +801,7 @@ class EventController {
             rejection_reason: reason
           });
         } catch (emailError) {
-          console.error('❌ Failed to send rejection email:', emailError);
+          console.error('Failed to send rejection email:', emailError);
         }
       }
 
@@ -899,14 +810,13 @@ class EventController {
         await NotificationModel.create({
           user_id: event.organizer_id,
           type: 'system',
-          title: 'Event Rejected ❌',
+          title: 'Event Rejected',
           content: `Your event "${event.title}" was not approved. Reason: ${reason}`,
           event_id: event.id
         });
       } catch (notifError) {
-        console.error('⚠️ Failed to create notification:', notifError);
+        console.error('Failed to create notification:', notifError);
       }
-
 
       res.json(
         createResponse(
@@ -917,7 +827,7 @@ class EventController {
       );
 
     } catch (error) {
-      console.error('❌ Reject event error:', error.message);
+      console.error('Reject event error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to reject event';
@@ -937,25 +847,13 @@ class EventController {
     }
   }
 
-  /**
-   * Get event by slug
-   * GET /api/events/slug/:slug
-   * @access Public
-   */
   static async getEventBySlug(req, res) {
     try {
       const { slug } = req.params;
       const userId = req.user?.id;
       const userRole = req.user?.role;
 
-      console.log(`Getting event by slug: ${slug}`);
-      
-      // const query = `
-      //   SELECT id FROM events 
-      //   WHERE slug = $1 
-      //   AND status IN ('approved', 'active')
-      //   AND privacy_type = 'public'
-      // `;
+      // console.log(`Getting event by slug: ${slug}`);
 
       const query = `
         SELECT 
@@ -979,25 +877,19 @@ class EventController {
 
       const eventData = result.rows[0];
     
-      // ✅ Logic phân quyền theo kịch bản dự án
       const isAdmin = ['admin', 'sub_admin'].includes(userRole);
       const isOrganizer = userId && eventData.organizer_id === userId;
       const isPublicApproved = ['approved', 'active'].includes(eventData.status) 
                               && eventData.privacy_type === 'public';
       
-      // Kiểm tra quyền truy cập
-      if (!isPublicApproved) {
-        // Event không public hoặc chưa duyệt
-        
+      if (!isPublicApproved) {        
         if (!userId) {
-          // Khách vãng lai không được xem
           return res.status(401).json(
             createResponse(false, 'Please login to view this event')
           );
         }
         
         if (!isOrganizer && !isAdmin) {
-          // Không phải owner cũng không phải admin
           const statusMessages = {
             'draft': 'This event is still in draft mode',
             'pending_approval': 'This event is pending approval',
@@ -1018,14 +910,13 @@ class EventController {
         }
       }
       
-      // const eventId = result.rows[0].id;
       const eventId = eventData.id;
       req.params.id = eventId;
       
       return EventController.getEventById(req, res);
 
     } catch (error) {
-      console.error('❌ Get event by slug error:', error.message);
+      console.error('Get event by slug error:', error.message);
       res.status(500).json(
         createResponse(false, 'Failed to retrieve event')
       );
@@ -1036,7 +927,7 @@ class EventController {
     try {
       const organizerId = req.user.id;
             
-      console.log(`🔍 Debug my events for organizer: ${organizerId}`);
+      console.log(`Debug my events for organizer: ${organizerId}`);
       
       // Check events created by this organizer
       const eventsQuery = `
@@ -1050,7 +941,7 @@ class EventController {
       
       const eventsResult = await pool.query(eventsQuery, [organizerId]);
       
-      console.log(`📊 Found ${eventsResult.rows.length} events`);
+      console.log(`Found ${eventsResult.rows.length} events`);
       
       res.json(createResponse(true, 'Debug info for my events', {
         organizer_id: organizerId,
@@ -1059,7 +950,7 @@ class EventController {
       }));
       
     } catch (error) {
-      console.error('❌ Debug my events error:', error.message);
+      console.error('Debug my events error:', error.message);
       res.status(500).json(createResponse(false, `Debug error: ${error.message}`));
     }
   }
@@ -1070,20 +961,12 @@ class EventController {
       const { email, role } = req.body;
       const invitedBy = req.user.id;
 
-      console.log(`👥 Adding/inviting member to event ${eventId}: ${email}`);
+      // console.log(`Adding/inviting member to event ${eventId}: ${email}`);
 
-      // Find user by email
       const user = await UserModel.findByEmail(email);
-      // if (!user) {
-      //   return res.status(404).json(
-      //     createResponse(false, 'User not found with this email')
-      //   );
-      // }
 
       if (user) {
-        // USER EXISTS - Add directly
-        console.log(`👤 User found: ID ${user.id}, Email: ${user.email}`);
-        // Check if already member
+        // console.log(`User found: ID ${user.id}, Email: ${user.email}`);
         const existingQuery = await pool.query(
           'SELECT id FROM event_organizer_members WHERE event_id = $1 AND user_id = $2',
           [eventId, user.id]
@@ -1095,7 +978,6 @@ class EventController {
           );
         }
 
-        // Add member
         const result = await pool.query(`
           INSERT INTO event_organizer_members 
           (event_id, user_id, role, invited_by, accepted_at, is_active)
@@ -1112,10 +994,8 @@ class EventController {
           }
         ));
       } else {
-        // USER NOT EXISTS - Send invitation
-        console.log(`📧 User not found, sending invitation email`);
+        // console.log(`User not found, sending invitation email`);
         
-        // Check if already invited
         const existingInvite = await pool.query(
           'SELECT id, status FROM event_invitations WHERE event_id = $1 AND email = $2',
           [eventId, email]
@@ -1134,12 +1014,10 @@ class EventController {
           }
         }
 
-        // Generate invitation token
         const crypto = require('crypto');
         const invitationToken = crypto.randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
 
-        // Create invitation
         const invitation = await pool.query(`
           INSERT INTO event_invitations 
           (event_id, email, role, invited_by, invitation_token, expires_at)
@@ -1147,14 +1025,12 @@ class EventController {
           RETURNING *
         `, [eventId, email, role, invitedBy, invitationToken, expiresAt]);
 
-        // Get event details for email
         const eventResult = await pool.query(
           'SELECT title, slug FROM events WHERE id = $1',
           [eventId]
         );
         const event = eventResult.rows[0];
 
-        // Send invitation email
         const emailService = require('../services/emailService');
         await emailService.sendEventInvitation({
           email,
@@ -1179,10 +1055,6 @@ class EventController {
     }
   }
 
-  /**
-   * Accept event invitation
-   * POST /api/events/invitations/:token/accept
-   */
   static async acceptInvitation(req, res) {
     try {
       const { token } = req.params;
@@ -1206,14 +1078,12 @@ class EventController {
 
       const invitation = inviteResult.rows[0];
 
-      // Check email matches
       if (invitation.email !== req.user.email) {
         return res.status(403).json(
           createResponse(false, 'This invitation is for a different email address')
         );
       }
 
-      // Add as member
       const memberResult = await pool.query(`
         INSERT INTO event_organizer_members 
         (event_id, user_id, role, invited_by, accepted_at, is_active)
@@ -1221,7 +1091,6 @@ class EventController {
         RETURNING *
       `, [invitation.event_id, userId, invitation.role, invitation.invited_by]);
 
-      // Update invitation status
       await pool.query(`
         UPDATE event_invitations 
         SET status = 'accepted', accepted_at = NOW()
@@ -1335,17 +1204,12 @@ class EventController {
     }
   }
 
-  /**
-   * Update event member role
-   * PATCH /api/events/:eventId/members/:userId
-   * @access Private (Event Owner)
-   */
   static async updateMemberRole(req, res) {
     try {
       const { eventId, userId } = req.params;
       const { role } = req.body;
 
-      console.log(`🔄 Updating member role: Event ${eventId}, Member ${userId}, New Role: ${role}`);
+      // console.log(`Updating member role: Event ${eventId}, Member ${userId}, New Role: ${role}`);
 
       // Validate role
       const validRoles = ['owner', 'manager', 'checkin_staff'];
@@ -1355,7 +1219,6 @@ class EventController {
         );
       }
 
-      // Check if member exists and is active
       const checkQuery = await pool.query(`
         SELECT id, role, user_id 
         FROM event_organizer_members 
@@ -1370,21 +1233,18 @@ class EventController {
 
       const currentRole = checkQuery.rows[0].role;
 
-      // Prevent changing owner role
       if (currentRole === 'owner') {
         return res.status(403).json(
           createResponse(false, 'Cannot change the owner role')
         );
       }
 
-      // Prevent setting new owner (only one owner allowed)
       if (role === 'owner') {
         return res.status(403).json(
           createResponse(false, 'Cannot assign owner role. There can only be one owner per event.')
         );
       }
 
-      // Update role
       const result = await pool.query(`
         UPDATE event_organizer_members 
         SET role = $3, updated_at = NOW()
@@ -1394,7 +1254,6 @@ class EventController {
           created_at, updated_at, is_active
       `, [eventId, userId, role]);
 
-      // Get member details
       const memberDetails = await pool.query(`
         SELECT 
           eom.*,
@@ -1411,7 +1270,7 @@ class EventController {
       ));
 
     } catch (error) {
-      console.error('❌ Update member role error:', error);
+      console.error('Update member role error:', error);
       
       let statusCode = 500;
       let message = 'Failed to update team member role';
@@ -1425,10 +1284,6 @@ class EventController {
     }
   }
 
-  /**
-   * Get image upload requirements
-   * GET /api/events/image-requirements
-   */
   static async getImageRequirements(req, res) {
     const requirements = {
       event_cover: {
@@ -1472,11 +1327,6 @@ class EventController {
     ));
   }
 
-  /**
-   * Get event orders
-   * GET /api/events/:id/orders
-   * @access Private (Event organizer)
-   */
   static async getEventOrders(req, res) {
     try {
       const { id: eventId } = req.params;
@@ -1533,16 +1383,11 @@ class EventController {
       }));
 
     } catch (error) {
-      console.error('❌ Get event orders error:', error);
+      console.error('Get event orders error:', error);
       res.status(500).json(createResponse(false, 'Failed to get event orders'));
     }
   }
 
-  /**
-   * Get event attendees
-   * GET /api/events/:id/attendees
-   * @access Private (Event organizer)
-   */
   static async getAttendees(req, res) {
     try {
       const { id: eventId } = req.params;
@@ -1617,19 +1462,14 @@ class EventController {
       }));
 
     } catch (error) {
-      console.error('❌ Get attendees error:', error);
+      console.error('Get attendees error:', error);
       res.status(500).json(createResponse(false, 'Failed to get attendees'));
     }
   }
 
-  /**
-   * Get public system settings
-   * GET /api/events/public-settings
-   * @access Public (no authentication required)
-   */
   static async getPublicSettings(req, res) {
     try {
-      console.log('🔓 Getting public system settings');
+      // console.log('Getting public system settings');
 
       const query = `
         SELECT 
@@ -1649,7 +1489,7 @@ class EventController {
         { settings: result.rows }
       ));
     } catch (error) {
-      console.error('❌ Get public settings error:', error);
+      console.error('Get public settings error:', error);
       res.status(500).json(createResponse(false, 'Failed to retrieve settings'));
     }
   }

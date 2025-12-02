@@ -1,21 +1,14 @@
-// src/controllers/userController.js
 const UserModel = require('../models/userModel');
 const { createResponse, validatePassword, paginate } = require('../utils/helpers');
 const pool = require('../config/database');
 
 class UserController {
-  /**
-   * Get user by ID
-   * GET /api/users/:userId
-   * @access Private (Owner or Admin)
-   */
   static async getUserById(req, res) {
     try {
       const { userId } = req.params;
       const requestingUserId = req.user.id;
       const isAdmin = ['admin', 'sub_admin'].includes(req.user.role);
 
-      // Check permissions
       if (userId !== requestingUserId && !isAdmin) {
         return res.status(403).json(
           createResponse(false, 'Access denied. You can only view your own profile.')
@@ -30,10 +23,8 @@ class UserController {
         );
       }
 
-      // Get user statistics
       const stats = await UserModel.getUserStats(userId);
 
-      // Get membership info
       const membership = await UserModel.getUserMembership(userId);
 
       const responseData = {
@@ -73,34 +64,26 @@ class UserController {
       );
 
     } catch (error) {
-      console.error('❌ Get user by ID error:', error);
+      console.error('Get user by ID error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to retrieve user profile')
       );
     }
   }
 
-  /**
-   * Update user profile
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async updateProfile(req, res) {
     try {
-      // const userId = req.user.id;
       const { userId } = req.params; 
       const updateData = req.body;
       const requestingUserId = req.user.id;
-      const isAdmin = req.isAdmin || false; // set by authorizeOwnerOrAdmin middleware
+      const isAdmin = req.isAdmin || false; 
 
-      // Check permissions
       if (userId !== requestingUserId && !isAdmin) {
         return res.status(403).json(
           createResponse(false, 'Access denied. You can only update your own profile.')
         );
       }
 
-      // Remove fields that shouldn't be updated via this endpoint
       const forbiddenFields = [
         'id', 'email', 'password','password_hash', 'role', 
         'is_email_verified', 'is_active', 'email_verification_token',
@@ -116,9 +99,8 @@ class UserController {
         );
       }
 
-      console.log(`Updating profile for user: ${userId}`, Object.keys(updateData))
+      // console.log(`Updating profile for user: ${userId}`, Object.keys(updateData))
 
-      // Update user profile
       const updatedUser = await UserModel.updateProfile(userId, updateData);
 
       const responseData = {
@@ -149,7 +131,7 @@ class UserController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Update profile error:', error.message);
+      console.error('Update profile error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to update profile.';
@@ -167,18 +149,12 @@ class UserController {
     }
   }
 
-  /**
-   * Get user's ticket history
-   * GET /api/users/:userId/tickets
-   * @access Private (Owner or Admin)
-   */
   static async getTicketHistory(req, res) {
     try {
       const { userId } = req.params;
       const requestingUserId = req.user.id;
       const isAdmin = ['admin', 'sub_admin'].includes(req.user.role);
 
-      // Check permissions
       if (userId !== requestingUserId && !isAdmin) {
         return res.status(403).json(
           createResponse(false, 'Access denied')
@@ -188,9 +164,8 @@ class UserController {
       const { page = 1, limit = 10, status, event_id } = req.query;
       const pagination = paginate(page, limit);
 
-      console.log(`🎫 Getting ticket history for user: ${userId}`);
+      // console.log(`Getting ticket history for user: ${userId}`);
 
-      // Build WHERE conditions
       const conditions = ['t.user_id = $1'];
       const params = [userId];
       let paramIndex = 2;
@@ -209,7 +184,6 @@ class UserController {
 
       const whereClause = conditions.join(' AND ');
 
-      // Get total count
       const countQuery = `
         SELECT COUNT(*) as total
         FROM tickets t
@@ -220,7 +194,6 @@ class UserController {
       const countResult = await pool.query(countQuery, params);
       const totalCount = parseInt(countResult.rows[0].total);
 
-      // Get tickets with pagination
       const ticketsQuery = `
         SELECT 
           t.id,
@@ -278,25 +251,19 @@ class UserController {
       );
 
     } catch (error) {
-      console.error('❌ Get ticket history error:', error);
+      console.error('Get ticket history error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to retrieve ticket history')
       );
     }
   }
 
-  /**
-   * Get user's order history
-   * GET /api/users/:userId/orders
-   * @access Private (Owner or Admin)
-   */
   static async getOrderHistory(req, res) {
     try {
       const { userId } = req.params;
       const requestingUserId = req.user.id;
       const isAdmin = ['admin', 'sub_admin'].includes(req.user.role);
 
-      // Check permissions
       if (userId !== requestingUserId && !isAdmin) {
         return res.status(403).json(
           createResponse(false, 'Access denied')
@@ -306,7 +273,6 @@ class UserController {
       const { page = 1, limit = 10, status } = req.query;
       const pagination = paginate(page, limit);
 
-      // Build WHERE conditions
       const conditions = ['o.user_id = $1'];
       const params = [userId];
       let paramIndex = 2;
@@ -319,7 +285,6 @@ class UserController {
 
       const whereClause = conditions.join(' AND ');
 
-      // Get total count
       const countQuery = `
         SELECT COUNT(*) as total
         FROM orders o
@@ -329,7 +294,6 @@ class UserController {
       const countResult = await pool.query(countQuery, params);
       const totalCount = parseInt(countResult.rows[0].total);
 
-      // Get orders with pagination
       const ordersQuery = `
         SELECT 
           o.id,
@@ -385,90 +349,27 @@ class UserController {
       );
 
     } catch (error) {
-      console.error('❌ Get order history error:', error);
+      console.error('Get order history error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to retrieve order history')
       );
     }
   }
 
-  /**
-   * Deactivate user account
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
-  // static async deactivateAccount(req, res) {
-  //   try {
-  //     const userId = req.user.id;
-  //     const { password } = req.body;
-
-  //     // Verify password before deactivation
-  //     const user = await UserModel.findByEmail(req.user.email);
-  //     if (!user) {
-  //       return res.status(404).json(
-  //         createResponse(false, 'User not found')
-  //       );
-  //     }
-
-  //     const isPasswordValid = await UserModel.verifyPassword(password, user.password_hash);
-  //     if (!isPasswordValid) {
-  //       return res.status(400).json(
-  //         createResponse(false, 'Incorrect password. Account deactivation cancelled.')
-  //       );
-  //     }
-
-  //     // Deactivate account
-  //     const success = await UserModel.deactivateAccount(userId);
-      
-  //     if (!success) {
-  //       return res.status(404).json(
-  //         createResponse(false, 'User not found or already deactivated')
-  //       );
-  //     }
-
-  //     console.log(`🗑️ Account deactivated for user: ${req.user.email}`);
-
-  //     const response = createResponse(
-  //       true,
-  //       'Account has been deactivated successfully. We\'re sorry to see you go!'
-  //     );
-
-  //     res.json(response);
-
-  //   } catch (error) {
-  //     console.error('❌ Deactivate account error:', error.message);
-      
-  //     const response = createResponse(
-  //       false,
-  //       'Failed to deactivate account. Please try again later.'
-  //     );
-      
-  //     res.status(500).json(response);
-  //   }
-  // }
-
-  /**
-   * Deactivate user account
-   * DELETE /api/users/:userId
-   * @access Private (Owner or Admin)
-   */
   static async deactivateAccount(req, res) {
     try {
       const { userId } = req.params;
       const { password } = req.body;
       const requestingUserId = req.user.id;
-      // const isAdmin = req.isAdmin || false;
       const requestingUserRole = req.user.role;
       const isAdmin = ['admin', 'sub_admin'].includes(requestingUserRole);
 
-      // Check permissions
       if (userId !== requestingUserId && !isAdmin) {
         return res.status(403).json(
           createResponse(false, 'Access denied')
         );
       }
 
-       // Get target user
       const targetUser = await pool.query(
         'SELECT id, role, email FROM users WHERE id = $1',
         [userId]
@@ -482,7 +383,6 @@ class UserController {
       
       const target = targetUser.rows[0];
       
-      // PROTECTION: Sub-admin cannot deactivate admin/sub_admin
       if (requestingUserRole === 'sub_admin') {
         if (target.role === 'admin' || target.role === 'sub_admin') {
           return res.status(403).json(
@@ -494,7 +394,6 @@ class UserController {
         }
       }
 
-      // Admin doesn't need password to deactivate others
       if (!isAdmin || userId === requestingUserId) {
         if (!password) {
           return res.status(400).json(
@@ -502,7 +401,6 @@ class UserController {
           );
         }
 
-        // Verify password
         const user = await UserModel.findByEmail(req.user.email);
         if (!user) {
           return res.status(404).json(
@@ -522,7 +420,6 @@ class UserController {
         }
       }
 
-      // Deactivate account
       const success = await UserModel.deactivateAccount(userId);
       
       if (!success) {
@@ -531,7 +428,7 @@ class UserController {
         );
       }
 
-      console.log(`🗑️  Account deactivated: ${userId}`);
+      // console.log(`Account deactivated: ${userId}`);
 
       res.json(
         createResponse(
@@ -541,18 +438,13 @@ class UserController {
       );
 
     } catch (error) {
-      console.error('❌ Deactivate account error:', error);
+      console.error('Deactivate account error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to deactivate account')
       );
     }
   }
 
-  /**
-   * Get all users (Admin only)
-   * GET /api/admin/users
-   * @access Private (Admin only)
-   */
   static async getAllUsers(req, res) {
     try {
       const { page = 1, limit = 20, role, is_active, search } = req.query;
@@ -579,7 +471,7 @@ class UserController {
       );
 
     } catch (error) {
-      console.error('❌ Get all users error:', error);
+      console.error('Get all users error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to retrieve users')
       );
@@ -596,12 +488,11 @@ class UserController {
         );
       }
 
-      // Update user avatar in database
       await UserModel.updateProfile(userId, { 
         avatar_url: req.processedAvatar 
       });
 
-      console.log(`📷 Avatar uploaded for user: ${userId}`);
+      // console.log(`Avatar uploaded for user: ${userId}`);
 
       res.json(
         createResponse(
@@ -612,9 +503,8 @@ class UserController {
       );
 
     } catch (error) {
-      console.error('❌ Upload avatar error:', error);
+      console.error('Upload avatar error:', error);
     
-      // Clean up uploaded file on error
       if (req.processedAvatar) {
         const { deleteFile } = require('../middleware/uploadMiddleware');
         await deleteFile(req.processedAvatar);

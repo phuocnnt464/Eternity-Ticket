@@ -1,12 +1,7 @@
-// server/src/controllers/queueController.js
 const QueueModel = require('../models/queueModel');
 const { createResponse } = require('../utils/helpers');
 
 class QueueController {
-  /**
-   * Join waiting room queue
-   * POST /api/queue/join
-   */
   static async joinQueue(req, res) {
     try {
       const { session_id } = req.body;
@@ -15,7 +10,6 @@ class QueueController {
 
       console.log(`User ${userId} joining queue for session ${session_id}`);
 
-      // Get config
       const config = await QueueModel.getWaitingRoomConfig(session_id);
 
       if (!config) {
@@ -37,7 +31,6 @@ class QueueController {
         event_id 
       } = config;
 
-      // Check if already in queue (DB)
       const existingStatus = await QueueModel.getUserQueueStatus(userId, session_id);
 
       if (existingStatus) {
@@ -76,7 +69,6 @@ class QueueController {
         }
       }
 
-      // Check capacity
       const queueLength = await QueueModel.getRedisQueueLength(session_id);
 
       if (queueLength >= max_capacity) {
@@ -92,7 +84,6 @@ class QueueController {
         ));
       }
 
-      // Calculate priority
       const priorityScore = QueueController.calculatePriorityScore(membershipTier);
 
       // Add to Redis queue (FIFO)
@@ -105,7 +96,6 @@ class QueueController {
 
       await QueueModel.addToRedisQueue(session_id, userData);
 
-      // Add to database
       const queueNumber = await QueueModel.getNextQueueNumber(session_id);
 
       await QueueModel.addToQueue({
@@ -116,7 +106,6 @@ class QueueController {
         priority_score: priorityScore
       });
 
-      // Try to activate immediately if slots available
       const activeCount = await QueueModel.getActiveUsersCount(session_id);
 
       if (activeCount < concurrent_purchase_limit) {
@@ -138,7 +127,6 @@ class QueueController {
         }
       }
 
-      // Return queue position
       const position = await QueueModel.getRedisQueuePosition(session_id, userId);
       const estimatedWait = Math.ceil(position * queue_timeout_minutes / concurrent_purchase_limit);
 
@@ -163,10 +151,6 @@ class QueueController {
     }
   }
 
-  /**
-   * Get queue status
-   * GET /api/queue/status/:sessionId
-   */
   static async getStatus(req, res) {
     try {
       const { sessionId } = req.params;
@@ -175,7 +159,6 @@ class QueueController {
       const config = await QueueModel.getWaitingRoomConfig(sessionId);
       const hasWaitingRoom = !!config;
 
-      // Check if active in Redis
       const activeData = await QueueModel.getActiveUser(sessionId, userId);
 
       if (activeData) {
@@ -194,7 +177,6 @@ class QueueController {
         ));
       }
 
-      // Check position in Redis queue
       const position = await QueueModel.getRedisQueuePosition(sessionId, userId);
 
       if (position) {
@@ -217,7 +199,6 @@ class QueueController {
         ));
       }
 
-      // Check database for completed/expired
       const dbStatus = await QueueModel.getUserQueueStatus(userId, sessionId);
 
       if (dbStatus) {
@@ -262,7 +243,6 @@ class QueueController {
 
   /**
    * Heartbeat - keep alive
-   * POST /api/queue/heartbeat
    */
   static async heartbeat(req, res) {
     try {
@@ -282,10 +262,6 @@ class QueueController {
     }
   }
 
-  /**
-   * Leave queue
-   * DELETE /api/queue/leave/:sessionId
-   */
   static async leaveQueue(req, res) {
     try {
       const { sessionId } = req.params;
@@ -309,10 +285,6 @@ class QueueController {
     }
   }
 
-  /**
-   * Get statistics (Admin/Organizer)
-   * GET /api/queue/statistics/:sessionId
-   */
   static async getStatistics(req, res) {
     try {
       const { sessionId } = req.params;
@@ -366,9 +338,6 @@ class QueueController {
     }
   }
 
-  /**
-   * Process queue (Internal method)
-   */
   static async processQueue(sessionId) {
     try {
       const config = await QueueModel.getWaitingRoomConfig(sessionId);
@@ -382,7 +351,7 @@ class QueueController {
 
       if (slotsAvailable <= 0) return;
 
-      console.log(`🔄 Processing queue: ${slotsAvailable} slots available`);
+      // console.log(`Processing queue: ${slotsAvailable} slots available`);
 
       const users = await QueueModel.popFromRedisQueue(sessionId, slotsAvailable);
 
@@ -400,9 +369,6 @@ class QueueController {
     }
   }
 
-  /**
-   * Complete order (Called by OrderController)
-   */
   static async completeOrder(userId, sessionId) {
     try {
       await QueueModel.completeOrder(userId, sessionId);
@@ -416,9 +382,6 @@ class QueueController {
     }
   }
 
-  /**
-   * Check if user can purchase
-   */
   static async checkCanPurchase(userId, sessionId) {
     try {
       const config = await QueueModel.getWaitingRoomConfig(sessionId);
@@ -431,38 +394,30 @@ class QueueController {
         const expiresAt = new Date(activeData.expires_at);
         const isNotExpired = expiresAt > new Date();
         
-        console.log(`✅ Redis check: active=${isNotExpired}, expires=${activeData.expires_at}`);
+        // console.log(`Redis check: active=${isNotExpired}, expires=${activeData.expires_at}`);
         return isNotExpired;
       }
 
-      console.warn('⚠️ User not in Redis, checking database...  ');
+      console.warn('User not in Redis, checking database...  ');
       const dbStatus = await QueueModel.getUserQueueStatus(userId, sessionId);
-      
-      // if (!activeData) return false;
-
-      // const expiresAt = new Date(activeData.expires_at);
-      // return expiresAt > new Date();
 
       if (dbStatus && dbStatus.status === 'active') {
-        // Check expiry
         if (dbStatus.expires_at) {
           const expiresAt = new Date(dbStatus.expires_at);
           const isNotExpired = expiresAt > new Date();
           
-          console.log(`✅ DB check: active=${isNotExpired}, expires=${dbStatus.expires_at}`);
+          // console.log(`DB check: active=${isNotExpired}, expires=${dbStatus.expires_at}`);
           
-          // ✅ If still valid, restore to Redis
           if (isNotExpired) {
-            // const timeoutMinutes = config.queue_timeout_minutes;
             await QueueModel.setActiveUser(sessionId, userId, expiresAt);
-            console.log(`✅ Restored user to Redis from DB`);
+            // console.log(`Restored user to Redis from DB`);
           }
           
           return isNotExpired;
         }
       }
 
-      console.log(`❌ User not active: dbStatus=${dbStatus?.status || 'null'}`);
+      // console.log(`User not active: dbStatus=${dbStatus?.status || 'null'}`);
       return false;
 
     } catch (error) {
@@ -471,9 +426,6 @@ class QueueController {
     }
   }
 
-  /**
-   * Calculate priority score
-   */
   static calculatePriorityScore(membershipTier) {
     switch (membershipTier) {
       case 'premium': return 100;

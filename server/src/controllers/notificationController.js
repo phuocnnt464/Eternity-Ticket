@@ -1,12 +1,7 @@
-// server/src/controllers/notificationController.js
 const pool = require('../config/database');
 const { createResponse } = require('../utils/helpers');
 
 class NotificationController {
-  /**
-   * Get user notifications
-   * GET /api/notifications
-   */
   static async getNotifications(req, res) {
     try {
       const userId = req.user.id;
@@ -35,7 +30,6 @@ class NotificationController {
 
       const result = await pool.query(query, params);
 
-      // Get unread count
       const countQuery = await pool.query(`
         SELECT COUNT(*) as unread_count
         FROM notifications
@@ -58,10 +52,6 @@ class NotificationController {
     }
   }
 
-  /**
-   * Mark notification as read
-   * PUT /api/notifications/:notificationId/read
-   */
   static async markAsRead(req, res) {
     try {
       const { notificationId } = req.params;
@@ -87,10 +77,6 @@ class NotificationController {
     }
   }
 
-  /**
-   * Mark all as read
-   * PUT /api/notifications/read-all
-   */
   static async markAllAsRead(req, res) {
     try {
       const userId = req.user.id;
@@ -113,10 +99,6 @@ class NotificationController {
     }
   }
 
-  /**
-   * Delete notification
-   * DELETE /api/notifications/:notificationId
-   */
   static async deleteNotification(req, res) {
     try {
       const { notificationId } = req.params;
@@ -141,10 +123,6 @@ class NotificationController {
     }
   }
 
-  /**
-   * Get unread count
-   * GET /api/notifications/unread-count
-   */
   static async getUnreadCount(req, res) {
     try {
       const userId = req.user.id;

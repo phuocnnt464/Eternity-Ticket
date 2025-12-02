@@ -1,4 +1,3 @@
-// src/controllers/authController.js
 const UserModel = require('../models/userModel');
 const { 
   generateAccessToken, 
@@ -13,16 +12,10 @@ const redisService = require('../services/redisService');
 const pool = require('../config/database');
 
 class AuthController {
-  /**
-   * Register new user
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async register(req, res) {
     try {
       const { email, password, role, first_name, last_name, phone } = req.body;
 
-      // ✅ Kiểm tra email đã tồn tại với ANY role
       const existingUser = await UserModel.findByEmailAnyRole(email);
     
       if (existingUser) {
@@ -31,7 +24,6 @@ class AuthController {
             createResponse(false, 'An account with this email already exists.')
           );
         } else {
-          // Email exists with different role - NOT ALLOWED
           return res.status(409).json(
             createResponse(
               false, 
@@ -41,9 +33,8 @@ class AuthController {
         }
       }
 
-      console.log(`📝 Registration attempt for email: ${email}`);
+      // console.log(`Registration attempt for email: ${email}`);
 
-      // Validate role (only participant or organizer can self-register)
       const allowedRoles = ['participant', 'organizer'];
       if (!allowedRoles.includes(role)) {
         return res.status(400).json(
@@ -61,7 +52,7 @@ class AuthController {
         phone
       });
 
-      console.log(`✅ User created successfully with ID: ${result.user.id}`);
+      // console.log(`User created successfully with ID: ${result.user.id}`);
  
       await emailService.sendVerificationEmail(
         result.user.email, 
@@ -69,20 +60,14 @@ class AuthController {
         `${result.user.first_name} ${result.user.last_name}`
       );
 
-      // Generate tokens
       const tokenPayload = {
         id: result.user.id,
         email: result.user.email,
         role: result.user.role
       };
 
-      // const accessToken = generateAccessToken(tokenPayload);
-      // const refreshToken = generateRefreshToken(tokenPayload);
+      // console.log(`Tokens generated for user: ${result.user.email}`);
 
-      // Log activity
-      console.log(`🔑 Tokens generated for user: ${result.user.email}`);
-
-      // Response data
       const responseData = {
         user: {
           id: result.user.id,
@@ -106,19 +91,18 @@ class AuthController {
       res.status(201).json(response);
 
     } catch (error) {
-      console.error('❌ Registration error:', error.message);
+      console.error('Registration error:', error.message);
 
       let statusCode = 500;
       let message = 'Registration failed. Please try again.';
 
-      // Handle specific errors
       if (error.message === 'Email already exists') {
         statusCode = 409;
-        message = 'An account with this email already exists. Please login or use a different email.';
+        message = 'An account with this email already exists.';
       } else if (error.message.includes('validation')) {
         statusCode = 400;
         message = 'Invalid input data. Please check your information.';
-      } else if (error.code === '23505') { // PostgreSQL unique violation
+      } else if (error.code === '23505') {
         statusCode = 409;
         message = 'Email already exists';
       }
@@ -128,48 +112,40 @@ class AuthController {
     }
   }
 
-  /**
-   * Login user
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async login(req, res) {
     try {
       const { email, password } = req.body;
 
-      console.log(`🔐 Login attempt for email: ${email}`);
+      // console.log(`Login attempt for email: ${email}`);
 
-      // Find user by email
       const user = await UserModel.findByEmail(email);
       
       if (!user) {
         console.log(`Login failed: User not found: ${email}`);
         return res.status(401).json(
-          createResponse(false, 'Invalid email or password. Please try again.')
+          createResponse(false, 'Invalid email or password.')
         );
       }
 
-      // Check if user account is active
       if (!user.is_active) {
-        console.log(`Login failed: Inactive account for email: ${email}`);
+        // console.log(`Login failed: Inactive account for email: ${email}`);
         return res.status(403).json(
-          createResponse(false, 'Your account has been deactivated. Please contact support.')
+          createResponse(false, 'Your account has been deactivated.')
         );
       }
 
       if (!user.is_email_verified) {
-        console.log(`Login failed: Email not verified for: ${email}`);
+        // console.log(`Login failed: Email not verified for: ${email}`);
         return res.status(403).json(
-          createResponse(false, 'Please verify your email address before logging in. Check your inbox for the verification link.')
+          createResponse(false, 'Please verify your email address before logging in.')
         );
       }
 
-       // Check if account is locked
       if (user.account_locked_until && new Date(user.account_locked_until) > new Date()) {
         const lockTimeRemaining = Math.ceil(
           (new Date(user.account_locked_until) - new Date()) / 1000 / 60
         );
-        console.log(`❌ Login failed: Account locked - ${email} for ${lockTimeRemaining} minutes`);
+        // console.log(`Login failed: Account locked - ${email} for ${lockTimeRemaining} minutes`);
         return res.status(423).json(
           createResponse(
             false, 
@@ -182,30 +158,19 @@ class AuthController {
         );
       }
 
-      // Verify password
       const isPasswordValid = await UserModel.verifyPassword(password, user.password_hash);
-      
-      // if (!isPasswordValid) {
-      //   console.log(`❌ Login failed: Invalid password for email: ${email}`);
-      //   return res.status(401).json(
-      //     createResponse(false, 'Invalid email or password. Please try again.')
-      //   );
-      // }
       if (!isPasswordValid) {
-        console.log(`❌ Login failed: Invalid password - ${email}`);
-        
-        // Increment failed login attempts
+        // console.log(`Login failed: Invalid password - ${email}`);
+   
         await UserModel.incrementFailedLoginAttempts(user.id);
         
-        // Check if should lock account
         const updatedUser = await UserModel.findById(user.id);
         const failedAttempts = updatedUser.failed_login_attempts || 0;
 
         if (failedAttempts >= 5) {
-          // Lock account for 15 minutes
           await UserModel.lockAccount(user.id, 15);
 
-          console.log(`🔒 Account locked after 5 failed attempts: ${email}`);
+          // console.log(`Account locked after 5 failed attempts: ${email}`);
 
           return res.status(423).json(
             createResponse(
@@ -231,15 +196,12 @@ class AuthController {
         );
       }
 
-      // Reset failed login attempts on successful login
       await UserModel.resetFailedLoginAttempts(user.id);
 
-      // Update last login timestamp
       await UserModel.updateLastLogin(user.id);
 
-      console.log(`✅ Login successful: ${user.email}`);
+      // console.log(`Login successful: ${user.email}`);
 
-      // Generate tokens
       const tokenPayload = {
         id: user.id,
         email: user.email,
@@ -249,10 +211,8 @@ class AuthController {
       const accessToken = generateAccessToken(tokenPayload);
       const refreshToken = generateRefreshToken(tokenPayload);
 
-      // Get user membership info
       const membership = await UserModel.getUserMembership(user.id);
 
-      // Remove sensitive data from user object
       const { 
         password_hash, 
         email_verification_token, 
@@ -262,7 +222,6 @@ class AuthController {
         ...safeUser 
       } = user;
 
-      // Response data
       const responseData = {
         user: {
           ...safeUser,
@@ -291,22 +250,17 @@ class AuthController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Login error:', error.message);
+      console.error('Login error:', error.message);
       
       const response = createResponse(
         false, 
-        'Login failed. Please try again later.'
+        'Login failed.'
       );
       
       res.status(500).json(response);
     }
   }
 
-  /**
-   * Refresh access token
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async refreshToken(req, res) {
     try {
       const { refresh_token } = req.body;
@@ -317,7 +271,7 @@ class AuthController {
         );
       }
       
-      // ✅ CHECK BLACKLIST
+      // Check blacklist
       const redisService = require('../services/redisService');
       if (redisService.isReady()) {
         const blacklistKey = `blacklist:refresh:${refresh_token}`;
@@ -330,10 +284,8 @@ class AuthController {
         }
       }
 
-      // Verify refresh token
       const decoded = verifyToken(refresh_token, process.env.JWT_REFRESH_SECRET);
 
-      // Get updated user info
       const user = await UserModel.findById(decoded.id);
       
       if (!user || !user.is_active) {
@@ -342,7 +294,6 @@ class AuthController {
         );
       }
 
-      // Generate new access token
       const tokenPayload = {
         id: user.id,
         email: user.email,
@@ -366,7 +317,7 @@ class AuthController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Token refresh error:', error.message);
+      console.error('Token refresh error:', error.message);
       
       let message = 'Token refresh failed';
       let statusCode = 500;
@@ -384,11 +335,6 @@ class AuthController {
     }
   }
 
-  /**
-   * Get current user profile
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async getProfile(req, res) {
     try {
       const userId = req.user.id;
@@ -401,33 +347,9 @@ class AuthController {
         );
       }
 
-      // Get membership info
       const membership = await UserModel.getUserMembership(userId);
 
-      // Get user statistics
       const stats = await UserModel.getUserStats(userId);
-
-      // Remove sensitive data
-      // const { 
-      //   password_hash, 
-      //   email_verification_token, 
-      //   reset_password_token,
-      //   failed_login_attempts,
-      //   account_locked_until,
-      //   ...safeUser 
-      // } = user;
-
-      // const responseData = {
-      //   user: {
-      //     ...user,
-      //     membership: {
-      //       tier: user.membership_tier || 'basic',
-      //       start_date: user.membership_start,
-      //       end_date: user.membership_end
-      //     }
-      //   },
-      //   statistics: stats
-      // };
 
       const responseData = {
         user: {
@@ -466,7 +388,7 @@ class AuthController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Get profile error:', error.message);
+      console.error('Get profile error:', error.message);
       
       const response = createResponse(
         false,
@@ -477,11 +399,6 @@ class AuthController {
     }
   }
 
-  /**
-   * Verify email with token
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async verifyEmail(req, res) {
     try {
       const { token } = req.body;
@@ -500,7 +417,7 @@ class AuthController {
         );
       }
 
-      console.log(`✅ Email verified for user: ${result.email}`);
+      // console.log(`Email verified for user: ${result.email}`);
 
       const response = createResponse(
         true,
@@ -519,7 +436,7 @@ class AuthController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Email verification error:', error.message);
+      console.error('Email verification error:', error.message);
       
       const response = createResponse(
         false,
@@ -530,24 +447,17 @@ class AuthController {
     }
   }
 
-  /**
-   * Logout user (invalidate token - for future Redis implementation)
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async logout(req, res) {
     try {
       const userId = req.user.id;
-      const token = req.headers['authorization']?.split(' ')[1]; // Get access token
+      const token = req.headers['authorization']?.split(' ')[1]; 
 
-       // ✅ 1. Calculate token remaining TTL
       const decoded = verifyToken(token);
       const expiresAt = decoded.exp;
       const now = Math.floor(Date.now() / 1000);
       const ttl = expiresAt - now;
 
       if (ttl > 0) {
-        // ✅ 2. Blacklist access token in Redis
         if (redisService.isReady()) {
           const blacklistKey = `blacklist:token:${token}`;
           await redisService.getClient().setEx(blacklistKey, ttl, 'revoked');
@@ -555,13 +465,9 @@ class AuthController {
         }
       }
       
-      // TODO: Invalidate refresh token in database
       const refreshToken = req.body.refresh_token;
       if (refreshToken) {
-        // Delete from sessions table 
-        // await pool.query('DELETE FROM sessions WHERE refresh_token = $1', [refreshToken]);
         
-        // Blacklist refresh token
         if (redisService.isReady()) {
           try {
             const decodedRefresh = verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
@@ -576,13 +482,12 @@ class AuthController {
         }
       }
 
-      // ✅ 4. Log activity
       await pool.query(`
         INSERT INTO activity_logs (user_id, action, description, ip_address)
         VALUES ($1, 'LOGOUT', 'User logged out', $2)
       `, [userId, req.ip]);
       
-      console.log(`🚪 User logged out: ${req.user.email}`);
+      // console.log(`User logged out: ${req.user.email}`);
 
       const response = createResponse(
         true,
@@ -592,26 +497,15 @@ class AuthController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Logout error:', error.message);
-      
-      // const response = createResponse(
-      //   false,
-      //   'Logout failed'
-      // );
+      console.error('Logout error:', error.message);
       const response = createResponse(
         true,
         'Logout successful'
       );
-
-      // res.status(500).json(response);
       res.json(response);
     }
   }
 
-  /**
-   * Request password reset
-   * POST /api/auth/forgot-password
-   */
   static async forgotPassword(req, res) {
     try {
       const { email } = req.body;
@@ -619,7 +513,6 @@ class AuthController {
       const user = await UserModel.findByEmail(email);
       
       if (!user) {
-        // Return success even if user doesn't exist (security best practice)
         return res.json(
           createResponse(
             true,
@@ -628,10 +521,8 @@ class AuthController {
         );
       }
 
-      // Generate reset token
       const resetToken = await UserModel.generatePasswordResetToken(user.id);
 
-      // TODO: Send reset email
       try{
         await emailService.sendPasswordResetEmail(
           user.email, resetToken,
@@ -641,7 +532,7 @@ class AuthController {
         console.error('Failed to send password reset email:', err);
       }
 
-      console.log(`📧 Password reset requested for: ${email}`);
+      // console.log(`Password reset requested for: ${email}`);
 
       res.json(
         createResponse(
@@ -651,17 +542,13 @@ class AuthController {
       );
 
     } catch (error) {
-      console.error('❌ Forgot password error:', error);
+      console.error('Forgot password error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to process password reset request')
       );
     }
   }
 
-  /**
-   * Reset password with token
-   * POST /api/auth/reset-password
-   */
   static async resetPassword(req, res) {
     try {
       const { token, new_password } = req.body;
@@ -674,34 +561,28 @@ class AuthController {
         );
       }
 
-      console.log(`✅ Password reset for user: ${result.email}`);
+      // console.log(`Password reset for user: ${result.email}`);
 
       res.json(
         createResponse(
           true,
-          'Password has been reset successfully. You can now login with your new password.'
+          'Password has been reset successfully.'
         )
       );
 
     } catch (error) {
-      console.error('❌ Reset password error:', error);
+      console.error('Reset password error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to reset password')
       );
     }
   }
   
-
-  /**
-  * Change password (for logged in users)
-  * POST /api/auth/change-password
-  */
   static async changePassword(req, res) {
     try {
       const { current_password, new_password } = req.body;
       const userId = req.user.id;
 
-      // Validate new password strength
       const passwordValidation = validatePassword(new_password);
       if (!passwordValidation.isValid) {
         return res.status(400).json(
@@ -720,7 +601,7 @@ class AuthController {
       );
 
     } catch (error) {
-      console.error('❌ Change password error:', error);
+      console.error('Change password error:', error);
     
       let statusCode = 500;
       let message = 'Failed to change password';
@@ -737,10 +618,6 @@ class AuthController {
     }
   }
 
-  /**
-  * Resend email verification
-  * POST /api/auth/resend-verification
-  */
   static async resendVerification(req, res) {
     try {
       const userId = req.user.id;
@@ -751,7 +628,6 @@ class AuthController {
         );
       }
 
-      // Generate new verification token
       const token = await UserModel.generateEmailVerificationToken(userId);
       
       try {
@@ -760,16 +636,16 @@ class AuthController {
           token,
           `${req.user.first_name} ${req.user.last_name}`
         );
-        console.log(`✅ Verification email resent to: ${req.user.email}`);
+        // console.log(`Verification email resent to: ${req.user.email}`);
       } catch (error) {
-        console.error('❌ Failed to send verification email:', error);
+        console.error('Failed to send verification email:', error);
         // Return error to user since this is the primary function
         return res.status(500).json(
-          createResponse(false, 'Failed to send verification email. Please try again.')
+          createResponse(false, 'Failed to send verification email.')
         );
       }
       
-      console.log(`📧 Verification email resent to: ${req.user.email}`);
+      // console.log(`Verification email resent to: ${req.user.email}`);
 
       res.json(
         createResponse(
@@ -779,7 +655,7 @@ class AuthController {
       );
 
     } catch (error) {
-      console.error('❌ Resend verification error:', error);
+      console.error('Resend verification error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to resend verification email')
       );
@@ -798,7 +674,7 @@ class AuthController {
         { exists, email }
       ));
     } catch (error) {
-      console.error('❌ Check email error:', error);
+      console.error('Check email error:', error);
       res.status(500).json(createResponse(false, 'Failed to check email'));
     }
   }

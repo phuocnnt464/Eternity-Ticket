@@ -1,4 +1,3 @@
-// server/src/controllers/couponController.js
 const CouponModel = require('../models/couponModel');
 const { createResponse } = require('../utils/helpers');
 
@@ -21,7 +20,7 @@ class CouponController {
         )
       );
     } catch (error) {
-      console.error('❌ Create coupon error:', error);
+      console.error('Create coupon error:', error);
       
       let statusCode = 500;
       let message = 'Failed to create coupon';
@@ -42,7 +41,6 @@ class CouponController {
       const { code, eventId, orderAmount } = req.body;
       const userId = req.user.id;
       
-      // Get membership tier from user
       const membershipTier = req.user.membership?.tier || 'basic';
 
       const validation = await CouponModel.validateCoupon(
@@ -70,7 +68,7 @@ class CouponController {
         )
       );
     } catch (error) {
-      console.error('❌ Validate coupon error:', error);
+      console.error('Validate coupon error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to validate coupon')
       );
@@ -83,11 +81,9 @@ class CouponController {
       const userId = req.user.id;
       const userRole = req.user.role;
       
-      // Verify user has access to event
       if (!['admin', 'sub_admin'].includes(userRole)) {
         const pool = require('../config/database');
         
-        // Verify organizer owns this event or is team member
         const accessCheck = await pool.query(`
           SELECT 1 FROM events WHERE id = $1 AND organizer_id = $2
           UNION
@@ -112,7 +108,7 @@ class CouponController {
         )
       );
     } catch (error) {
-      console.error('❌ Get event coupons error:', error);
+      console.error('Get event coupons error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to fetch coupons')
       );
@@ -140,7 +136,7 @@ class CouponController {
         )
       );
     } catch (error) {
-      console.error('❌ Update coupon error:', error);
+      console.error('Update coupon error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to update coupon')
       );
@@ -163,7 +159,7 @@ class CouponController {
         createResponse(true, 'Coupon deleted successfully')
       );
     } catch (error) {
-      console.error('❌ Delete coupon error:', error);
+      console.error('Delete coupon error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to delete coupon')
       );
@@ -190,7 +186,7 @@ class CouponController {
         )
       );
     } catch (error) {
-      console.error('❌ Get coupon stats error:', error);
+      console.error('Get coupon stats error:', error);
       res.status(500).json(
         createResponse(false, 'Failed to get coupon statistics')
       );

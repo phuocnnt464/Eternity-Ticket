@@ -1,4 +1,3 @@
-// src/controllers/adminController.js
 const pool = require('../config/database');
 const UserModel = require('../models/userModel');
 const EventModel = require('../models/eventModel');
@@ -7,22 +6,13 @@ const emailService = require('../services/emailService');
 const AuditLogModel = require('../models/auditLogModel');
 const RefundModel = require('../models/refundModel');
 
-// ===============================
-// DASHBOARD & USER MANAGEMENT
-// ===============================
-
 class AdminController {
-
-  // Get dashboard statistics
   static async getDashboardStats(req, res) {
     try {
-        // Get user counts by role
         const userCounts = await UserModel.getUserCountByRole();
         
-        // Get recent users
         const recentUsers = await UserModel.getRecentUsers(7, 5);
 
-        // Get recent events - THÊM DÒNG NÀY
         const recentEventsQuery = `
           SELECT 
             e.id as event_id,
@@ -38,7 +28,6 @@ class AdminController {
         `;
         const recentEventsResult = await pool.query(recentEventsQuery);
         
-        // Get total events, orders, tickets
         const statsQuery = `
         SELECT 
             -- Event stats
@@ -109,12 +98,11 @@ class AdminController {
         ));
         
     } catch (error) {
-        console.error('❌ Dashboard stats error:', error);
+        console.error('Dashboard stats error:', error);
         res.status(500).json(createResponse(false, 'Failed to retrieve statistics'));
     }
   }
 
-  // Search users
   static async searchUsers(req, res) {
     try {
         const { q, limit = 10 } = req.query;
@@ -135,12 +123,11 @@ class AdminController {
         ));
         
     } catch (error) {
-        console.error('❌ Search users error:', error);
+        console.error('Search users error:', error);
         res.status(500).json(createResponse(false, 'Search failed'));
     }
   }
 
-  // Update user role
   static async updateUserRole(req, res) {
     try {
       const { userId } = req.params;
@@ -154,7 +141,6 @@ class AdminController {
         });
       }
 
-      // Get target user
       const targetUser = await pool.query(
         'SELECT id, role, email FROM users WHERE id = $1',
         [userId]
@@ -168,7 +154,6 @@ class AdminController {
       
       const target = targetUser.rows[0];
       
-      // PROTECTION: Sub-admin cannot change admin/sub_admin roles
       if (requestingUser.role === 'sub_admin') {
         if (target.role === 'admin' || target.role === 'sub_admin') {
           return res.status(403).json(
@@ -189,7 +174,6 @@ class AdminController {
         }
       }
       
-      
       const updatedUser = await UserModel.updateUserRole(userId, role);
       
       res.json(createResponse(
@@ -199,7 +183,7 @@ class AdminController {
       ));
       
     } catch (error) {
-      console.error('❌ Update user role error:', error);
+      console.error('Update user role error:', error);
 
       let statusCode = 500;
       let message = 'Failed to update user role';
@@ -216,7 +200,6 @@ class AdminController {
     }
   }
 
-  // Reactivate account
   static async reactivateAccount(req, res) {
     try {
       const { userId } = req.params;
@@ -235,21 +218,16 @@ class AdminController {
       ));
       
     } catch (error) {
-      console.error('❌ Reactivate account error:', error);
+      console.error('Reactivate account error:', error);
       res.status(500).json(createResponse(false, 'Failed to reactivate account'));
     }
   }
 
-  /**
-   * Deactivate user account
-   * POST /api/admin/users/:userId/deactivate
-   */
   static async deactivateAccount(req, res) {
     try {
       const { userId } = req.params;
       const requestingUser = req.user;
 
-      // Get target user
       const targetUser = await pool.query(
         'SELECT id, role, email, is_active FROM users WHERE id = $1',
         [userId]
@@ -263,21 +241,18 @@ class AdminController {
       
       const target = targetUser.rows[0];
       
-      // PROTECTION: Cannot deactivate admin
       if (target.role === 'admin') {
         return res.status(403).json(
           createResponse(false, 'Cannot deactivate admin accounts')
         );
       }
       
-      // PROTECTION: Sub-admin cannot deactivate other sub-admins
       if (requestingUser.role === 'sub_admin' && target.role === 'sub_admin') {
         return res.status(403).json(
           createResponse(false, 'Sub-admins cannot deactivate other sub-admins')
         );
       }
 
-      // Check if already inactive
       if (!target.is_active) {
         return res.status(400).json(
           createResponse(false, 'User is already inactive')
@@ -292,7 +267,7 @@ class AdminController {
         );
       }
       
-      console.log(`✅ Admin ${requestingUser.id} deactivated user ${userId}`);
+      console.log(`Admin ${requestingUser.id} deactivated user ${userId}`);
       
       res.json(createResponse(
         true,
@@ -300,20 +275,15 @@ class AdminController {
       ));
       
     } catch (error) {
-      console.error('❌ Deactivate account error:', error);
+      console.error('Deactivate account error:', error);
       res.status(500).json(createResponse(false, 'Failed to deactivate account'));
     }
   }
-
-  // ===============================
-  // EVENT MANAGEMENT
-  // ===============================
 
   static async getAllEvents(req, res) {
     try {
       const { page = 1, limit = 20, status } = req.query;
       
-      // const filters = status ? { status } : {};
       const filters = {
         admin_view: true 
       };
@@ -331,14 +301,10 @@ class AdminController {
         result
       ));
     } catch (error) {
-      console.error('❌ Admin get events error:', error);
+      console.error('Admin get events error:', error);
       res.status(500).json(createResponse(false, 'Failed to retrieve events'));
     }
   }
-
-  // ===============================
-  // ORDERS & REFUNDS
-  // ===============================
 
   static async getAllOrders(req, res) {
     try {
@@ -422,7 +388,7 @@ class AdminController {
         }
       ));
     } catch (error) {
-      console.error('❌ Admin get orders error:', error);
+      console.error('Admin get orders error:', error);
       res.status(500).json(createResponse(false, 'Failed to retrieve orders'));
     }
   }
@@ -446,14 +412,10 @@ class AdminController {
         { order }
       ));
     } catch (error) {
-      console.error('❌ Admin get order error:', error);
+      console.error('Admin get order error:', error);
       res.status(500).json(createResponse(false, 'Failed to retrieve order'));
     }
   }
-
-  // ===============================
-  // SETTINGS & LOGS
-  // ===============================
 
   static async getSettings(req, res) {
     try {
@@ -476,7 +438,7 @@ class AdminController {
         { settings: result.rows }
         ));
     } catch (error) {
-        console.error('❌ Get settings error:', error);
+        console.error('Get settings error:', error);
         res.status(500).json(createResponse(false, 'Failed to retrieve settings'));
     }
   }
@@ -516,7 +478,7 @@ class AdminController {
         { setting: result.rows[0] }
       ));
     } catch (error) {
-      console.error('❌ Update setting error:', error);
+      console.error('Update setting error:', error);
       res.status(500).json(createResponse(false, 'Failed to update setting'));
     }
   }
@@ -576,7 +538,7 @@ class AdminController {
       }
       
     } catch (error) {
-      console.error('❌ Bulk update settings error:', error);
+      console.error('Bulk update settings error:', error);
       res.status(500).json(createResponse(false, 'Failed to update settings'));
     }
   }
@@ -632,7 +594,7 @@ class AdminController {
         }
       ));
     } catch (error) {
-      console.error('❌ Get pending refunds error:', error);
+      console.error('Get pending refunds error:', error);
       res.status(500).json(createResponse(false, 'Failed to retrieve refunds'));
     }
   }
@@ -642,10 +604,8 @@ class AdminController {
       const { refundId } = req.params;
       const adminId = req.user.id;
 
-      // Use RefundModel.approve with full transaction handling
       const refundData = await RefundModel.approve(refundId, adminId, null);
 
-      // Send approval email
       try {
         await emailService.sendRefundApprovalEmail({
           email: refundData.user_email,
@@ -664,7 +624,7 @@ class AdminController {
         { refund_id: refundId }
       ));
     } catch (error) {
-      console.error('❌ Approve refund error:', error);
+      console.error('Approve refund error:', error);
       
       let statusCode = 500;
       let message = 'Failed to approve refund';
@@ -684,10 +644,8 @@ class AdminController {
       const { reason } = req.body;
       const adminId = req.user.id;
 
-      // Use RefundModel.reject with full transaction handling
       const refundData = await RefundModel.reject(refundId, adminId, reason);
 
-      // Send rejection email
       try {
         await emailService.sendRefundRejectionEmail({
           email: refundData.user_email,
@@ -707,7 +665,7 @@ class AdminController {
         { refund_id: refundId }
       ));
     } catch (error) {
-      console.error('❌ Reject refund error:', error);
+      console.error('Reject refund error:', error);
       
       let statusCode = 500;
       let message = 'Failed to reject refund';
@@ -796,7 +754,7 @@ class AdminController {
         }
       ));
     } catch (error) {
-      console.error('❌ Get activity logs error:', error);
+      console.error('Get activity logs error:', error);
       res.status(500).json(createResponse(false, 'Failed to retrieve logs'));
     }
   }
@@ -822,26 +780,7 @@ class AdminController {
       if (start_date) filters.start_date = start_date;
       if (end_date) filters.end_date = end_date;
       
-      // const query = `
-      //   SELECT 
-      //     al.*,
-      //     u.first_name || ' ' || u.last_name as admin_name,
-      //     u.email as admin_email
-      //   FROM admin_audit_logs al
-      //   LEFT JOIN users u ON al.admin_id = u.id
-      //   ORDER BY al.created_at DESC
-      //   LIMIT $1 OFFSET $2
-      // `;
       const result = await AuditLogModel.findAll(filters, parseInt(limit), offset);
-      
-      // const countQuery = `SELECT COUNT(*) as total FROM admin_audit_logs`;
-      
-      // const [logsResult, countResult] = await Promise.all([
-      //   pool.query(query, [parseInt(limit), offset]),
-      //   pool.query(countQuery)
-      // ]);
-      
-      // const totalCount = parseInt(countResult.rows[0].total);
       
       res.json(createResponse(
         true,
@@ -857,15 +796,11 @@ class AdminController {
         }
       ));
     } catch (error) {
-      console.error('❌ Get audit logs error:', error);
+      console.error('Get audit logs error:', error);
       res.status(500).json(createResponse(false, 'Failed to retrieve logs'));
     }
   }
 
-  /**
-   * Get audit logs for a specific target
-   * GET /api/admin/audit-logs/:targetType/:targetId
-   */
   static async getAuditLogsByTarget(req, res) {
     try {
       const { targetType, targetId } = req.params;
@@ -878,15 +813,11 @@ class AdminController {
         { logs, count: logs.length }
       ));
     } catch (error) {
-      console.error('❌ Get audit logs by target error:', error);
+      console.error('Get audit logs by target error:', error);
       res.status(500).json(createResponse(false, 'Failed to retrieve logs'));
     }
   }
 
-  /**
-   * Export audit logs to CSV
-   * GET /api/admin/audit-logs/export
-   */
   static async exportAuditLogs(req, res) {
     try {
       const { start_date, end_date, action, admin_id } = req.query;
@@ -897,7 +828,6 @@ class AdminController {
       let params = [];
       let paramIndex = 1;
       
-      // Chỉ add filter khi có giá trị
       if (admin_id && admin_id.trim()) {
         whereConditions.push(`al.admin_id = $${paramIndex}`);
         params.push(admin_id);
@@ -946,13 +876,12 @@ class AdminController {
       
       const result = await pool.query(query, params);
       
-      console.log(`✅ Found ${result.rows.length} logs to export`);
+      // console.log(`Found ${result.rows.length} logs to export`);
       
       if (result.rows.length === 0) {
         return res.status(404).json(createResponse(false, 'No audit logs found'));
       }
-      
-      // Create CSV with proper escaping
+
       const headers = ['Timestamp', 'Admin ID', 'Admin Name', 'Admin Email', 'Action', 'Target Type', 'Target ID', 'Description', 'IP Address'];
       const csvRows = [headers.join(',')];
 
@@ -973,44 +902,37 @@ class AdminController {
       
       const csv = csvRows.join('\n');
       
-      // ✅ SỬA: Đặt headers ĐÚNG THỨ TỰ và tránh cache
-      res.status(200); // Force 200 status
+      res.status(200); 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="audit-logs-${new Date().toISOString().split('T')[0]}.csv"`);
       res.setHeader('Content-Length', Buffer.byteLength(csv, 'utf8'));
       
-      // ✅ QUAN TRỌNG: Tắt cache hoàn toàn
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
-      res.setHeader('ETag', ''); // Remove ETag
-      res.setHeader('Last-Modified', new Date().toUTCString()); // Always new
+      res.setHeader('ETag', ''); 
+      res.setHeader('Last-Modified', new Date().toUTCString()); 
       
       res.send(csv);
       
-      console.log('✅ CSV exported successfully:', csv.length, 'bytes');
+      console.log('CSV exported successfully:', csv.length, 'bytes');
       
     } catch (error) {
-      console.error('❌ Export audit logs error:', error);
+      console.error('Export audit logs error:', error);
       res.status(500).json(createResponse(false, 'Failed to export audit logs'));
     }
   }
 
-  /**
-   * Export activity logs to CSV
-   * GET /api/admin/activity-logs/export
-   */
   static async exportActivityLogs(req, res) {
     try {
       const { start_date, end_date, action, user_id } = req.query;
       
-      console.log('📊 Export activity logs request:', { start_date, end_date, action, user_id });
+      // console.log('Export activity logs request:', { start_date, end_date, action, user_id });
       
       let whereConditions = [];
       let params = [];
       let paramIndex = 1;
-      
-      // Filters
+   
       if (user_id && user_id.trim()) {
         whereConditions.push(`al.user_id = $${paramIndex}`);
         params.push(user_id);
@@ -1060,7 +982,7 @@ class AdminController {
       
       const result = await pool.query(query, params);
       
-      console.log(`✅ Found ${result.rows.length} activity logs to export`);
+      // console.log(`Found ${result.rows.length} activity logs to export`);
       
       if (result.rows.length === 0) {
         return res.status(404).json(createResponse(false, 'No activity logs found'));
@@ -1087,8 +1009,7 @@ class AdminController {
       });
       
       const csv = csvRows.join('\n');
-      
-      // Set headers
+
       res.status(200);
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="activity-logs-eternity-${new Date().toISOString().split('T')[0]}.csv"`);
@@ -1099,27 +1020,21 @@ class AdminController {
       
       res.send(csv);
       
-      console.log('✅ Activity logs CSV exported successfully:', csv.length, 'bytes');
+      // console.log('Activity logs CSV exported successfully:', csv.length, 'bytes');
       
     } catch (error) {
-      console.error('❌ Export activity logs error:', error);
+      console.error('Export activity logs error:', error);
       res.status(500).json(createResponse(false, 'Failed to export activity logs'));
     }
   }
 
-  /**
-   * Create sub-admin account
-   * POST /api/admin/sub-admins
-   * @access Private (Admin only - NOT sub_admin)
-   */
   static async createSubAdmin(req, res) {
     try {
       const { email, password, first_name, last_name, phone } = req.body;
       const createdBy = req.user.id;
 
-      console.log(`👤 Admin ${createdBy} creating sub-admin: ${email}`);
+      // console.log(`Admin ${createdBy} creating sub-admin: ${email}`);
 
-      // Check if email exists
       const existingUser = await UserModel.findByEmail(email);
       if (existingUser) {
         return res.status(409).json(
@@ -1127,7 +1042,6 @@ class AdminController {
         );
       }
 
-      // Create sub-admin user
       const result = await UserModel.create({
         email,
         password,
@@ -1135,10 +1049,9 @@ class AdminController {
         first_name,
         last_name,
         phone,
-        is_email_verified: true  // Auto-verify for admin-created accounts
+        is_email_verified: true 
       });
 
-      // Log activity
       try {
         await pool.query(`
           INSERT INTO admin_audit_logs 
@@ -1160,11 +1073,9 @@ class AdminController {
         ]);
       } catch (auditError) {
         console.error('⚠️ Failed to create audit log (non-critical):', auditError.message);
-        // Don't fail the request
       }
 
       try {
-        // Send welcome email
         const emailService = require('../services/emailService');
         await emailService.sendAdminAccountCreated({
           email,
@@ -1174,8 +1085,7 @@ class AdminController {
           temporary_password: password
         });
       } catch (emailError) {
-        console.error('⚠️ Failed to send welcome email (non-critical):', emailError.message);
-        // Don't fail the request
+        console.error('Failed to send welcome email (non-critical):', emailError.message);
       }
 
       res.status(201).json(createResponse(
@@ -1195,7 +1105,7 @@ class AdminController {
       ));
 
     } catch (error) {
-      console.error('❌ Create sub-admin error:', error);
+      console.error('Create sub-admin error:', error);
       
       let statusCode = 500;
       let message = 'Failed to create sub-admin account';
@@ -1209,11 +1119,6 @@ class AdminController {
     }
   }
 
-  /**
-   * Get all sub-admins
-   * GET /api/admin/sub-admins
-   * @access Private (Admin only)
-   */
   static async getSubAdmins(req, res) {
     try {
       const { page = 1, limit = 20, is_active } = req.query;
@@ -1276,7 +1181,7 @@ class AdminController {
         }
       ));
     } catch (error) {
-      console.error('❌ Get sub-admins error:', error);
+      console.error('Get sub-admins error:', error);
       res.status(500).json(createResponse(false, 'Failed to retrieve sub-admins'));
     }
   }
@@ -1285,7 +1190,6 @@ class AdminController {
     try {
       const { userId } = req.params;
 
-      // Verify is sub_admin
       const user = await pool.query(
         'SELECT role FROM users WHERE id = $1', 
         [userId]
@@ -1304,7 +1208,7 @@ class AdminController {
       res.json(createResponse(true, 'Sub-admin account deactivated'));
 
     } catch (error) {
-      console.error('❌ Deactivate sub-admin error:', error);
+      console.error('Deactivate sub-admin error:', error);
       res.status(500).json(createResponse(false, 'Failed to deactivate'));
     }
   }
@@ -1335,7 +1239,7 @@ class AdminController {
       ));
       
     } catch (error) {
-      console.error('❌ Cancel event error:', error);
+      console.error('Cancel event error:', error);
       res.status(500).json(createResponse(false, error.message));
     }
   }

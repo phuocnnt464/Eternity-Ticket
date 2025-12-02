@@ -1,14 +1,8 @@
-// src/controllers/sessionTicketController.js
 const SessionTicketModel = require('../models/sessionTicketModel');
 const { createResponse } = require('../utils/helpers');
  const pool = require('../config/database');
 
 class SessionTicketController {
-  /**
-   * Create event session
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async createSession(req, res) {
     try {
       const { eventId } = req.params;
@@ -17,7 +11,7 @@ class SessionTicketController {
         created_by: req.user.id
       };
 
-      console.log(`🎪 Creating session for event: ${eventId}`);
+      // console.log(`Creating session for event: ${eventId}`);
 
       const session = await SessionTicketModel.createSession(eventId, sessionData);
 
@@ -30,7 +24,7 @@ class SessionTicketController {
       res.status(201).json(response);
 
     } catch (error) {
-      console.error('❌ Create session error:', error.message);
+      console.error('Create session error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to create session';
@@ -48,16 +42,11 @@ class SessionTicketController {
     }
   }
 
-  /**
-   * Get event sessions
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async getEventSessions(req, res) {
     try {
       const { eventId } = req.params;
 
-      console.log(`📅 Getting sessions for event: ${eventId}`);
+      // console.log(`Getting sessions for event: ${eventId}`);
 
       const sessions = await SessionTicketModel.getEventSessions(eventId);
 
@@ -70,7 +59,7 @@ class SessionTicketController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Get sessions error:', error.message);
+      console.error('Get sessions error:', error.message);
       
       const response = createResponse(
         false,
@@ -81,18 +70,13 @@ class SessionTicketController {
     }
   }
 
-  /**
-   * Update session
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async updateSession(req, res) {
     try {
       const { sessionId } = req.params;
       const updateData = req.body;
       const userId = req.user.id;
 
-      console.log(`📝 Updating session: ${sessionId}`);
+      // console.log(`Updating session: ${sessionId}`);
 
       const session = await SessionTicketModel.updateSession(sessionId, updateData, userId);
 
@@ -105,7 +89,7 @@ class SessionTicketController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Update session error:', error.message);
+      console.error('Update session error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to update session';
@@ -123,17 +107,12 @@ class SessionTicketController {
     }
   }
 
-  /**
-   * Delete session
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async deleteSession(req, res) {
     try {
       const { sessionId } = req.params;
       const userId = req.user.id;
 
-      console.log(`🗑️ Deleting session: ${sessionId}`);
+      // console.log(`Deleting session: ${sessionId}`);
 
       await SessionTicketModel.deleteSession(sessionId, userId);
 
@@ -145,7 +124,7 @@ class SessionTicketController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Delete session error:', error.message);
+      console.error('Delete session error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to delete session';
@@ -163,17 +142,12 @@ class SessionTicketController {
     }
   }
 
-  /**
-   * Create ticket type
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async createTicketType(req, res) {
     try {
       const { sessionId } = req.params;
       const ticketData = req.body;
 
-      console.log(`🎫 Creating ticket type for session: ${sessionId}`);
+      // console.log(`Creating ticket type for session: ${sessionId}`);
 
       const ticketType = await SessionTicketModel.createTicketType(sessionId, ticketData);
 
@@ -186,7 +160,7 @@ class SessionTicketController {
       res.status(201).json(response);
 
     } catch (error) {
-      console.error('❌ Create ticket type error:', error.message);
+      console.error('Create ticket type error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to create ticket type';
@@ -210,16 +184,11 @@ class SessionTicketController {
     }
   }
 
-  /**
-   * Get session ticket types
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async getSessionTicketTypes(req, res) {
     try {
       const { sessionId } = req.params;
 
-      console.log(`🎫 Getting ticket types for session: ${sessionId}`);
+      // console.log(`Getting ticket types for session: ${sessionId}`);
 
       const ticketTypes = await SessionTicketModel.getSessionTicketTypes(sessionId);
 
@@ -232,7 +201,7 @@ class SessionTicketController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Get ticket types error:', error.message);
+      console.error('Get ticket types error:', error.message);
       
       const response = createResponse(
         false,
@@ -243,18 +212,13 @@ class SessionTicketController {
     }
   }
 
-  /**
-   * Update ticket type
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async updateTicketType(req, res) {
     try {
       const { ticketTypeId } = req.params;
       const updateData = req.body;
       const userId = req.user.id;
 
-      console.log(`📝 Updating ticket type: ${ticketTypeId}`);
+      // console.log(`Updating ticket type: ${ticketTypeId}`);
 
       const ticketType = await SessionTicketModel.updateTicketType(ticketTypeId, updateData, userId);
 
@@ -267,7 +231,7 @@ class SessionTicketController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Update ticket type error:', error.message);
+      console.error('Update ticket type error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to update ticket type';
@@ -285,17 +249,12 @@ class SessionTicketController {
     }
   }
 
-  /**
-   * Delete ticket type
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async deleteTicketType(req, res) {
     try {
       const { ticketTypeId } = req.params;
       const userId = req.user.id;
 
-      console.log(`🗑️ Deleting ticket type: ${ticketTypeId}`);
+      // console.log(`Deleting ticket type: ${ticketTypeId}`);
 
       await SessionTicketModel.deleteTicketType(ticketTypeId, userId);
 
@@ -307,7 +266,7 @@ class SessionTicketController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Delete ticket type error:', error.message);
+      console.error('Delete ticket type error:', error.message);
 
       let statusCode = 500;
       let message = 'Failed to delete ticket type';
@@ -325,11 +284,6 @@ class SessionTicketController {
     }
   }
 
-  /**
-   * Get ticket type by ID
-   * @param {String} ticketTypeId - Ticket type ID
-   * @returns {Object} Ticket type
-   */
   static async getTicketTypeById(ticketTypeId) {
     const query = `
       SELECT 
@@ -352,18 +306,12 @@ class SessionTicketController {
     return result.rows[0] || null;
   } 
 
-  /**
-   * Get event with sessions and ticket types (for purchase)
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async getEventWithTickets(req, res) {
     try {
       const { eventId } = req.params;
 
-      console.log(`🎪 Getting event with ticket info: ${eventId}`);
+      // console.log(`Getting event with ticket info: ${eventId}`);
 
-      // Get event basic info
       const EventModel = require('../models/eventModel');
       const event = await EventModel.findById(eventId, req.user?.id);
 
@@ -373,10 +321,8 @@ class SessionTicketController {
         );
       }
 
-      // Get sessions with ticket types
       const sessions = await SessionTicketModel.getEventSessions(eventId);
       
-      // Get ticket types for each session
       for (let session of sessions) {
         session.ticketTypes = await SessionTicketModel.getSessionTicketTypes(session.id);
       }
@@ -393,7 +339,7 @@ class SessionTicketController {
       res.json(response);
 
     } catch (error) {
-      console.error('❌ Get event with tickets error:', error.message);
+      console.error('Get event with tickets error:', error.message);
       
       const response = createResponse(
         false,

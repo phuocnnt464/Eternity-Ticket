@@ -1,19 +1,13 @@
-// src/controllers/checkinController.js
 const CheckinModel = require('../models/checkinModel');
 const { createResponse } = require('../utils/helpers');
 
 class CheckinController {
-  /**
-   * Verify ticket (before check-in)
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async verifyTicket(req, res) {
     try {
       const { ticketCode } = req.params;
       const { eventId } = req.query;
 
-      console.log(`Verifying ticket: ${ticketCode}`);
+      // console.log(`Verifying ticket: ${ticketCode}`);
 
       const ticket = await CheckinModel.verifyTicket(ticketCode, eventId);
 
@@ -23,7 +17,6 @@ class CheckinController {
         );
       }
 
-      // Check ticket validity
       let validationIssues = [];
 
       if (ticket.order_status !== 'paid') {
@@ -79,18 +72,13 @@ class CheckinController {
     }
   }
 
-  /**
-   * Check-in ticket
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async checkinTicket(req, res) {
     try {
       const { ticketCode } = req.params;
       const checkedInBy = req.user.id;
       const { location } = req.body || {};
 
-      console.log(`Checking in ticket: ${ticketCode} by user: ${checkedInBy}`);
+      // console.log(`Checking in ticket: ${ticketCode} by user: ${checkedInBy}`);
 
       const result = await CheckinModel.checkinTicket(ticketCode, checkedInBy, location);
 
@@ -149,11 +137,6 @@ class CheckinController {
     }
   }
 
-  /**
-   * Get check-in statistics
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async getCheckinStats(req, res) {
     try {
       const { eventId } = req.params;
@@ -183,17 +166,12 @@ class CheckinController {
     }
   }
 
-  /**
-   * Get recent check-ins
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async getRecentCheckins(req, res) {
     try {
       const { eventId } = req.params;
       const { limit = 50 } = req.query;
 
-      console.log(`Getting recent check-ins for event: ${eventId}`);
+      // console.log(`Getting recent check-ins for event: ${eventId}`);
 
       const checkins = await CheckinModel.getRecentCheckins(eventId, parseInt(limit));
 
@@ -217,11 +195,6 @@ class CheckinController {
     }
   }
 
-  /**
-   * Search tickets
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async searchTickets(req, res) {
     try {
       const { eventId } = req.params;
@@ -233,7 +206,7 @@ class CheckinController {
         );
       }
 
-      console.log(`Searching tickets for event: ${eventId}, term: ${searchTerm}`);
+      // console.log(`Searching tickets for event: ${eventId}, term: ${searchTerm}`);
 
       const tickets = await CheckinModel.searchTickets(eventId, searchTerm.trim());
 
@@ -257,17 +230,12 @@ class CheckinController {
     }
   }
 
-  /**
-   * Undo check-in
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   static async undoCheckin(req, res) {
     try {
       const { ticketCode } = req.params;
       const undoneBy = req.user.id;
 
-      console.log(`Undoing check-in for ticket: ${ticketCode}`);
+      // console.log(`Undoing check-in for ticket: ${ticketCode}`);
 
       await CheckinModel.undoCheckin(ticketCode, undoneBy);
 

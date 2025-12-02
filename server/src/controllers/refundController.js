@@ -8,7 +8,6 @@ class RefundController {
       const userId = req.user.id;
       const { orderId, reason, description } = req.body;
 
-      // Verify order belongs to user
       const order = await OrderModel.findById(orderId);
       if (!order || order.user_id !== userId) {
         return res.status(404).json({
@@ -41,7 +40,6 @@ class RefundController {
 
       const refund = await RefundModel.create(refundData);
 
-      // Send notification email
       await EmailService.sendRefundRequestConfirmation(order.customer_info.email, {
         orderNumber: order.order_number,
         refundAmount: order.total_amount
@@ -70,21 +68,11 @@ class RefundController {
       const filters = {};
       if (status) filters.status = status;
       
-      // If not admin, only show user's own requests
       if (req.user.role !== 'admin' && req.user.role !== 'sub_admin') {
         filters.user_id = req.user.id;
       }
 
       const result = await RefundModel.findAll(filters, parseInt(limit), offset);
-
-      // res.json({
-      //   success: true,
-      //   data: refunds,
-      //   pagination: {
-      //     page: parseInt(page),
-      //     limit: parseInt(limit)
-      //   }
-      // });
 
       res.json({
         success: true,
@@ -148,7 +136,6 @@ class RefundController {
         });
         }
 
-        // Check authorization
         if (req.user.role !== 'admin' && req.user.role !== 'sub_admin' && refund.user_id !== req.user.id) {
         return res.status(403).json({
             success: false,
@@ -176,10 +163,8 @@ class RefundController {
       const { reviewNotes } = req.body;
       const adminId = req.user.id;
 
-      // Use RefundModel.approve with full transaction handling
       const refundData = await RefundModel.approve(id, adminId, reviewNotes);
 
-      // Send approval email
       try {
         const emailService = require('../services/emailService');
         await emailService.sendRefundApprovalEmail({
@@ -192,7 +177,6 @@ class RefundController {
         });
       } catch (emailError) {
         console.error('Failed to send approval email:', emailError);
-        // Don't fail the request on email error
       }
 
       res.json({
@@ -204,7 +188,7 @@ class RefundController {
         }
       });
     } catch (error) {
-      console.error('❌ Approve refund error:', error);
+      console.error('Approve refund error:', error);
       
       let statusCode = 500;
       let message = 'Failed to approve refund request';
@@ -255,7 +239,7 @@ class RefundController {
         }
       });
     } catch (error) {
-      console.error('❌ Reject refund error:', error);
+      console.error('Reject refund error:', error);
       
       let statusCode = 500;
       let message = 'Failed to reject refund request';
@@ -285,10 +269,8 @@ class RefundController {
       const { transactionId } = req.body;
       const adminId = req.user.id;
 
-      // Start transaction
       await client.query('BEGIN');
 
-      // 1. Get refund details
       const refund = await RefundModel.findById(id);
       
       if (!refund) {
@@ -307,7 +289,6 @@ class RefundController {
         });
       }
 
-      // 2. Update refund to completed
       await client.query(`
         UPDATE refund_requests 
         SET status = 'completed',
@@ -319,7 +300,6 @@ class RefundController {
         WHERE id = $3
       `, [adminId, transactionId, id]);
 
-      // 3. Update order status to refunded
       await client.query(`
         UPDATE orders 
         SET status = 'refunded',
@@ -327,7 +307,6 @@ class RefundController {
         WHERE id = $1
       `, [refund.order_id]);
 
-      // 4. Update tickets to refunded
       await client.query(`
         UPDATE tickets 
         SET status = 'refunded',
@@ -336,7 +315,6 @@ class RefundController {
         WHERE order_id = $1
       `, [refund.order_id]);
 
-      // 5. Restore ticket quantities
       await client.query(`
         UPDATE ticket_types tt
         SET sold_quantity = sold_quantity - oi.quantity,
@@ -346,7 +324,6 @@ class RefundController {
           AND oi.order_id = $1
       `, [refund.order_id]);
 
-      // 6. Create notification
       await client.query(`
         INSERT INTO notifications (user_id, type, title, content, data)
         VALUES ($1, 'refund_completed', 'Refund Completed', $2, $3)
@@ -362,7 +339,6 @@ class RefundController {
 
       await client.query('COMMIT');
 
-      // 7. Send email (outside transaction)
       try {
         const emailService = require('../services/emailService');
         await emailService.sendRefundCompletedEmail({
@@ -374,7 +350,6 @@ class RefundController {
         });
       } catch (emailError) {
         console.error('Failed to send refund completed email:', emailError);
-        // Don't rollback transaction on email error
       }
 
       res.json({
