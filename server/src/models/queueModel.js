@@ -550,6 +550,7 @@ class QueueModel {
       const expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
 
       const data = JSON.stringify({
+        status: 'active',
         activated_at: new Date().toISOString(),
         expires_at: expiresAt.toISOString()
       });
