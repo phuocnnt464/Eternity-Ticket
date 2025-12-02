@@ -11,7 +11,6 @@ export const queueAPI = {
     return api.get(`/queue/status/${sessionId}`, {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache'
       }
     })
   },
@@ -30,8 +29,7 @@ export const queueAPI = {
   getStatistics: (sessionId) => {
     return api.get(`/queue/statistics/${sessionId}`, {
       headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache'
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
       }
     })
   }
