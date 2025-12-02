@@ -198,7 +198,7 @@ const pollStatus = async () => {
         expires_at: data.expires_at,
         can_purchase: data.can_purchase
       })
-      
+
       if (data.expires_at) {
         queueStore.expiresAt = data.expires_at
       }
@@ -259,6 +259,11 @@ onMounted(async () => {
     console.log('🔍 WaitingRoom mounted, status:', data)
     // Update store với data từ API
     // queueStore.joinQueue(data)
+
+     if (data.expires_at) {
+      queueStore.expiresAt = data.expires_at
+      console.log('✅ Set expires_at from server:', data.expires_at)
+    }
 
     if (data.status) {
       queueStore.updateStatus(data.status)
