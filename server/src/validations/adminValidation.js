@@ -46,9 +46,7 @@ const createSubAdminSchema = Joi.object({
     })
 });
 
-/**
- * Update user role validation
- */
+
 const updateUserRoleSchema = Joi.object({
   role: Joi.string()
     .valid('participant', 'organizer', 'admin', 'sub_admin')
@@ -59,9 +57,6 @@ const updateUserRoleSchema = Joi.object({
     })
 });
 
-/**
- * Reject refund validation
- */
 const rejectRefundSchema = Joi.object({
   reason: Joi.string()
     .min(10)
@@ -76,9 +71,6 @@ const rejectRefundSchema = Joi.object({
     })
 });
 
-/**
- * Update system setting validation
- */
 const updateSettingSchema = Joi.object({
   value: Joi.alternatives()
     .try(
@@ -92,9 +84,6 @@ const updateSettingSchema = Joi.object({
     })
 });
 
-/**
- * Search users validation
- */
 const searchUsersSchema = Joi.object({
   q: Joi.string()
     .min(2)

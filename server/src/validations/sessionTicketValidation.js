@@ -1,7 +1,5 @@
-// src/validations/sessionTicketValidation.js
 const Joi = require('joi');
 
-// Create session validation schema
 const createSessionSchema = Joi.object({
   title: Joi.string()
     .min(2)
@@ -73,7 +71,6 @@ const createSessionSchema = Joi.object({
     })
 });
 
-// Update session validation schema
 const updateSessionSchema = Joi.object({
   title: Joi.string()
     .min(2)
@@ -138,7 +135,6 @@ const updateSessionSchema = Joi.object({
   'object.min': 'At least one field is required for update'
 });
 
-// Create ticket type validation schema
 const createTicketTypeSchema = Joi.object({
   name: Joi.string()
     .min(2)
@@ -241,7 +237,6 @@ const createTicketTypeSchema = Joi.object({
     })
 });
 
-// Update ticket type validation schema
 const updateTicketTypeSchema = Joi.object({
   name: Joi.string()
     .min(2)
@@ -332,7 +327,6 @@ const updateTicketTypeSchema = Joi.object({
   'object.min': 'At least one field is required for update'
 });
 
-// UUID parameter validation
 const uuidParamSchema = Joi.object({
   eventId: Joi.string()
     .uuid()

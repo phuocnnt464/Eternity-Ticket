@@ -1,7 +1,5 @@
-// src/validations/orderValidation.js
 const Joi = require('joi');
 
-// Create order validation schema
 const createOrderSchema = Joi.object({
   event_id: Joi.string()
     .uuid()
@@ -121,7 +119,6 @@ const createOrderSchema = Joi.object({
     })
 });
 
-// Process payment validation schema
 const processPaymentSchema = Joi.object({
   payment_method: Joi.string()
     .valid('vnpay', 'momo', 'banking', 'cash')
@@ -130,14 +127,7 @@ const processPaymentSchema = Joi.object({
       'any.only': 'Payment method must be one of: vnpay, momo, banking, cash',
       'any.required': 'Payment method is required'
     }),
-
-  // payment_data: Joi.object()
-  //   .optional()
-  //   .messages({
-  //     'object.base': 'Payment data must be an object'
-  //   })
-
-  
+ 
   payment_data: Joi.object({
     // Validate dựa trên payment_method
     card_number: Joi.when('..payment_method', {
@@ -166,7 +156,6 @@ const processPaymentSchema = Joi.object({
   .optional()
 });
 
-// Order query validation (for listing orders)
 const orderQuerySchema = Joi.object({
   page: Joi.number()
     .integer()
@@ -210,7 +199,6 @@ const orderQuerySchema = Joi.object({
     })
 });
 
-// UUID parameter validation
 const orderParamSchema = Joi.object({
   orderId: Joi.string()
     .uuid()

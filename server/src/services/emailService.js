@@ -1,23 +1,12 @@
-// server/src/services/emailService.js
 const nodemailer = require('nodemailer');
 const pool = require('../config/database');
 
 class EmailService {
   constructor() {
-    // ✅ Validate email configuration
+
     this.isConfigured = false;
     
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.error('WARNING: EMAIL SERVICE NOT CONFIGURED');
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.error('EMAIL_USER or EMAIL_PASSWORD not set in .env');
-      console.error('Email functionality will be DISABLED');
-      console.error('Please configure email settings to enable:');
-      console.error('   - Email verification');
-      console.error('   - Password reset');
-      console.error('   - Order confirmations');
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       this.transporter = null;
       return;
     }
@@ -26,7 +15,7 @@ class EmailService {
       this.transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.EMAIL_PORT) || 587,
-        secure: false, // true for 465, false for other ports
+        secure: false, 
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD
@@ -62,12 +51,6 @@ class EmailService {
     }
   }
 
-  /**
-   * Replace template variables
-   * @param {String} template - Template string
-   * @param {Object} variables - Variables to replace
-   * @returns {String} Processed template
-   */
   replaceVariables(template, variables) {
     let result = template;
     Object.keys(variables).forEach(key => {
@@ -77,18 +60,8 @@ class EmailService {
     return result;
   }
 
-  /**
-   * Send email
-   * @param {Object} options - Email options
-   * @returns {Boolean} Success status
-   */
   async sendEmail(options) {
     if (!this.isConfigured || !this.transporter) {
-      console.warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.warn('Email service not configured');
-      console.warn('Skipping email to:', options.to);
-      console.warn('Subject:', options.subject);
-      console.warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       return false;
     }
     
@@ -97,7 +70,6 @@ class EmailService {
 
       const mailOptions = {
         from: `"${process.env.EMAIL_FROM_NAME || 'Eternity Ticket'}" <${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER}>`,
-         // Reply-To để user reply đến email khác
         replyTo: process.env.SUPPORT_EMAIL || process.env.EMAIL_USER,
         to,
         subject,
@@ -107,9 +79,6 @@ class EmailService {
       };
 
       const info = await this.transporter.sendMail(mailOptions);
-      console.log(`✅ Email sent: ${info.messageId} to ${to}`);
-      console.log(`   From: ${mailOptions.from}`);
-      console.log(`   Reply-To: ${mailOptions.replyTo}`);
       return true;
     } catch (error) {
       console.error('Send email error:', error);
@@ -117,12 +86,6 @@ class EmailService {
     }
   }
 
-  /**
-   * Send verification email
-   * @param {String} email - User email
-   * @param {String} token - Verification token
-   * @param {String} userName - User name
-   */
   async sendVerificationEmail(email, token, userName) {
     const template = await this.getTemplate('email_verification');
     
@@ -200,12 +163,6 @@ class EmailService {
     });
   }
 
-  /**
-   * Send password reset email
-   * @param {String} email - User email
-   * @param {String} token - Reset token
-   * @param {String} userName - User name
-   */
   async sendPasswordResetEmail(email, token, userName) {
     const template = await this.getTemplate('password_reset');
     
@@ -283,10 +240,6 @@ class EmailService {
     });
   }
 
-  /**
-   * Send order confirmation email with tickets
-   * @param {Object} orderData - Order data
-   */
   async sendOrderConfirmationEmail(orderData) {
     const template = await this.getTemplate('order_confirmation');
     
@@ -308,7 +261,6 @@ class EmailService {
       current_year: new Date().getFullYear()
     };
 
-    // Build tickets HTML
     let ticketsHTML = tickets.map(ticket => `
       <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd;">
         <strong>${ticket.ticket_type_name}</strong><br>
@@ -337,10 +289,6 @@ class EmailService {
     });
   }
 
-  /**
-   * Send event approval email
-   * @param {Object} eventData - Event data
-   */
   async sendEventApproved(eventData) {
     const { organizer_email, organizer_name, event_title, event_id } = eventData;
 
@@ -405,10 +353,6 @@ class EmailService {
     });
   }
 
-  /**
-   * Send event rejection email
-   * @param {Object} eventData - Event data with rejection reason
-   */
   async sendEventRejected(eventData) {
     const { organizer_email, organizer_name, event_title, rejection_reason } = eventData;
     
@@ -428,10 +372,6 @@ class EmailService {
     });
   }
 
-  /**
-   * Send refund approval email
-   * @param {Object} refundData - Refund data
-   */
   async sendRefundApprovalEmail(refundData) {
     const { user_email, first_name, event_title, refund_amount, order_number } = refundData;
     
@@ -451,11 +391,6 @@ class EmailService {
     });
   }
 
-  /**
-   * Send refund rejection email
-   * @param {Object} refundData - Refund data
-   * @param {String} reason - Rejection reason
-   */
   async sendRefundRejectionEmail(refundData, reason) {
     const { user_email, first_name, event_title, order_number } = refundData;
     
@@ -476,7 +411,6 @@ class EmailService {
     });
   }
 
-  // server/src/services/emailService.js
   async sendRefundCompletedEmail(data) {
     const subject = '✅ Refund Completed';
     
@@ -501,9 +435,6 @@ class EmailService {
     return this.sendEmail(data.email, subject, html);
   }
 
-  /**
-   * Send membership activation email
-   */
   async sendMembershipActivationEmail(user, membership) {
     const subject = `🎉 Welcome to ${membership.tier.toUpperCase()} Membership!`;
     
@@ -549,9 +480,6 @@ class EmailService {
     });
   }
 
-  /**
-   * Send membership expiry reminder
-   */
   async sendMembershipExpiryReminder(user, membership, daysLeft) {
     const subject = `⏰ Your ${membership.tier.toUpperCase()} Membership Expires in ${daysLeft} Days`;
     
@@ -584,9 +512,6 @@ class EmailService {
     });
   }
   
-  /**
-   * Send event team invitation
-   */
   async sendEventInvitation(data) {
     const { email, event_title, inviter_name, role, invitation_token } = data;
     
@@ -655,9 +580,7 @@ class EmailService {
       html
     });
   }
-  /**
-   * Send admin/sub-admin account created email
-   */
+
   async sendAdminAccountCreated(data) {
     const { email, first_name, last_name, role, temporary_password } = data;
     
@@ -750,5 +673,4 @@ class EmailService {
   }
 }
 
-// Export singleton instance
 module.exports = new EmailService();

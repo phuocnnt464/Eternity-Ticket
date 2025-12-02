@@ -1,4 +1,3 @@
-// src/app.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -13,12 +12,8 @@ const OrderCron = require('./utils/orderCron');
 
 const app = express();
 
-// Trust proxy for rate limiting behind reverse proxy
 app.set('trust proxy', 1);
 
-// =============================================
-// SECURITY MIDDLEWARE
-// =============================================
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -37,9 +32,7 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// =============================================
-// CORS CONFIGURATION
-// =============================================
+
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
   .split(',')
   .map(origin => origin.trim());
@@ -60,23 +53,14 @@ app.use(cors({
   exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Per-Page']
 }));
 
-// =============================================
-// COMPRESSION
-// =============================================
 app.use(compression());
 
-// =============================================
-// LOGGING
-// =============================================
 if (process.env.NODE_ENV === 'production') {
   app.use(morgan('combined'));
 } else {
   app.use(morgan('dev'));
 }
 
-// =============================================
-// BODY PARSING MIDDLEWARE (PHẢI ĐẶT TRƯỚC LOGGING)
-// =============================================
 app.use(express.json({ 
   limit: process.env.MAX_JSON_SIZE || '10mb',
   type: 'application/json'
@@ -87,15 +71,11 @@ app.use(express.urlencoded({
   limit: process.env.MAX_JSON_SIZE || '10mb' 
 }));
 
-// =============================================
-// REQUEST LOGGING MIDDLEWARE (SAU BODY PARSING)
-// =============================================
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] ${req.method} ${req.path}`);
     
-    // Bây giờ req.body đã được parse rồi
     if (req.body && Object.keys(req.body).length > 0) {
       console.log('Body:', JSON.stringify(req.body, null, 2));
     }
@@ -104,9 +84,6 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-// =============================================
-// RATE LIMITING
-// =============================================
 const apiLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000,
@@ -144,25 +121,20 @@ app.use('/api/', (req, res, next) => {
   apiLimiter(req, res, next);
 });
 
-// =============================================
-// STATIC FILES
-// =============================================
+
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 app.use('/uploads', express.static(uploadsDir, {
   maxAge: '1d',
   etag: true
 }));
 
-// =============================================
-// INITIALIZE QUEUE PROCESSOR
-// =============================================
+
 if (process.env.NODE_ENV !== 'test') {
   const queueProcessor = require('./utils/queueProcessor');
   const redisService = require('./services/redisService');
   
   queueProcessor.initialize().catch(err => {
     console.error('❌ Failed to initialize queue processor:', err);
-    // Don't exit - allow API to work without queue processing
   });
 }
 
@@ -172,9 +144,6 @@ if (process.env.NODE_ENV !== 'test') {
   membershipCron.initialize();
 }
 
-// =============================================
-// HEALTH CHECK
-// =============================================
 app.get('/api/health', async (req, res) => {
   const queueProcessor = require('./utils/queueProcessor');
   const redisService = require('./services/redisService');
@@ -228,9 +197,6 @@ app.get('/api/health/db-pool', async (req, res) => {
   }
 });
 
-// =============================================
-// API ROUTES
-// =============================================
 const API_PREFIX = process.env.API_PREFIX || '/api';
 
 app.use(`${API_PREFIX}/auth`, require('./routes/authRoutes'));
@@ -247,10 +213,8 @@ app.use(`${API_PREFIX}/coupons`, require('./routes/couponRoutes'));
 app.use(`${API_PREFIX}/refunds`, require('./routes/refundRoutes'));
 
 
-// ✅ Initialize Cron Jobs
-console.log('📅 Initializing cron jobs...');
+console.log('Initializing cron jobs...');
 
-// Run auto-complete events every day at 00:05 UTC (5 minutes past midnight)
 cron.schedule('5 0 * * *', async () => {
   console.log('⏰ [CRON] Running auto-complete events job...');
   try {
@@ -263,13 +227,9 @@ cron.schedule('5 0 * * *', async () => {
   scheduled: true
 });
 
-console.log('✅ Cron jobs initialized (runs daily at 00:05 UTC)');
-
 
 OrderCron.initialize();
-// =============================================
-// ROOT ENDPOINT
-// =============================================
+
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -294,9 +254,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// =============================================
-// 404 HANDLER
-// =============================================
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -309,9 +266,6 @@ app.use((req, res) => {
   });
 });
 
-// =============================================
-// GLOBAL ERROR HANDLER
-// =============================================
 app.use((err, req, res, next) => {
   console.error('Error:', {
     message: err.message,

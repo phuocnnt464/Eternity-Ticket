@@ -1,13 +1,5 @@
-// src/validations/eventValidation.js
 const Joi = require('joi');
 
-// const imageField = Joi.alternatives().try(
-//   Joi.string().uri(),        // chấp nhận URL hợp lệ
-//   Joi.string().pattern(/^\/uploads\/.+$/), // chấp nhận path local như /uploads/events/covers/abc.jpg
-//   Joi.string().allow('')     // cho phép rỗng
-// );
-
-// Create event validation schema
 const createEventSchema = Joi.object({
   title: Joi.string()
     .min(5)
@@ -46,7 +38,7 @@ const createEventSchema = Joi.object({
 
   start_date: Joi.date()
     .iso()
-    .optional()  // optional vì có thể set sau qua sessions
+    .optional()  
     .messages({
       'date.base': 'Start date must be a valid date',
       'date.format': 'Start date must be in ISO format'
@@ -55,7 +47,7 @@ const createEventSchema = Joi.object({
   end_date: Joi.date()
     .iso()
     .min(Joi.ref('start_date'))
-    .optional()  // optional vì có thể set sau qua sessions
+    .optional()  
     .messages({
       'date.base': 'End date must be a valid date',
       'date.format': 'End date must be in ISO format',
@@ -138,7 +130,6 @@ const createEventSchema = Joi.object({
       'any.required': 'Payment account information is required'
     }),
 
-  // Status field
   status: Joi.string()
     .valid('draft', 'pending')
     .optional()
@@ -157,25 +148,12 @@ const createEventSchema = Joi.object({
 
   additional_info: Joi.object().optional(),
 
-  // Image URLs (will be populated by file upload)
-  // cover_image: Joi.string().uri().optional().allow(''),
-  // thumbnail_image: Joi.string().uri().optional().allow(''),
-  // logo_image: Joi.string().uri().optional().allow(''),
-  // venue_map_image: Joi.string().uri().optional().allow('')
   cover_image: Joi.string().optional().allow(''),
   thumbnail_image: Joi.string().optional().allow(''),
   logo_image: Joi.string().optional().allow(''),
   venue_map_image: Joi.string().optional().allow('')
-  
-  // cover_image: imageField,
-  // thumbnail_image: imageField,
-  // logo_image: imageField,
-  // venue_map_image: imageField
 });
 
-// ============================================
-// DRAFT EVENT VALIDATION - RELAXED
-// ============================================
 const createDraftEventSchema = Joi.object({
   // Basic Info
   title: Joi.string()
@@ -248,7 +226,6 @@ const createDraftEventSchema = Joi.object({
     .allow('')
     .messages({}),
 
-  // Privacy
   privacy_type: Joi.string()
     .valid('public', 'private')
     .optional()
@@ -259,13 +236,11 @@ const createDraftEventSchema = Joi.object({
     .optional()
     .allow(''),
 
-  // Payment Info (JSONB)
   payment_account_info: Joi.object()
     .optional()
     .allow(null, {}) 
     .messages({}),
 
-  // Additional
   booking_confirmation_content: Joi.string()
     .optional()
     .allow('')
@@ -280,21 +255,18 @@ const createDraftEventSchema = Joi.object({
   additional_info: Joi.object()
     .optional(),
 
-  // Status
   status: Joi.string()
     .valid('draft', 'pending')
     .optional()
     .default('draft')
     .messages({ 'any.only': 'Status must be either draft or pending' }),
 
-  // Images
   cover_image: Joi.string().optional().allow(''),
   thumbnail_image: Joi.string().optional().allow(''),
   logo_image: Joi.string().optional().allow(''),
   venue_map_image: Joi.string().optional().allow('')
 });
 
-// Update event validation schema
 const updateEventSchema = Joi.object({
   title: Joi.string()
     .min(5)
@@ -418,11 +390,6 @@ const updateEventSchema = Joi.object({
 
   additional_info: Joi.object(),
 
-  // Image URLs
-  // cover_image: Joi.string().uri().allow(''),
-  // thumbnail_image: Joi.string().uri().allow(''),
-  // logo_image: Joi.string().uri().allow(''),
-  // venue_map_image: Joi.string().uri().allow('')
   cover_image: Joi.string().optional().allow(''),
   thumbnail_image: Joi.string().optional().allow(''),
   logo_image: Joi.string().optional().allow(''),
@@ -432,7 +399,6 @@ const updateEventSchema = Joi.object({
   'object.min': 'At least one field is required for update'
 });
 
-// Event query validation
 const eventQuerySchema = Joi.object({
   page: Joi.number()
     .integer()
@@ -485,7 +451,6 @@ const eventQuerySchema = Joi.object({
     })
 });
 
-// Search validation
 const searchQuerySchema = Joi.object({
   q: Joi.string()
     .min(2)
@@ -532,7 +497,6 @@ const searchQuerySchema = Joi.object({
     })
 });
 
-// UUID parameter validation
 const uuidParamSchema = Joi.object({
   id: Joi.string()
     .uuid()
@@ -543,7 +507,6 @@ const uuidParamSchema = Joi.object({
     })
 });
 
-// Featured events query validation
 const featuredEventsQuerySchema = Joi.object({
   limit: Joi.number()
     .integer()
@@ -557,9 +520,6 @@ const featuredEventsQuerySchema = Joi.object({
     })
 });
 
-/**
- * Reject event validation (Admin only)
- */
 const rejectEventSchema = Joi.object({
   reason: Joi.string()
     .min(10)
@@ -572,9 +532,6 @@ const rejectEventSchema = Joi.object({
     })
 });
 
-/**
- * My events query validation (Organizer)
- */
 const myEventsQuerySchema = Joi.object({
   page: Joi.number()
     .integer()
@@ -604,9 +561,6 @@ const myEventsQuerySchema = Joi.object({
     })
 });
 
-/**
- * Event slug parameter validation
- */
 const slugParamSchema = Joi.object({
   slug: Joi.string()
     .min(3)
@@ -619,9 +573,6 @@ const slugParamSchema = Joi.object({
     })
 });
 
-/**
- * Pending events query validation (Admin)
- */
 const pendingEventsQuerySchema = Joi.object({
   page: Joi.number()
     .integer()

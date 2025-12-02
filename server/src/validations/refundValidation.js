@@ -1,8 +1,5 @@
 const Joi = require('joi');
 
-/**
- * Validation schema for creating refund request
- */
 const createRefundRequestSchema = Joi.object({
   orderId: Joi.string()
     .uuid()
@@ -29,9 +26,6 @@ const createRefundRequestSchema = Joi.object({
     })
 });
 
-/**
- * Validation schema for approving refund
- */
 const approveRefundSchema = Joi.object({
   reviewNotes: Joi.string()
     .max(1000)
@@ -42,9 +36,6 @@ const approveRefundSchema = Joi.object({
     })
 });
 
-/**
- * Validation schema for rejecting refund
- */
 const rejectRefundSchema = Joi.object({
   rejectionReason: Joi.string()
     .min(10)
@@ -57,9 +48,6 @@ const rejectRefundSchema = Joi.object({
     })
 });
 
-/**
- * Validation schema for processing refund
- */
 const processRefundSchema = Joi.object({
   transactionId: Joi.string()
     .min(5)
@@ -72,9 +60,6 @@ const processRefundSchema = Joi.object({
     })
 });
 
-/**
- * Query validation for getting refunds
- */
 const getRefundsQuerySchema = Joi.object({
   status: Joi.string()
     .valid('pending', 'approved', 'rejected', 'completed')

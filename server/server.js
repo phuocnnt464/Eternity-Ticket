@@ -1,4 +1,3 @@
-// server.js
 require('dotenv').config();
 const app = require('./src/app');
 const pool = require('./src/config/database'); 
@@ -7,22 +6,18 @@ const PORT = process.env.PORT || 3000;
 
 let server;
 
-// Start server
 const startServer = async () => {
   try {
-    // Test database connection
     await pool.query('SELECT NOW()');
-    console.log('✅ Database connected successfully');
+    console.log('Database connected successfully');
 
-    // Initialize Redis BEFORE starting server
     const redisService = require('./src/services/redisService');
     try {
       await redisService.connect();
-      console.log('✅ Redis connected successfully');
+      console.log('Redis connected successfully');
     } catch (redisError) {
       console.warn('⚠️ Redis connection failed - continuing with degraded mode');
       console.warn('⚠️ Queue features will be limited');
-      // ✅ DON'T exit - let app run
     }
     server = app.listen(PORT, () => {
       console.log(`🚀 Eternity Ticket Server is running on port ${PORT}`);
@@ -38,37 +33,35 @@ const startServer = async () => {
 
 // Graceful shutdown
 const gracefulShutdown = async (signal) => {
-  console.log(`\n🛑 ${signal} received, shutting down gracefully...`);
+  console.log(`\n${signal} received, shutting down gracefully...`);
   
   if (server) {
     server.close(async () => {
-      console.log('✅ HTTP server closed');
+      console.log('HTTP server closed');
       
-      // Disconnect Redis (if queue processor not running)
       try {
         const redisService = require('./src/services/redisService');
         if (redisService.isConnected) {
           await redisService.disconnect();
-          console.log('✅ Redis disconnected');
+          console.log('Redis disconnected');
         }
       } catch (error) {
-        console.error('❌ Error disconnecting Redis:', error.message);
+        console.error('Error disconnecting Redis:', error.message);
       }
 
       // Close database connections
       try {
         await pool.end();
-        console.log('✅ Database connections closed');
+        console.log('Database connections closed');
       } catch (error) {
-        console.error('❌ Error closing database:', error.message);
+        console.error('Error closing database:', error.message);
       }
       
       process.exit(0);
     });
 
-    // Force shutdown after 60 seconds
     setTimeout(() => {
-      console.error('⚠️ Forced shutdown after timeout');
+      console.error('Forced shutdown after timeout');
       process.exit(1);
     }, 60000);
   } else {
@@ -82,14 +75,13 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {
-  console.error('💥 Uncaught Exception:', error);
+  console.error('Uncaught Exception:', error);
   gracefulShutdown('uncaughtException');
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
   gracefulShutdown('unhandledRejection');
 });
 
-// Start the server
 startServer();

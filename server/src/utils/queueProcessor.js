@@ -1,4 +1,3 @@
-// server/src/utils/queueProcessor.js
 const QueueController = require('../controllers/queueController');
 const QueueModel = require('../models/queueModel');
 const pool = require('../config/database');
@@ -11,9 +10,6 @@ class QueueProcessor {
     this.cleanupIntervalId = null;
   }
 
-  /**
-   * Initialize and start queue processor
-   */
   async initialize() {
     if (this.isRunning) {
       console.log('Queue processor already running');
@@ -24,21 +20,19 @@ class QueueProcessor {
       console.log('Initializing queue processor...');
 
       const redisService = require('../services/redisService');
-      // await redisService.connect();
-      // console.log('Redis connected for queue processing');
 
       if (!redisService.isReady()) {
-        console.warn('⚠️ Redis not ready - attempting to connect');
+        console.warn('Redis not ready - attempting to connect');
         try {
           await redisService.connect();
           console.log('Redis connected for queue processing');
         } catch (error) {
-          console.error('❌ Redis connection failed for queue processor');
-          console.warn('⚠️ Queue processor will not start - API will work with degraded features');
-          return; // ✅ Exit gracefully
+          console.error('Redis connection failed for queue processor');
+          console.warn('Queue processor will not start - API will work with degraded features');
+          return; 
         }
       } else {
-        console.log('✅ Using existing Redis connection for queue processing');
+        console.log('Using existing Redis connection for queue processing');
       }      
 
       this.start();
@@ -46,16 +40,11 @@ class QueueProcessor {
       this.setupGracefulShutdown();
 
       console.log('Queue processor initialized successfully');
-
     } catch (error) {
       console.error('Failed to initialize queue processor:', error);
-      // throw error;
     }
   }
 
-  /**
-   * Start queue processing loop
-   */
   start() {
     if (this.isRunning) return;
 
@@ -73,9 +62,6 @@ class QueueProcessor {
     }, this.interval);
   }
 
-  /**
-   * Stop queue processor
-   */
   stop() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
@@ -91,9 +77,6 @@ class QueueProcessor {
     console.log('Queue processor stopped');
   }
 
-  /**
-   * Process all active queues
-   */
   async processAllQueues() {
     try {
       const result = await pool.query(`
@@ -121,11 +104,8 @@ class QueueProcessor {
     }
   }
 
-  /**
-   * Start cleanup scheduler
-   */
   startCleanupScheduler() {
-    console.log('🧹 Starting cleanup scheduler (interval: 1 minute)');
+    console.log('Starting cleanup scheduler (interval: 1 minute)');
 
     this.cleanupIntervalId = setInterval(() => {
       this.cleanupExpired().catch(err => {
@@ -134,23 +114,16 @@ class QueueProcessor {
     }, 60 * 1000);
   }
 
-  /**
-   * Cleanup expired sessions
-   */
   async cleanupExpired() {
     try {
       console.log('Running cleanup...');
       
-      // CLEANUP POSTGRESQL
       const sessionIds = await QueueModel.cleanupExpiredSessions() || [];
 
-      // Cleanup Redis active users
       const redis = require('../services/redisService').getClient();
 
-      // Check null
       if (!redis) {
-        console.warn('⚠️ Redis unavailable - skipping Redis cleanup');
-        // Still process queues from DB
+        console.warn('Redis unavailable - skipping Redis cleanup');
         for (const sessionId of sessionIds) {
           await QueueController.processQueue(sessionId);
         }
@@ -162,29 +135,24 @@ class QueueProcessor {
       let removedCounterKeys = 0;
       const processedSets = new Set();
 
-      // CLEANUP REDIS ACTIVE USERS 
       let cursor = '0';
       do {
-        // SCAN với pattern 'active_set:*'
         const {cursor: newCursor, keys} = await redis.scan(cursor, {
           MATCH: 'active_set:*',
-          COUNT: 10 // Process 10 keys per iteration
+          COUNT: 10
         });
         
         cursor = newCursor;
         
         for (const setKey of keys) {
-          // Skip if already processed
           if (processedSets.has(setKey)) continue;
           processedSets.add(setKey);
           
           try {
             const sessionId = setKey.replace('active_set:', '');
-            
-            // Get all members trong SET
+ 
             const userIds = await redis.sMembers(setKey);
             
-            // Check từng user có expired không
             for (const userId of userIds) {
               const activeKey = `active:${sessionId}:${userId}`;
               
@@ -192,7 +160,6 @@ class QueueProcessor {
                 const data = await redis.get(activeKey);
                 
                 if (!data) {
-                  // Key đã expired tự động, remove khỏi SET
                   await redis.sRem(setKey, userId);
                   expiredActiveCount++;
                 } else {
@@ -208,11 +175,10 @@ class QueueProcessor {
               }
             }
             
-            // ✅ Xóa SET nếu rỗng
             const remaining = await redis.sCard(setKey);
             if (remaining === 0) {
               await redis.del(setKey);
-              console.log(`🗑️ Removed empty set: ${setKey}`);
+              console.log(`Removed empty set: ${setKey}`);
             }
             
           } catch (err) {
@@ -221,7 +187,6 @@ class QueueProcessor {
         }
       } while (cursor !== '0');
 
-      // ✅ 3. NEW: CLEANUP REDIS QUEUE LISTS (waiting users)
       cursor = '0';
       const processedQueues = new Set();
       
@@ -240,7 +205,6 @@ class QueueProcessor {
           try {
             const sessionId = queueKey.replace('queue:', '');
             
-            // ✅ Check if session still exists and is active
             const sessionCheck = await pool.query(`
               SELECT 
                 wrc.is_enabled,
@@ -254,26 +218,20 @@ class QueueProcessor {
             let shouldDelete = false;
             
             if (sessionCheck.rows.length === 0) {
-              // Session không tồn tại → delete
               shouldDelete = true;
-              console.log(`📝 Queue for non-existent session: ${sessionId}`);
+              console.log(`Queue for non-existent session: ${sessionId}`);
             } else {
               const session = sessionCheck.rows[0];
               const now = new Date();
 
-              // CHECK NULL BEFORE USING
               if (!session.end_time) {
-                // Event chưa kết thúc, không xóa
                 shouldDelete = false;
               } else {
                 const endTime = new Date(session.end_time);
               
-              // Delete if:
-              // - Waiting room disabled
-              // - Session ended > 1 hour ago (grace period)
                 if (!session.is_enabled || (endTime < now && (now - endTime) > 3600000)) {
                   shouldDelete = true;
-                  console.log(`📝 Expired session queue: ${sessionId}`);
+                  console.log(`Expired session queue: ${sessionId}`);
                 }
               }
             }
@@ -284,7 +242,7 @@ class QueueProcessor {
               if (queueLength > 0) {
                 await redis.del(queueKey);
                 expiredQueueCount += queueLength;
-                console.log(`🗑️ Deleted queue: ${queueKey} (${queueLength} users)`);
+                console.log(`Deleted queue: ${queueKey} (${queueLength} users)`);
               }
             }
             
@@ -294,7 +252,6 @@ class QueueProcessor {
         }
       } while (cursor !== '0');
 
-      // ✅ 4. NEW: CLEANUP REDIS QUEUE COUNTERS
       cursor = '0';
       const processedCounters = new Set();
       
@@ -312,12 +269,10 @@ class QueueProcessor {
           
           try {
             const sessionId = counterKey.replace('queue_counter:', '');
-            
-            // Check if corresponding queue exists
+      
             const queueKey = `queue:${sessionId}`;
             const queueExists = await redis.exists(queueKey);
             
-            // Also check if session still active
             const sessionCheck = await pool.query(`
               SELECT 
                 wrc.is_enabled,
@@ -335,7 +290,6 @@ class QueueProcessor {
               const session = sessionCheck.rows[0];
               const now = new Date();
               if (!session.end_time) {
-                // Event chưa kết thúc
                 shouldDelete = false;
               } else {
                 const endTime = new Date(session.end_time);
@@ -358,7 +312,6 @@ class QueueProcessor {
         }
       } while (cursor !== '0');
 
-      // Process remaining queues
       for (const sessionId of sessionIds) {
         await QueueController.processQueue(sessionId);
       }
@@ -384,9 +337,6 @@ class QueueProcessor {
     }
   }
 
-  /**
-   * Setup graceful shutdown
-   */
   setupGracefulShutdown() {
     const shutdown = async () => {
       console.log('\n Shutting down queue processor...');
@@ -397,16 +347,12 @@ class QueueProcessor {
       await redisService.disconnect();
       
       console.log('Queue processor shutdown complete');
-      // process.exit(0);
     };
 
     process.on('SIGINT', shutdown);
     process.on('SIGTERM', shutdown);
   }
 
-  /**
-   * Get processor status
-   */
   getStatus() {
     return {
       isRunning: this.isRunning,

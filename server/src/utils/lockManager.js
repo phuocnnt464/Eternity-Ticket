@@ -1,4 +1,3 @@
-// server/src/utils/lockManager.js
 const redisService = require('../services/redisService');
 
 class LockManager {
@@ -9,29 +8,19 @@ class LockManager {
   async initialize() {
     if (!this.client) {
       this.client = await redisService.getClient();
-        // ✅ CHECK IF CLIENT IS NULL
       if (!this.client) {
-        console.warn('⚠️ Redis not available for lock manager');
-        return false; // Signal that initialization failed
+        console.warn('Redis not available for lock manager');
+        return false;
       }
     }
     return true;
   }
 
-  /**
-   * Acquire distributed lock
-   * @param {String} key - Lock key
-   * @param {Number} ttl - Time to live in milliseconds
-   * @returns {String|null} Lock token if acquired, null if failed
-   */
   async acquireLock(key, ttl = 10000) {
     const initialized = await this.initialize();
     
-    // ✅ GRACEFUL DEGRADATION
     if (!initialized || !this.client) {
-      console.warn('⚠️ Lock manager unavailable - proceeding without lock');
-      // Return a fake token to allow operation to continue
-      // This is acceptable because database FOR UPDATE locks will protect data
+      console.warn('Lock manager unavailable - proceeding without lock');
       return `no-lock-${Date.now()}-${Math.random()}`;
     }
 
@@ -51,23 +40,15 @@ class LockManager {
     }
   }
 
-  /**
-   * Release distributed lock
-   * @param {String} key - Lock key
-   * @param {String} token - Lock token
-   */
+
   async releaseLock(key, token) {
     const initialized = await this.initialize();
-    
-    // ✅ GRACEFUL DEGRADATION
+
     if (!initialized || !this.client) {
-      // No-op if lock manager not available
       return;
     }
     
-    // ✅ CHECK FOR FAKE TOKEN
     if (token && token.startsWith('no-lock-')) {
-      // This was a fake token, no need to release
       return;
     }
 
@@ -91,23 +72,15 @@ class LockManager {
     }
   }
 
-  /**
-   * Extend lock TTL
-   * @param {String} key - Lock key
-   * @param {String} token - Lock token
-   * @param {Number} ttl - New TTL in milliseconds
-   */
   async extendLock(key, token, ttl = 10000) {
     const initialized = await this.initialize();
     
-    // ✅ GRACEFUL DEGRADATION
     if (!initialized || !this.client) {
       return false;
     }
     
-    // ✅ CHECK FOR FAKE TOKEN
     if (token && token.startsWith('no-lock-')) {
-      return true; // Pretend it worked
+      return true; 
     }
     
     const lockKey = `lock:${key}`;
@@ -134,5 +107,4 @@ class LockManager {
   }
 }
 
-// Export singleton instance
 module.exports = new LockManager();

@@ -1,4 +1,3 @@
-// server/src/services/redisService.js
 const redis = require('redis');
 
 class RedisService {
@@ -7,9 +6,6 @@ class RedisService {
     this.isConnected = false;
   }
 
-  /**
-   * Initialize Redis connection
-   */
   async connect() {
     if (this.isConnected) {
       return this.client;
@@ -35,17 +31,17 @@ class RedisService {
       });
 
       this.client.on('error', (err) => {
-        console.error('❌ Redis error:', err);
+        console.error('Redis error:', err);
         this.isConnected = false;
       });
 
       this.client.on('reconnecting', () => {
-        console.log('🔄 Redis reconnecting...');
+        console.log('Redis reconnecting');
         this.isConnected = false;
       });
 
       this.client.on('end', () => {
-        console.log('🔌 Redis connection closed');
+        console.log('Redis connection closed');
         this.isConnected = false;
       });
 
@@ -58,44 +54,32 @@ class RedisService {
     }
   }
 
-  /**
-   * Get Redis client
-   */
   getClient() {
     if (!this.isConnected) {
-      // throw new Error('Redis not connected. Call connect() first.');
-      console.warn('⚠️ Redis not connected - operations will be degraded');
+      console.warn('Redis not connected - operations will be degraded');
       return null;
     }
     return this.client;
   }
 
-/**
- * Check if Redis is ready (non-throwing)
- */
-isReady() {
-  return this.isConnected && this.client !== null;
-}
 
-/**
- * Safe execute Redis operation with fallback
- */
-async safeExecute(operation, fallbackValue = null) {
-  try {
-    if (!this.isReady()) {
-      console.warn('⚠️ Redis unavailable - using fallback');
+  isReady() {
+    return this.isConnected && this.client !== null;
+  }
+
+  async safeExecute(operation, fallbackValue = null) {
+    try {
+      if (!this.isReady()) {
+        console.warn('⚠️ Redis unavailable - using fallback');
+        return fallbackValue;
+      }
+      return await operation(this.client);
+    } catch (error) {
+      console.error('Redis operation failed:', error);
       return fallbackValue;
     }
-    return await operation(this.client);
-  } catch (error) {
-    console.error('Redis operation failed:', error);
-    return fallbackValue;
   }
-}
 
-  /**
-   * Check connection status
-   */
   async ping() {
     try {
       const result = await this.client.ping();
@@ -105,17 +89,13 @@ async safeExecute(operation, fallbackValue = null) {
     }
   }
 
-  /**
-   * Close connection
-   */
   async disconnect() {
     if (this.client) {
       await this.client.quit();
       this.isConnected = false;
-      console.log('🔌 Redis disconnected');
+      console.log('Redis disconnected');
     }
   }
 }
 
-// Export singleton instance
 module.exports = new RedisService();

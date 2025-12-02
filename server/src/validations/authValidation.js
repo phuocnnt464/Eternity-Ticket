@@ -1,7 +1,5 @@
-// src/validations/authValidation.js
 const Joi = require('joi');
 
-// Register validation schema
 const registerSchema = Joi.object({
   email: Joi.string()
     .email({ minDomainSegments: 2, tlds: {allow: false} })
@@ -74,7 +72,6 @@ const registerSchema = Joi.object({
     })
 });
 
-// Login validation schema
 const loginSchema = Joi.object({
   email: Joi.string()
     .email()
@@ -95,7 +92,6 @@ const loginSchema = Joi.object({
     })
 });
 
-// Email verification schema
 const verifyEmailSchema = Joi.object({
   token: Joi.string()
     .uuid()
@@ -116,7 +112,6 @@ const refreshTokenSchema = Joi.object({
   })
 });
 
-// Forgot password schema
 const forgotPasswordSchema = Joi.object({
   email: Joi.string()
     .email()
@@ -130,7 +125,6 @@ const forgotPasswordSchema = Joi.object({
     })
 });
 
-// Reset password schema
 const resetPasswordSchema = Joi.object({
   token: Joi.string()
     .required()
@@ -162,7 +156,6 @@ const resetPasswordSchema = Joi.object({
     })
 });
 
-// Change password schema
 const changePasswordSchema = Joi.object({
   current_password: Joi.string()
     .required()
@@ -196,9 +189,6 @@ const changePasswordSchema = Joi.object({
     })
 });
 
-// =============================================
-// UPDATE PROFILE VALIDATION
-// =============================================
 const updateProfileSchema = Joi.object({
   first_name: Joi.string()
     .min(2)

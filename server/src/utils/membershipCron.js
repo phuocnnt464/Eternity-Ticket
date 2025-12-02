@@ -1,17 +1,11 @@
-// server/src/utils/membershipCron.js
-
 const pool = require('../config/database');
 const emailService = require('../services/emailService');
 
 class MembershipCron {
-  /**
-   * Check expiring memberships and send reminders
-   */
   static async checkExpiringMemberships() {
     try {
-      console.log('🔍 Checking expiring memberships...');
+      console.log('Checking expiring memberships...');
 
-      // Get memberships expiring in 7, 3, and 1 days
       const query = `
         SELECT 
           m.*,
@@ -31,7 +25,7 @@ class MembershipCron {
 
       const result = await pool.query(query);
 
-      console.log(`📧 Found ${result.rows.length} memberships expiring soon`);
+      console.log(`Found ${result.rows.length} memberships expiring soon`);
 
       for (const membership of result.rows) {
         const user = {
@@ -44,23 +38,20 @@ class MembershipCron {
 
         await emailService.sendMembershipExpiryReminder(user, membership, daysLeft);
 
-        console.log(`✅ Sent reminder to ${user.email} (${daysLeft} days left)`);
+        console.log(`Sent reminder to ${user.email} (${daysLeft} days left)`);
       }
 
       return result.rows.length;
 
     } catch (error) {
-      console.error('❌ Error checking expiring memberships:', error);
+      console.error('Error checking expiring memberships:', error);
       throw error;
     }
   }
 
-  /**
-   * Deactivate expired memberships
-   */
   static async deactivateExpiredMemberships() {
     try {
-      console.log('🔍 Deactivating expired memberships...');
+      console.log('Deactivating expired memberships...');
 
       const query = `
         UPDATE memberships
@@ -73,35 +64,29 @@ class MembershipCron {
 
       const result = await pool.query(query);
 
-      console.log(`✅ Deactivated ${result.rowCount} expired memberships`);
+      console.log(`Deactivated ${result.rowCount} expired memberships`);
 
       return result.rowCount;
 
     } catch (error) {
-      console.error('❌ Error deactivating expired memberships:', error);
+      console.error('Error deactivating expired memberships:', error);
       throw error;
     }
   }
 
-  /**
-   * Initialize cron jobs
-   */
   static initialize() {
-    // Run expiry check every 6 hours
     setInterval(() => {
       this.checkExpiringMemberships().catch(console.error);
     }, 6 * 60 * 60 * 1000);
 
-    // Run deactivation check every hour
     setInterval(() => {
       this.deactivateExpiredMemberships().catch(console.error);
     }, 60 * 60 * 1000);
 
-    // Run immediately on start
     this.checkExpiringMemberships().catch(console.error);
     this.deactivateExpiredMemberships().catch(console.error);
 
-    console.log('✅ Membership cron jobs initialized');
+    console.log('Membership cron jobs initialized');
   }
 }
 

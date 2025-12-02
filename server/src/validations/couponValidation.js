@@ -1,7 +1,6 @@
-// server/src/validations/couponValidation.js
 const Joi = require('joi');
 
-// Schema cho tạo/cập nhật coupon
+
 const createCouponSchema = Joi.object({
   code: Joi.string()
     .trim()
@@ -129,7 +128,6 @@ const createCouponSchema = Joi.object({
     })
 });
 
-// Schema cho validate coupon khi checkout
 const validateCouponSchema = Joi.object({
   code: Joi.string()
     .trim()
