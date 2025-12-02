@@ -49,6 +49,8 @@ const event = computed(() => cartStore.event)
 const session = computed(() => cartStore.session)
 const tickets = computed(() => cartStore.items)
 
+const fromWaitingRoom = ref(false)
+
 const isCartValid = computed(() => {
   return event.value && session.value && cartStore.items.length > 0
 })
@@ -446,22 +448,77 @@ const handleCancelPayment = () => {
 }
 
 onMounted(async () => {
+  try {
   // Load user info
-  if (authStore.user) {
-    customerInfo.value = {
-      first_name: authStore.user.first_name || '',
-      last_name: authStore.user.last_name || '',
-      email: authStore.user.email,
-      phone: authStore.user.phone || ''
+    if (authStore.user) {
+      customerInfo.value = {
+        first_name: authStore.user.first_name || '',
+        last_name: authStore.user.last_name || '',
+        email: authStore.user.email,
+        phone: authStore.user.phone || ''
+      }
     }
-  }
 
-  // Kiểm tra order cũ
-  const hasExistingOrder = await checkExistingOrder()
-  
-  if (!hasExistingOrder) {
-    // Không có order cũ hoặc đã cancel → Check queue status
-    await checkQueueStatusAndStartTimer()
+    if (!session.value || !session.value.id) {
+      console.error('❌ No session found!')
+      alert('Session not found. Please select tickets first.')
+      router.push({
+        name: 'EventDetail',
+        params: { slug: route.params.slug }
+      })
+      return
+    }
+
+    // Kiểm tra order cũ
+    // const hasExistingOrder = await checkExistingOrder()
+    
+    // if (!hasExistingOrder) {
+    //   // Không có order cũ hoặc đã cancel → Check queue status
+    //   await checkQueueStatusAndStartTimer()
+    // }
+
+    console.log('🔍 Session ID:', session.value.id)
+    
+    // ✅ CHECK: Có queue store với status active không?
+    const queueStore = useQueueStore()
+    if (queueStore.status === 'active' && queueStore.expiresAt) {
+      console.log('✅ Using queue store - already active, expires:', queueStore.expiresAt)
+      fromWaitingRoom.value = true
+      startSlotCountdown(queueStore.expiresAt)
+      console.log('✅ EventCheckout mounted successfully (from waiting room)')
+      return
+    }
+
+    // Kiểm tra order cũ
+    let hasExistingOrder = false
+    try {
+      hasExistingOrder = await checkExistingOrder()
+      console.log('🔍 Has existing order:', hasExistingOrder)
+    } catch (orderCheckError) {
+      console.error('⚠️ Check existing order failed:', orderCheckError)
+    }
+    
+    if (! hasExistingOrder) {
+      // Check queue status
+      console.log('🔍 Calling checkQueueStatusAndStartTimer.. .')
+      const canProceed = await checkQueueStatusAndStartTimer()
+      console. log('🔍 Can proceed:', canProceed)
+      
+      if (!canProceed) {
+        console.warn('⚠️ Queue check failed, redirecting.. .')
+        return
+      }
+    }
+    
+    console.log('✅ EventCheckout mounted successfully')
+
+  } catch (error) {
+     console.error('❌ EventCheckout onMounted error:', error)
+    alert('Failed to initialize checkout. Please try again.')
+    router.push({
+      name: 'EventDetail',
+      params: { slug: route.params. slug }
+    })
   }
 })
 
@@ -470,7 +527,7 @@ onBeforeUnmount(() => {
     clearInterval(countdownInterval.value)
   }
 
-  if (! paymentSuccess.value && session.value?. id) {
+  if (!paymentSuccess.value && session.value?. id) {
     try {
       queueAPI.leaveQueue(session.value.id)
       console.log('✅ Left queue on checkout unmount')

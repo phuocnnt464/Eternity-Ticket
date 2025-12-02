@@ -265,11 +265,17 @@ onBeforeUnmount(() => {
     clearInterval(statisticsPollInterval.value)
   }
 
-  try {
-    queueAPI.leaveQueue(props.sessionId)
-    console.log('✅ Left queue on unmount')
-  } catch (error) {
-    console.error('Failed to leave queue:', error)
+  const currentStatus = queueStore.status || queueStatus.value?. status
+  
+  if (currentStatus === 'waiting') {
+    try {
+      queueAPI.leaveQueue(props.sessionId)
+      console.log('✅ Left queue on unmount (was waiting)')
+    } catch (error) {
+      console.error('Failed to leave queue:', error)
+    }
+  } else {
+    console.log(`ℹ️ Not leaving queue - status: ${currentStatus}`)
   }
 })
 </script>

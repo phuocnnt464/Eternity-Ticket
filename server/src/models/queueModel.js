@@ -365,13 +365,32 @@ class QueueModel {
    */
   static async leaveQueue(userId, sessionId) {
     try {
+      const current = await pool.query(`
+        SELECT status FROM waiting_queue
+        WHERE user_id = $1 AND session_id = $2
+        ORDER BY entered_at DESC
+        LIMIT 1
+      `, [userId, sessionId]);
+      
+      if (current.rows.length === 0) {
+        return false;  // No record
+      }
+      
+      const currentStatus = current.rows[0]. status;
+      
+      // ✅ CHỈ cancel nếu đang waiting (KHÔNG cancel nếu active/completed)
+      if (currentStatus !== 'waiting') {
+        console.log(`ℹ️ Not cancelling - user status: ${currentStatus}`);
+        return false;
+      }
+
       const query = `
         UPDATE waiting_queue
         SET status = 'cancelled',
             completed_at = NOW()
         WHERE user_id = $1 
           AND session_id = $2 
-          AND status IN ('waiting', 'active')
+          AND status IN ('waiting')
       `;
 
       const result = await pool.query(query, [userId, sessionId]);
