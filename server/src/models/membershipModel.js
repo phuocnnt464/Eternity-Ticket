@@ -1,12 +1,7 @@
-// server/src/models/membershipModel.js
 const pool = require('../config/database');
 const { generateOrderNumber } = require('../utils/helpers');
 
 class MembershipModel {
-  /**
-   * Get membership pricing
-   * @returns {Array} Pricing tiers
-   */
   static async getPricing() {
     try {
       const query = `
@@ -29,11 +24,6 @@ class MembershipModel {
     }
   }
 
-  /**
-   * Get user's active membership
-   * @param {String} userId - User ID
-   * @returns {Object|null} Active membership
-   */
   static async getUserMembership(userId) {
     try {
       const query = `
@@ -88,12 +78,6 @@ class MembershipModel {
     }
   }
 
-  /**
-   * Create membership order
-   * @param {String} userId - User ID
-   * @param {Object} orderData - Order data
-   * @returns {Object} Created order
-   */
   static async createMembershipOrder(userId, orderData) {
     const client = await pool.connect();
     
@@ -102,11 +86,10 @@ class MembershipModel {
 
       const {
         tier,
-        billing_period, // 'monthly', 'quarterly', 'yearly'
+        billing_period,
         coupon_code
       } = orderData;
 
-      // Get pricing
       const pricingQuery = await client.query(`
         SELECT * FROM membership_pricing
         WHERE tier = $1 AND is_active = true
@@ -118,7 +101,6 @@ class MembershipModel {
 
       const pricing = pricingQuery.rows[0];
 
-      // Calculate price based on billing period
       let amount;
       let months;
       
@@ -139,64 +121,44 @@ class MembershipModel {
           throw new Error('Invalid billing period');
       }
 
-      // Check if user already has active membership
       const currentMembership = await this.getUserMembership(userId);
       const isRenewal = currentMembership && currentMembership.tier === tier;
       const isUpgrade = currentMembership && currentMembership.tier !== tier;
-
-      // Calculate dates
-      // const startDate = currentMembership && currentMembership.end_date > new Date() 
-      //   ? new Date(currentMembership.end_date)
-      //   : new Date();
 
       const startDate = new Date();
       
       const endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + months);
 
-      // Apply coupon if provided
       let discountAmount = 0;
       if (coupon_code) {
-        // TODO: Implement coupon logic
-        // console.log(`Applying coupon: ${coupon_code}`);
-
-        // ✅ Validate and apply coupon
         const CouponModel = require('./couponModel');
         
         try {
           const couponValidation = await CouponModel.validateCoupon(
             coupon_code,
             userId,
-            null, // event_id = null for membership
+            null, 
             amount,
-            'basic' // Default tier for validation
+            'basic'
           );
           
           if (couponValidation.valid) {
             discountAmount = couponValidation.discountAmount;
-            console.log(`✅ Coupon ${coupon_code} applied: -${discountAmount}₫`);
-            
-            // Record coupon usage after payment success
-            // (Move to completeMembershipPayment function)
+            console.log(`Coupon ${coupon_code} applied: -${discountAmount}₫`);
           } else {
             console.warn(`⚠️ Invalid coupon: ${couponValidation.message}`);
-            // Optionally throw error or just ignore
-            // throw new Error(couponValidation.message);
           }
         } catch (couponError) {
           console.error('Coupon validation error:', couponError);
-          // Continue without coupon
         }
       }
 
-      // Calculate VAT (10%)
       const vatAmount = (amount - discountAmount) * 0.10;
       const totalAmount = amount - discountAmount + vatAmount;
 
-      // Generate order number
       const orderNumber = `MEM-${Date.now()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
 
-      // Create membership order
       const orderQuery = `
         INSERT INTO membership_orders (
           order_number, user_id, tier, billing_period,
@@ -237,12 +199,6 @@ class MembershipModel {
     }
   }
 
-  /**
-   * Complete membership payment
-   * @param {String} orderId - Order ID
-   * @param {Object} paymentData - Payment data
-   * @returns {Object} Updated membership
-   */
   static async completeMembershipPayment(orderId, paymentData) {
     const client = await pool.connect();
     
@@ -270,7 +226,6 @@ class MembershipModel {
         throw new Error('Order already paid');
       }
 
-      // Update order status
       await client.query(`
         UPDATE membership_orders
         SET status = 'paid',
@@ -282,14 +237,12 @@ class MembershipModel {
         WHERE id = $4
       `, [payment_method, payment_transaction_id, JSON.stringify(payment_data), orderId]);
 
-      // Deactivate old membership
       await client.query(`
         UPDATE memberships
         SET is_active = false, updated_at = NOW()
         WHERE user_id = $1 AND is_active = true
       `, [order.user_id]);
 
-      // Create new membership
       const membershipQuery = `
         INSERT INTO memberships (
           user_id, tier, start_date, end_date,
@@ -309,11 +262,10 @@ class MembershipModel {
         payment_method,
         payment_transaction_id,
         order.billing_period,
-        order.end_date, // Next billing date = end date
+        order.end_date,
         orderId
       ]);
 
-      // ✅ Record coupon usage if coupon was applied
       if (order.coupon_code && order.discount_amount > 0) {
         const CouponModel = require('./couponModel');
         
@@ -345,33 +297,25 @@ class MembershipModel {
     }
   }
 
-  /**
-   * Cancel membership
-   * @param {String} userId - User ID
-   * @param {String} reason - Cancellation reason
-   * @returns {Boolean} Success status
-   */
   static async cancelMembership(userId, reason, cancelImmediately = false) {
     try {
       let query;
     
       if (cancelImmediately === true) {
-        // ✅ IMMEDIATE CANCEL: 
         query = `
           UPDATE memberships
           SET is_active = false,
               auto_renewal = false,
-              cancelled_at = COALESCE(cancelled_at, NOW()),  -- ✅ Keep original cancelled_at if exists
+              cancelled_at = COALESCE(cancelled_at, NOW()),  
               cancellation_reason = COALESCE(cancellation_reason, $2),
               updated_at = NOW()
           WHERE user_id = $1 
-            AND is_active = true  -- ✅ Only if still active
+            AND is_active = true 
           RETURNING *
         `;
         
-        console. log(`⚠️ Immediate cancellation for user: ${userId}`);
+        console. log(`Immediate cancellation for user: ${userId}`);
       } else {
-        // ✅ SOFT CANCEL: Keep active until end_date
         query = `
           UPDATE memberships
           SET auto_renewal = false,
@@ -389,14 +333,13 @@ class MembershipModel {
       const result = await pool.query(query, [userId, reason]);
 
       if (result.rows.length === 0) {
-        // Check if membership exists but already cancelled/inactive
         const checkQuery = await pool.query(
           'SELECT * FROM memberships WHERE user_id = $1 AND is_active = true',
           [userId]
         );
         
         if (checkQuery.rows.length === 0) {
-          return false;  // No active membership
+          return false;  
         }
       }
       return result.rows.length > 0;
@@ -405,11 +348,6 @@ class MembershipModel {
     }
   }
 
-  /**
-   * Get membership history
-   * @param {String} userId - User ID
-   * @returns {Array} Membership history
-   */
   static async getMembershipHistory(userId) {
     try {
       const query = `

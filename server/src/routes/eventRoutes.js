@@ -1,4 +1,3 @@
-// src/routes/eventRoutes.js
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const Joi = require('joi');
@@ -34,10 +33,9 @@ const {
 
 const router = express.Router();
 
-// Rate limiting for event operations
 const eventCreationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 100, // limit each IP to 100 event creations per hour
+  max: 100, 
   message: {
     success: false,
     error: {
@@ -48,8 +46,8 @@ const eventCreationLimiter = rateLimit({
 });
 
 const eventUpdateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // limit each IP to 50 updates per 15 minutes
+  windowMs: 15 * 60 * 1000, 
+  max: 50, 
   message: {
     success: false,
     error: {
@@ -58,10 +56,9 @@ const eventUpdateLimiter = rateLimit({
   }
 });
 
-// ✅ Thêm limiter cho private event access
 const privateEventLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // 50 attempts per 15 minutes
+  windowMs: 15 * 60 * 1000, 
+  max: 50, 
   message: {
     success: false,
     message: 'Too many failed access attempts. Try again later.'
@@ -120,101 +117,30 @@ const validateEventCreation = (req, res, next) => {
   next();
 };
 
-// Public routes (no authentication required)
-
-/**
- * @route   GET /api/events/health
- * @desc    Event routes health check
- * @access  Public
- */
-router.get('/health', (req, res) => {
-  const { createResponse } = require('../utils/helpers');
-  res.json(createResponse(
-    true,
-    'Event routes are working',
-    {
-      timestamp: new Date().toISOString(),
-      endpoints: {
-        public: [
-          'GET /api/events',
-          'GET /api/events/categories',
-          'GET /api/events/featured',
-          'GET /api/events/search',
-          'GET /api/events/slug/:slug',
-          'GET /api/events/:id'
-        ],
-        organizer: [
-          'POST /api/events',
-          'GET /api/events/my/all-events',
-          'PUT /api/events/:id',
-          'POST /api/events/:id/submit',
-          'GET /api/events/:id/statistics',
-          'DELETE /api/events/:id'
-        ],
-        admin: [
-          'GET /api/events/admin/pending',
-          'POST /api/events/:id/approve',
-          'POST /api/events/:id/reject'
-        ]
-      }
-    }
-  ));
-});
-
-/**
- * @route   GET /api/events/categories
- * @desc    Get all event categories
- * @access  Public
- */
 router.get('/categories', 
   EventController.getCategories
 );
 
-/**
- * @route   GET /api/events/public-settings
- * @desc    Get public system settings
- * @access  Public
- */
 router.get('/public-settings',
   EventController.getPublicSettings
 );
 
-/**
- * @route   GET /api/events/featured
- * @desc    Get featured/trending events
- * @access  Public
- */
 router.get('/featured',
   validate(featuredEventsQuerySchema, 'query'),
   EventController.getFeaturedEvents
 );
 
-/**
- * @route   GET /api/events/search
- * @desc    Search events
- * @access  Public
- */
 router.get('/search',
   validate(searchQuerySchema, 'query'),
   EventController.searchEvents
 );
 
-/**
- * @route   GET /api/events/debug/my-events
- * @desc    Debug my events
- * @access  Private (Organizer)
- */
 router.get('/debug/my-events',
   authenticateToken,
   authorizeRoles('organizer'),
   EventController.debugMyEvents
 );
 
-/**
- * @route   GET /api/events/my/all-events
- * @desc    Get events created by current user
- * @access  Private (Organizer)
- */
 router.get('/my/all-events',
   authenticateToken,
   authorizeRoles('organizer'),
@@ -222,22 +148,12 @@ router.get('/my/all-events',
   EventController.getMyEvents
 );
 
-/**
- * @route   GET /api/events/admin/pending
- * @desc    Get pending events for admin approval
- * @access  Private (Admin)
- */
 router.get('/admin/pending',
   authenticateToken,
   authorizeRoles('admin', 'sub_admin'),
   EventController.getPendingEvents
 );
 
-/**
- * @route   GET /api/events/slug/:slug
- * @desc    Get event by slug (SEO-friendly)
- * @access  Public
- */
 router.get('/slug/:slug',
   privateEventLimiter,
   validate(slugParamSchema, 'params'),
@@ -245,11 +161,6 @@ router.get('/slug/:slug',
   EventController.getEventBySlug
 );
 
-/**
- * @route   GET /api/events/:id/statistics
- * @desc    Get event statistics for organizer dashboard
- * @access  Private (Organizer - Owner/Manager)
- */
 router.get('/:id/statistics',
   authenticateToken,
   // authorizeRoles('organizer'),
@@ -258,11 +169,6 @@ router.get('/:id/statistics',
   EventController.getEventStatistics
 );
 
-/**
- * @route   GET /api/events/my/stats
- * @desc    Get organizer dashboard statistics
- * @access  Private (Organizer)
- */
 router.get('/my/stats',
   authenticateToken,
   authorizeRoles('organizer'),
@@ -274,50 +180,11 @@ router.get('/team-events',
   EventController.getTeams
 )
 
-// Admin routes (for future admin panel)
-
-/**
- * @route   PUT /api/events/:id/approve
- * @desc    Approve event (Admin only)
- * @access  Private (Admin)
- */
-// router.put('/:id/approve',
-//   authenticateToken,
-//   authorizeRoles('admin', 'sub_admin'),
-//   validateUUIDParam('id'),
-//   logAdminAudit('APPROVE_EVENT', 'EVENT'),
-//   EventController.approveEvent
-// );
-
-/**
- * @route   PUT /api/events/:id/reject
- * @desc    Reject event (Admin only)
- * @access  Private (Admin)
- */
-// router.put('/:id/reject',
-//   authenticateToken,
-//   authorizeRoles('admin', 'sub_admin'),
-//   validateUUIDParam('id'),
-//   validate(rejectEventSchema),
-//   logAdminAudit('REJECT_EVENT', 'EVENT'),
-//   EventController.rejectEvent
-// );
-
-/**
- * @route   GET /api/events
- * @desc    Get all public events with filtering and pagination
- * @access  Public
- */
 router.get('/',
   validate(eventQuerySchema, 'query'),
   EventController.getEvents
 );
 
-/**
- * @route   POST /api/events
- * @desc    Create new event (Organizers only)
- * @access  Private (Organizer)
- */
 router.post('/',
   eventCreationLimiter,
   authenticateToken,
@@ -325,32 +192,20 @@ router.post('/',
   uploadEventImages,
   processEventImages,
   parseJSONFields,
-  // validate(createEventSchema),
   validateEventCreation, 
   logActivity('CREATE_EVENT', 'EVENT'),
   EventController.createEvent
 );
 
-/**
- * @route   GET /api/events/:id
- * @desc    Get single event by ID (with optional authentication for private events)
- * @access  Public/Private
- */
 router.get('/:id',
   validateUUIDParam('id'),
   optionalAuth,
   EventController.getEventById
 );
 
-/**
- * @route   PUT /api/events/:id
- * @desc    Update event (Event owner/manager only)
- * @access  Private (Event Owner/Manager)
- */
 router.put('/:id',
   eventUpdateLimiter,
   authenticateToken,
-  // authorizeRoles('organizer'),
   validateUUIDParam('id'),
   authorizeEventOrganizer('id'),
   requireEventRole('owner', 'manager'),
@@ -361,14 +216,8 @@ router.put('/:id',
   EventController.updateEvent
 );
 
-/**
- * @route   POST /api/events/:id/submit
- * @desc    Submit event for admin approval
- * @access  Private (Event Owner)
- */
 router.post('/:id/submit',
   authenticateToken,
-  // authorizeRoles('organizer'),
   validateUUIDParam('id'),
   authorizeEventOrganizer('id'),
   requireEventRole('owner'),
@@ -376,11 +225,6 @@ router.post('/:id/submit',
   EventController.submitEventForApproval
 );
 
-/**
- * @route   DELETE /api/events/:id
- * @desc    Delete event (Event owner only)
- * @access  Private (Event Owner)
- */
 router.delete('/:id',
   authenticateToken,
   authorizeRoles('organizer'),
@@ -391,11 +235,6 @@ router.delete('/:id',
   EventController.deleteEvent
 );
 
-/**
- * @route   GET /api/events/:eventId/members
- * @desc    Get event team members
- * @access  Private (Event Team)
- */
 router.get('/:eventId/members',
   authenticateToken,
   validateUUIDParam('eventId'),
@@ -404,14 +243,8 @@ router.get('/:eventId/members',
   EventController.getEventMembers
 );
 
-/**
- * @route   POST /api/events/:eventId/members
- * @desc    Add team member to event
- * @access  Private (Event Owner/Manager)
- */
 router.post('/:eventId/members',
   authenticateToken,
-  // authorizeRoles('organizer'),
   validateUUIDParam('eventId'),
   authorizeEventOrganizer('eventId'),
   requireEventRole('owner', 'manager'),
@@ -419,25 +252,14 @@ router.post('/:eventId/members',
   EventController.addEventMember
 );
 
-/**
- * @route   DELETE /api/events/:eventId/members/:userId
- * @desc    Remove team member
- * @access  Private (Event Owner only)
- */
 router.delete('/:eventId/members/:userId',
   authenticateToken,
-  // authorizeRoles('organizer'),
   validateUUIDParams('eventId', 'userId'),
   authorizeEventOrganizer('eventId'),
   requireEventRole('owner'),
   EventController.removeEventMember
 );
 
-/**
- * @route   PATCH /api/events/:eventId/members/:userId
- * @desc    Update member role
- * @access  Private (Event Owner)
- */
 router.patch('/:eventId/members/:userId',
   authenticateToken,
   validateUUIDParams('eventId', 'userId'),
@@ -451,24 +273,13 @@ router.get('/image-requirements',
   EventController.getImageRequirements
 );
 
-/**
- * @route   POST /api/events/invitations/:token/accept
- * @desc    Accept event team invitation
- * @access  Private
- */
 router.post('/invitations/:token/accept',
   authenticateToken,
   EventController.acceptInvitation
 );
 
-/**
- * @route   GET /api/events/:id/orders
- * @desc    Get orders for this event
- * @access  Private (Event Owner/Manager)
- */
 router.get('/:id/orders',
   authenticateToken,
-  // authorizeRoles('organizer', 'admin', 'sub_admin'),
   validateUUIDParam('id'),
   authorizeEventOrganizer('id'),
   requireEventRole('owner', 'manager'),
@@ -476,14 +287,8 @@ router.get('/:id/orders',
   EventController.getEventOrders
 );
 
-/**
- * @route   GET /api/events/:id/attendees
- * @desc    Get attendees list for this event
- * @access  Private (Event Owner/Manager)
- */
 router.get('/:id/attendees',
   authenticateToken,
-  // authorizeRoles('organizer', 'admin', 'sub_admin'),
   validateUUIDParam('id'),
   authorizeEventOrganizer('id'),
   requireEventRole('owner', 'manager', 'checkin_staff'),

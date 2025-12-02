@@ -1,20 +1,12 @@
-// src/models/sessionTicketModel.js
 const pool = require('../config/database');
 
 class SessionTicketModel {
-  /**
-   * Create event session
-   * @param {String} eventId - Event ID
-   * @param {Object} sessionData - Session data
-   * @returns {Object} Created session
-   */
   static async createSession(eventId, sessionData) {
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
 
-      // Verify event exists and user has permission
       const eventCheck = await client.query(`
         SELECT e.id, e.organizer_id, eom.role
         FROM events e
@@ -36,7 +28,6 @@ class SessionTicketModel {
         sort_order = 0
       } = sessionData;
 
-      // Validate dates
       if (new Date(start_time) >= new Date(end_time)) {
         throw new Error('Start time must be before end time');
       }
@@ -57,7 +48,7 @@ class SessionTicketModel {
       const result = await client.query(sessionQuery, sessionValues);
       await client.query('COMMIT');
 
-      console.log(`✅ Event session created: ${title} for event ${eventId}`);
+      // console.log(`Event session created: ${title} for event ${eventId}`);
       return result.rows[0];
 
     } catch (error) {
@@ -68,11 +59,6 @@ class SessionTicketModel {
     }
   }
 
-  /**
-   * Get sessions for event
-   * @param {String} eventId - Event ID
-   * @returns {Array} Event sessions
-   */
   static async getEventSessions(eventId) {
     try {
       const query = `
@@ -118,19 +104,12 @@ class SessionTicketModel {
     }
   }
 
-  /**
-   * Create ticket type
-   * @param {String} sessionId - Session ID
-   * @param {Object} ticketData - Ticket type data
-   * @returns {Object} Created ticket type
-   */
   static async createTicketType(sessionId, ticketData) {
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
 
-      // Verify session exists and get event info
       const sessionCheck = await client.query(`
         SELECT es.id, es.event_id, e.organizer_id
         FROM event_sessions es
@@ -157,7 +136,6 @@ class SessionTicketModel {
         sort_order = 0
       } = ticketData;
 
-      // Validate data
       if (price < 0) {
         throw new Error('Price cannot be negative');
       }
@@ -188,7 +166,7 @@ class SessionTicketModel {
       const result = await client.query(ticketQuery, ticketValues);
       await client.query('COMMIT');
 
-      console.log(`✅ Ticket type created: ${name} for session ${sessionId}`);
+      // console.log(`Ticket type created: ${name} for session ${sessionId}`);
       return result.rows[0];
 
     } catch (error) {
@@ -199,11 +177,6 @@ class SessionTicketModel {
     }
   }
 
-  /**
-   * Get ticket types for session
-   * @param {String} sessionId - Session ID
-   * @returns {Array} Ticket types
-   */
   static async getSessionTicketTypes(sessionId) {
     try {
       const query = `
@@ -254,9 +227,6 @@ class SessionTicketModel {
     }
   }
 
-  /**
-   * Get single session with details
-   */
   static async getSessionById(sessionId) {
     const query = `
       SELECT 
@@ -274,9 +244,7 @@ class SessionTicketModel {
     return result.rows[0] || null;
   }
 
-  /**
- * Get single ticket type with availability
-  */
+
   static async getTicketTypeById(ticketTypeId) {
     const query = `
       SELECT 
@@ -300,20 +268,12 @@ class SessionTicketModel {
     return result.rows[0] || null;
   }
 
-  /**
-   * Update session
-   * @param {String} sessionId - Session ID
-   * @param {Object} updateData - Update data
-   * @param {String} userId - User ID for permission check
-   * @returns {Object} Updated session
-   */
   static async updateSession(sessionId, updateData, userId) {
     const client = await pool.connect();
 
     try {
       await client.query('BEGIN');
 
-      // Check permission
       const permissionCheck = await client.query(`
         SELECT es.id 
         FROM event_sessions es
@@ -370,34 +330,12 @@ class SessionTicketModel {
     }
   }
 
-  /**
-   * Update ticket type
-   * @param {String} ticketTypeId - Ticket type ID
-   * @param {Object} updateData - Update data
-   * @param {String} userId - User ID for permission check
-   * @returns {Object} Updated ticket type
-   */
   static async updateTicketType(ticketTypeId, updateData, userId) {
     const client = await pool.connect();
 
     try {
       await client.query('BEGIN');
 
-      // Check permission
-      // const permissionCheck = await client.query(`
-      //   SELECT tt.id 
-      //   FROM ticket_types tt
-      //   JOIN events e ON tt.event_id = e.id
-      //   LEFT JOIN event_organizer_members eom ON e.id = eom.event_id
-      //   WHERE tt.id = $1 
-      //   AND (e.organizer_id = $2 OR (eom.user_id = $2 AND eom.role IN ('owner', 'manager')))
-      // `, [ticketTypeId, userId]);
-
-      // if (permissionCheck.rows.length === 0) {
-      //   throw new Error('Permission denied');
-      // }
-
-       // Get current ticket type data
       const currentQuery = `
         SELECT tt.*, e.organizer_id
         FROM ticket_types tt
@@ -415,8 +353,7 @@ class SessionTicketModel {
       }
       
       const currentTicket = currentResult.rows[0];
-      
-      // ✅ Validate updates
+ 
       if (updateData.price !== undefined && updateData.price < 0) {
         throw new Error('Price cannot be negative');
       }
@@ -495,19 +432,11 @@ class SessionTicketModel {
     }
   }
 
-  /**
-   * Delete session (soft delete)
-   * @param {String} sessionId - Session ID
-   * @param {String} userId - User ID for permission check
-   * @returns {Boolean} Success status
-   */
   static async deleteSession(sessionId, userId) {
     const client = await pool.connect();
     try {
-      // Soft delete session and related ticket types
       await client.query('BEGIN');
 
-      // Check permission and ensure no tickets sold
       const checkQuery = `
         SELECT es.id, COUNT(t.id) as ticket_count
         FROM event_sessions es
@@ -553,18 +482,11 @@ class SessionTicketModel {
     }
   }
 
-  /**
-   * Delete ticket type (soft delete)
-   * @param {String} ticketTypeId - Ticket type ID
-   * @param {String} userId - User ID for permission check
-   * @returns {Boolean} Success status
-   */
   static async deleteTicketType(ticketTypeId, userId) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // Check permission and ensure no tickets sold
       const checkQuery = `
         SELECT tt.id, tt.sold_quantity
         FROM ticket_types tt
@@ -585,7 +507,6 @@ class SessionTicketModel {
         throw new Error('Cannot delete ticket type with sold tickets');
       }
 
-      // Soft delete
       await client.query(
         'UPDATE ticket_types SET is_active = false, updated_at = NOW() WHERE id = $1',
         [ticketTypeId]

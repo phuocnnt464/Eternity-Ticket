@@ -1,4 +1,3 @@
-// src/models/orderModel.js
 const pool = require('../config/database');
 const { generateOrderNumber } = require('../utils/helpers');
 const QRCode = require('qrcode');
@@ -6,30 +5,22 @@ const lockManager = require('../utils/lockManager');
 const { generateSecureQRData } = require('../utils/qrCodeGenerator');
 
 class OrderModel {
-  /**
-   * Create new order with tickets
-   * @param {String} userId - User ID
-   * @param {Object} orderData - Order data
-   * @returns {Object} Created order with tickets
-   */
   static async createOrder(userId, orderData) {
     const {
         event_id,
         session_id,
-        tickets, // Array of {ticket_type_id, quantity}
+        tickets, 
         customer_info,
         coupon_code
     } = orderData;
 
-     // ACQUIRE DISTRIBUTED LOCK PER SESSION Prevent concurrent orders from same user
     const userLockKey = `order:user:${userId}:session:${session_id}`;
-    const userLockToken = await lockManager.acquireLock(userLockKey, 30000); // 30 seconds
+    const userLockToken = await lockManager.acquireLock(userLockKey, 30000);
 
     if (!userLockToken) {
       throw new Error('You already have an order in progress. Please complete your current order or wait a few seconds.');
     }
 
-    // ✅ 2. SESSION LOCK - Prevent ticket overselling
     const sessionLockKey = `order:session:${session_id}`;
     const sessionLockToken = await lockManager.acquireLock(sessionLockKey, 15000);
 
@@ -49,10 +40,7 @@ class OrderModel {
       let reservedUntil;
       
       if (config && config.is_enabled) {
-        // ===================================
-        // CÓ WAITING ROOM → Validate active slot
-        // ===================================
-        console.log(`✅ Waiting room enabled for session ${session_id}`);
+        console.log(`Waiting room enabled for session ${session_id}`);
         const activeSlot = await QueueModel.getActiveUser(orderData.session_id, userId);
       
         if (!activeSlot) {
@@ -63,32 +51,25 @@ class OrderModel {
           throw new Error(`Your queue status is "${activeSlot.status}". Only active users can create orders.`);
         }
 
-        // ✅ Verify expiry time
         const now = new Date();
         const expiresAt = new Date(activeSlot.expires_at);
 
         if (now >= expiresAt) {
-          // Mark as expired in database
           await QueueModel.updateQueueStatus(userId, orderData.session_id, 'expired');
           throw new Error('Your purchase time has expired. Please join the queue again.');
         }
 
         const timeRemaining = Math.floor((expiresAt - now) / 1000);
-        console.log(`⏰ Time remaining for user ${userId}: ${timeRemaining}s`);
+        console.log(`Time remaining for user ${userId}: ${timeRemaining}s`);
 
-        // ✅ Use expires_at from queue slot (NOT create new timer)
         reservedUntil = expiresAt;
       } else {
-        // ===================================
-        // KHÔNG CÓ WAITING ROOM → Timer 15 phút
-        // ===================================
-        console.log(`⚠️ No waiting room for session ${session_id}, creating 15-minute timer`);
+        console.log(`No waiting room for session ${session_id}, creating 15-minute timer`);
         reservedUntil = new Date(Date.now() + 15 * 60 * 1000);
       }
 
-      console.log(`📅 Order will be reserved until: ${reservedUntil.toISOString()}`);
+      console.log(`Order will be reserved until: ${reservedUntil.toISOString()}`);
 
-       //  CHECK EXISTING PENDING ORDER
       const pendingOrderCheck = await client.query(`
         SELECT id, order_number, created_at, reserved_until
         FROM orders
@@ -110,7 +91,6 @@ class OrderModel {
         );
       }
 
-      // Verify session exists and belongs to event
       const sessionCheck = await client.query(`
         SELECT es.id, es.event_id, es.max_tickets_per_order, e.title as event_title
         FROM event_sessions es
@@ -135,14 +115,13 @@ class OrderModel {
       `, [userId]);
 
       const membershipTier = membershipQuery.rows.length > 0 ? membershipQuery.rows[0].tier : 'basic';
-      console.log(`👤 User membership tier: ${membershipTier}`);
+      console.log(`User membership tier: ${membershipTier}`);
 
       const { getSystemSetting } = require('../middleware/authMiddleware');
       const earlyAccessHours = parseInt(await getSystemSetting('premium_early_access_hours', '5'));
       const earlyAccessMinutes = earlyAccessHours * 60;
-      console.log(`⏰ Early access setting: ${earlyAccessHours} hours (${earlyAccessMinutes} minutes)`);
+      console.log(`Early access setting: ${earlyAccessHours} hours (${earlyAccessMinutes} minutes)`);
 
-      // Calculate totals and validate ticket availability
       let subtotal = 0;
       let totalTickets = 0;
       const ticketDetails = [];
@@ -150,7 +129,6 @@ class OrderModel {
       for (const ticketItem of tickets) {
         const { ticket_type_id, quantity } = ticketItem;
         
-        // Get ticket type details and check availability
         const ticketQuery = await client.query(`
           SELECT tt.*, (tt.total_quantity - tt.sold_quantity) as available_quantity
           FROM ticket_types tt
@@ -164,7 +142,6 @@ class OrderModel {
 
         const ticketType = ticketQuery.rows[0];
 
-        // Check availability
         if (parseInt(ticketType.available_quantity) < quantity) {
           throw new Error(`Not enough tickets available for ${ticketType.name}. Available: ${ticketType.available_quantity}, Requested: ${quantity}`);
         }
@@ -174,22 +151,16 @@ class OrderModel {
           throw new Error(`Invalid quantity for ${ticketType.name}. Must be between ${ticketType.min_quantity_per_order} and ${ticketType.max_quantity_per_order}`);
         }
 
-        // Check sale period
         const now = new Date();
-        // if (now < new Date(ticketType.sale_start_time) || now > new Date(ticketType.sale_end_time)) {
-        //   throw new Error(`${ticketType.name} is not available for sale at this time`);
-        // }
 
         const saleStartTime = new Date(ticketType.sale_start_time);
         const saleEndTime = new Date(ticketType.sale_end_time);
         
         const earlyAccessStartTime = new Date(saleStartTime.getTime() - earlyAccessMinutes * 60000);
         
-        // ✅ Check if in early access period
         const isInEarlyAccessPeriod = now >= earlyAccessStartTime && now < saleStartTime;
 
         if (isInEarlyAccessPeriod) {
-          // ✅ During early access: Only premium members allowed
           if (membershipTier !== 'premium') {
             const minutesRemaining = Math.ceil((saleStartTime - now) / 60000);
             throw new Error(
@@ -198,10 +169,8 @@ class OrderModel {
               `Upgrade to Premium to buy now. `
             );
           }
-          // ✅ Premium user during early access → ALLOW
-          console.log(`✅ Premium user accessing ${ticketType.name} during early access period`);
+          console.log(`Premium user accessing ${ticketType.name} during early access period`);
         } else {
-          // ✅ Outside early access: Check normal sale period
           if (now < earlyAccessStartTime) {
             throw new Error(`Sale for ${ticketType.name} has not started yet`);
           }
@@ -226,8 +195,6 @@ class OrderModel {
 
       for (const ticketDetail of ticketDetails) {
         const { ticket_type, quantity } = ticketDetail;
-        
-        // Validate min/max per ticket type
         if (quantity < ticket_type.min_quantity_per_order) {
           throw new Error(
             `Minimum ${ticket_type.min_quantity_per_order} tickets required for ${ticket_type.name}. You selected ${quantity}.`
@@ -242,12 +209,10 @@ class OrderModel {
       }
 
       const premiumEarlyAccessMaxTickets = parseInt(await getSystemSetting('premium_early_access_max_tickets', '5'));
-
-      // ✅ Check if currently in early access period
+      
       const now = new Date();
       let isInEarlyAccessPeriod = false;
 
-      // Check if ANY ticket in cart is in early access period
       for (const ticketDetail of ticketDetails) {
         const saleStartTime = new Date(ticketDetail.ticket_type.sale_start_time);
         const earlyAccessStartTime = new Date(saleStartTime.getTime() - earlyAccessMinutes * 60000);
@@ -259,43 +224,21 @@ class OrderModel {
         }
       }
 
-      // Check session max tickets limit
-      // let maxAllowed = session.max_tickets_per_order;
-
-
       let maxAllowed;
       let limitReason = '';
 
       if (isInEarlyAccessPeriod) {
-        // During early access: Premium gets limited tickets per order
         if (membershipTier === 'premium') {
           maxAllowed = Math.min(premiumEarlyAccessMaxTickets, session.max_tickets_per_order);
           limitReason = 'Premium early access period';
-          console.log(`🌟 Premium early access: max ${maxAllowed} tickets (session limit: ${session.max_tickets_per_order})`);
         } else {
-          // Non-premium shouldn't reach here (blocked in earlier validation)
           throw new Error('Only Premium members can purchase during early access period');
         }
       } else {
-        // During public sale: Everyone follows session limit
         maxAllowed = session.max_tickets_per_order;
         limitReason = 'Public sale period';
-          console.log(`🎫 Public sale: max ${maxAllowed} tickets for all users`);
+        console.log(`🎫 Public sale: max ${maxAllowed} tickets for all users`);
       }
-
-
-      // if (membershipTier === 'premium') {
-      //   maxAllowed = Math.min(5, session.max_tickets_per_order);
-        
-      //   if (totalTickets > 5) {
-      //     throw new Error(`Premium members can order maximum 5 tickets per order. You selected ${totalTickets}.`);
-      //   }
-      // }
-
-      // Check session max tickets limit
-      // if (totalTickets > maxAllowed) {
-      //   throw new Error(`Cannot order more than ${maxAllowed} tickets per session`);
-      // }
 
       if (totalTickets > maxAllowed) {
         if (isInEarlyAccessPeriod && membershipTier === 'premium') {
@@ -309,22 +252,19 @@ class OrderModel {
         }
       }
 
-      // Calculate membership discount
       let membershipDiscount = 0;
       if (membershipTier === 'premium') {
-        membershipDiscount = subtotal * 0.10; // 10% discount
+        membershipDiscount = subtotal * 0.10;
       } else if (membershipTier === 'advanced') {
-        membershipDiscount = subtotal * 0.05; // 5% discount
+        membershipDiscount = subtotal * 0.05; 
       }
 
-      // Apply coupon discount if provided (simplified)
       let couponDiscount = 0;
       let appliedCoupon = null;
 
       if (coupon_code) {
         console.log(`Applying coupon code: ${coupon_code}`);
        
-        // ✅ 1. GET AND LOCK COUPON
         const couponQuery = await client.query(`
           SELECT c.*
           FROM coupons c
@@ -342,14 +282,13 @@ class OrderModel {
 
         const coupon = couponQuery.rows[0];
 
-        // ✅ 2. GET AND LOCK USAGE RECORDS
         const usageQuery = await client.query(`
           SELECT 
             COUNT(*) as total_uses,
             COUNT(*) FILTER (WHERE user_id = $2) as user_uses
           FROM coupon_usages
           WHERE coupon_id = $1
-          FOR UPDATE  -- ✅ Lock usage records!
+          FOR UPDATE 
         `, [coupon.id, userId]);
 
         const { total_uses, user_uses } = usageQuery.rows[0];
@@ -362,30 +301,23 @@ class OrderModel {
           usage_limit_per_user: coupon.usage_limit_per_user
         });
 
-        // ✅ 1. CHECK GLOBAL USAGE LIMIT
         if (coupon.usage_limit && parseInt(total_uses) >= coupon.usage_limit) {
           throw new Error('This coupon has reached its usage limit');
         }
 
-        // ✅ 2. CHECK USER USAGE LIMIT
         if (parseInt(user_uses) >= coupon.usage_limit_per_user) {
           throw new Error(`You have already used this coupon ${coupon.usage_limit_per_user} time(s)`);
         }
 
-        // ✅ 3. CHECK MINIMUM ORDER AMOUNT
         if (subtotal < parseFloat(coupon.min_order_amount || 0)) {
           throw new Error(
             `Minimum order amount for this coupon is ${coupon.min_order_amount}. Your subtotal is ${subtotal}`
           );
         }
 
-        // ✅ 4. CHECK MEMBERSHIP TIER RESTRICTION
         if (coupon.membership_tiers && coupon.membership_tiers.length > 0) {
-          // Guest (basic) can use general coupons
-          // Members can use member-exclusive coupons
           if (!coupon.membership_tiers.includes(membershipTier)) {
 
-            // ✅ Detailed message for different cases
             const tierNames = {
               'basic': 'General users',
               'advanced': 'Advanced members',
@@ -396,19 +328,16 @@ class OrderModel {
             const currentTierName = tierNames[membershipTier] || membershipTier;
 
             throw new Error(
-              // `This coupon is only available for ${coupon.membership_tiers.join(', ')} members. Your tier: ${membershipTier}`
               `This coupon is only available for: ${allowedTiers}. Your tier: ${currentTierName}`
             );
           }
         }
 
-        // ✅ 5. CALCULATE DISCOUNT (apply AFTER membership discount)
         const discountableAmount = subtotal - membershipDiscount;
         
         if (coupon.type === 'percentage') {
           couponDiscount = discountableAmount * (parseFloat(coupon.discount_value) / 100);
           
-          // ✅ Apply max discount limit if exists
           if (coupon.max_discount_amount) {
             couponDiscount = Math.min(couponDiscount, parseFloat(coupon.max_discount_amount));
           }
@@ -417,10 +346,7 @@ class OrderModel {
         }
 
         appliedCoupon = coupon;
-        
-        console.log(`Coupon applied: ${coupon.code}, discount: ${couponDiscount}`);
-        
-        // INCREMENT USED COUNT
+                
         await client.query(`
           UPDATE coupons 
           SET used_count = used_count + 1,
@@ -429,30 +355,11 @@ class OrderModel {
         `, [coupon.id]);
       }
 
-      // Calculate VAT (10%)
       const vatAmount = (subtotal - membershipDiscount - couponDiscount) * 0.10;
       const totalAmount = subtotal - membershipDiscount - couponDiscount + vatAmount;
-      
-      // let reservedUntil;
-      // if (activeSlot && activeSlot.expires_at) {
-      //   // ✅ Dùng expires_at từ queue slot
-      //   reservedUntil = new Date(activeSlot.expires_at);
-      //   console.log(`✅ Using queue slot expiry: ${reservedUntil}`);
-      // } else {
-      //   // ⚠️ Fallback nếu không có waiting room (15 phút mới)
-      //   reservedUntil = new Date(Date.now() + 15 * 60 * 1000);
-      //   console.log(`⚠️ No active slot, creating new expiry: ${reservedUntil}`);
-      // }
 
-      // // ✅ KIỂM TRA xem còn thời gian không
-      // if (new Date() >= reservedUntil) {
-      //   throw new Error('Your purchase time has expired. Please join the queue again.');
-      // }
-
-      // Generate order number
       const orderNumber = generateOrderNumber();
 
-      // Create order
       const orderQuery = `
         INSERT INTO orders (
           order_number, user_id, event_id, session_id,
@@ -461,8 +368,6 @@ class OrderModel {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING *
       `;
-
-      // const reservedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
 
       const orderResult = await client.query(orderQuery, [
         orderNumber, userId, event_id, session_id,
@@ -474,11 +379,9 @@ class OrderModel {
 
       const order = orderResult.rows[0];
 
-      // Create order items and individual tickets
       const createdTickets = [];
 
       for (const ticketDetail of ticketDetails) {
-        // ✅ STEP 1: Lock ticket type
         const lockQuery = `
           SELECT id, name, total_quantity, sold_quantity, 
                 sale_start_time, sale_end_time
@@ -498,33 +401,27 @@ class OrderModel {
           ticketType = lockResult.rows[0];
         } catch (lockError) {
           if (lockError.code === '55P03') {
-            throw new Error('Too many people are buying this ticket right now. Please try again in a few seconds.');
+            throw new Error('Too many people are buying this ticket right now');
           }
           throw lockError;
         }
 
-        // ✅ STEP 2: Check availability AFTER lock
         const available = ticketType.total_quantity - ticketType.sold_quantity;
         if (available < ticketDetail.quantity) {
           throw new Error(`Not enough tickets available. Only ${available} tickets left for ${ticketType.name}`);
         }
 
-        // ✅ STEP 3: Verify sale period
         const now = new Date();
         const saleStartTime = new Date(ticketType.sale_start_time);
         const saleEndTime = new Date(ticketType. sale_end_time);
 
         const earlyAccessStartTime = new Date(saleStartTime.getTime() - earlyAccessMinutes * 60000);
 
-        // ✅ Check if in early access period
         const isInEarlyAccessPeriod = now >= earlyAccessStartTime && now < saleStartTime;
 
         if (isInEarlyAccessPeriod) {
-          // During early access: This code path should only be reached by premium users
-          // (because non-premium were already blocked in first validation)
-          console.log(`✅ Creating tickets during early access period`);
+          console.log(`Creating tickets during early access period`);
         } else {
-          // Outside early access: Check normal sale period
           if (now < earlyAccessStartTime) {
             throw new Error(`Sale for ${ticketType.name} has not started yet`);
           }
@@ -533,7 +430,6 @@ class OrderModel {
           }
         }
 
-        // Create order item
         const orderItemQuery = `
           INSERT INTO order_items (order_id, ticket_type_id, quantity, unit_price, total_price)
           VALUES ($1, $2, $3, $4, $5)
@@ -550,45 +446,32 @@ class OrderModel {
 
         const orderItem = orderItemResult.rows[0];
 
-        // Create individual tickets
         for (let i = 0; i < ticketDetail.quantity; i++) {
 
-          // ✅ GENERATE UNIQUE TICKET CODE WITH RETRY
           let ticketCode;
           let retries = 0;
           const maxRetries = 5;
           
           while (retries < maxRetries) {
-            // Include counter to ensure uniqueness within same order
             ticketCode = `ET${Date.now()}${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
             
-            // CHECK IF EXISTS
             const existing = await client.query(
               'SELECT id FROM tickets WHERE ticket_code = $1',
               [ticketCode]
             );
             
             if (existing.rows.length === 0) {
-              break; // Unique code found
+              break; 
             }
             
             retries++;
             if (retries >= maxRetries) {
               throw new Error('Failed to generate unique ticket code after multiple attempts');
             }
-            
-            // Wait a bit before retry
+
             await new Promise(resolve => setTimeout(resolve, 10));
           }
 
-          // Generate QR code data
-          // const qrData = JSON.stringify({
-          //   ticket_code: ticketCode,
-          //   event_id,
-          //   session_id,
-          //   order_id: order.id,
-          //   timestamp: new Date().toISOString()
-          // });
           const qrData = generateSecureQRData({
             ticket_code: ticketCode,
             event_id,
@@ -617,7 +500,6 @@ class OrderModel {
           createdTickets.push(ticketResult.rows[0]);
         }
 
-        // Reserve tickets by updating sold_quantity
         await client.query(`
           UPDATE ticket_types 
           SET sold_quantity = sold_quantity + $1
@@ -625,10 +507,8 @@ class OrderModel {
         `, [ticketDetail.quantity, ticketDetail.ticket_type_id]);
       }
 
-      // Random cooldown between 2-3 minutes (120-180 seconds)
       const cooldownSeconds = Math.floor(Math.random() * 61) + 120; // 120-180 seconds
 
-      // SET PURCHASE COOLDOWN
       await client.query(`
         UPDATE users 
         SET purchase_cooldown_until = NOW() + ($1 * INTERVAL '1 seconds'),
@@ -637,23 +517,12 @@ class OrderModel {
         WHERE id = $2
       `, [cooldownSeconds, userId]);
 
-      // await client.query(`
-      //   UPDATE users 
-      //   SET purchase_cooldown_until = NOW() + INTERVAL '2 minutes',
-      //       last_purchase_at = NOW(),
-      //       updated_at = NOW()
-      //   WHERE id = $1
-      // `, [userId]);
-
-      // ✅ 7. INSERT COUPON USAGE RECORD (AFTER ORDER CREATED)
       if (appliedCoupon) {
         await client.query(`
           INSERT INTO coupon_usages (coupon_id, user_id, order_id, discount_amount, used_at)
           VALUES ($1, $2, $3, $4, NOW())
         `, [appliedCoupon.id, userId, order.id, couponDiscount]);
-        
-        console.log(`📝 Coupon usage logged: ${appliedCoupon.code} for order ${order.order_number}`);
-      }
+              }
 
       await client.query('COMMIT');
 
@@ -664,7 +533,6 @@ class OrderModel {
       return {
         order: orderResult.rows[0],
         tickets: createdTickets,
-        // order_items: ticketDetails
         expires_at: reservedUntil,
         time_remaining_seconds: timeRemaining
       };
@@ -687,12 +555,6 @@ class OrderModel {
     }
   }
 
-  /**
-   * Get order by ID with details
-   * @param {String} orderId - Order ID
-   * @param {String} userId - User ID (for ownership check)
-   * @returns {Object|null} Order with details
-   */
   static async findById(orderId, userId = null) {
     try {
       let whereClause = 'WHERE o.id = $1';
@@ -730,7 +592,6 @@ class OrderModel {
       const order = orderResult.rows[0];
 
       console.log("customer_info type:", typeof order.customer_info, order.customer_info);
-      // Parse JSON fields
       if (order.customer_info && typeof order.customer_info === 'string') {
         order.customer_info = JSON.parse(order.customer_info);
       }
@@ -738,7 +599,6 @@ class OrderModel {
         order.payment_data = JSON.parse(order.payment_data);
       }
 
-      // Get order items and tickets
       const itemsQuery = `
         SELECT 
           oi.*,
@@ -783,12 +643,6 @@ class OrderModel {
     }
   }
 
-  /**
-   * Update order status and payment info
-   * @param {String} orderId - Order ID
-   * @param {Object} updateData - Update data
-   * @returns {Object} Updated order
-   */
   static async updateOrderStatus(orderId, updateData) {
     const client = await pool.connect();
 
@@ -826,7 +680,6 @@ class OrderModel {
 
       const order = result.rows[0];
 
-      // If payment failed, release reserved tickets
       if (status === 'failed' || status === 'cancelled') {
         await client.query(`
           UPDATE ticket_types 
@@ -843,7 +696,6 @@ class OrderModel {
         `, [orderId]);
       }
 
-      // If payment successful, generate QR codes for tickets
       if (status === 'paid') {
         const tickets = await client.query('SELECT * FROM tickets WHERE order_id = $1', [orderId]);
         
@@ -874,12 +726,6 @@ class OrderModel {
     }
   }
 
-  /**
-   * Get user orders with pagination
-   * @param {String} userId - User ID
-   * @param {Object} pagination - Pagination options
-   * @returns {Object} Orders with pagination
-   */
   static async getUserOrders(userId, pagination = { page: 1, limit: 10 }) {
     try {
       const { page, limit } = pagination;
@@ -940,10 +786,6 @@ class OrderModel {
     }
   }
 
-  /**
-   * Cancel expired orders
-   * @returns {Number} Number of cancelled orders
-   */
   static async cancelExpiredOrders() {
     const client = await pool.connect();
 
@@ -962,13 +804,13 @@ class OrderModel {
 
       if (expiredOrders.length === 0) {
         await client.query('COMMIT');
-        console.log('✅ No expired orders found');
+        console.log('No expired orders found');
         return 0;
       }
 
       const expiredOrderIds = expiredOrders.map(o => o.id);
 
-      console.log(`🔄 Cancelling ${expiredOrderIds.length} expired orders:`, 
+      console.log(`Cancelling ${expiredOrderIds.length} expired orders:`, 
       expiredOrders.map(o => o.order_number).join(', '));
 
       // Cancel expired orders
@@ -978,7 +820,6 @@ class OrderModel {
         WHERE id = ANY($1)
       `, [expiredOrderIds]);
 
-      // Release reserved tickets
       await client.query(`
         UPDATE ticket_types 
         SET sold_quantity = sold_quantity - oi.quantity
@@ -986,7 +827,6 @@ class OrderModel {
         WHERE ticket_types.id = oi.ticket_type_id AND oi.order_id = ANY($1)
       `, [expiredOrderIds]);
 
-      // Update ticket status
       await client.query(`
         UPDATE tickets 
         SET status = 'cancelled'
@@ -996,7 +836,6 @@ class OrderModel {
       const userIds = expiredOrders.map(o => o.user_id);
       const sessionIds = expiredOrders.map(o => o.session_id);
 
-      // ✅ NEW: Release queue slots and mark as expired
       if (userIds.length > 0 && sessionIds.length > 0) {
         await client.query(`
           UPDATE waiting_queue
@@ -1011,7 +850,6 @@ class OrderModel {
 
       console.log(`Cancelled ${expiredOrderIds.length} expired orders`);
 
-      // Process queue for each session to activate next users
       const QueueModel = require('./queueModel');
       const QueueController = require('../controllers/queueController');
       
@@ -1019,7 +857,6 @@ class OrderModel {
       
       for (const sessionId of uniqueSessions) {
         try {
-          // Remove from Redis active set
           const expiredUsers = expiredOrders
             .filter(o => o.session_id === sessionId)
             .map(o => o.user_id);
@@ -1028,12 +865,11 @@ class OrderModel {
             await QueueModel.removeActiveUser(sessionId, userId);
           }
           
-          // Process queue to activate next users
           await QueueController.processQueue(sessionId);
           
-          console.log(`✅ Processed queue for session ${sessionId} after order expiry`);
+          console.log(`Processed queue for session ${sessionId} after order expiry`);
         } catch (queueError) {
-          console.error(`❌ Failed to process queue for session ${sessionId}:`, queueError);
+          console.error(`Failed to process queue for session ${sessionId}:`, queueError);
         }
       }
       

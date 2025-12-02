@@ -1,4 +1,3 @@
-// src/routes/checkinRoutes.js
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const CheckinController = require('../controllers/checkinController');
@@ -14,30 +13,23 @@ const pool = require('../config/database');
 const router = express.Router();
 
 const checkinLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 1000, // max 1000 checkin attempts per minute per IP
+  windowMs: 1 * 60 * 1000, 
+  max: 1000,
   message: {
     success: false,
     error: { message: 'Too many check-in attempts. Please wait.' }
   }
 });
 
-/**
- * Helper middleware: Lấy eventId từ ticketCode nếu cần
- * Để authorizeEventOrganizer hoạt động, cần eventId trong req.params hoặc req.body
- */
 const extractEventIdFromTicket = async (req, res, next) => {
   try {
-    // Nếu đã có eventId trong params hoặc query, skip
     if (req.params.eventId || (req.query && req.query.eventId) || (req.body && req.body.eventId)) {
-      // Đưa eventId vào params để authorizeEventOrganizer dùng
       if (!req.params.eventId) {
         req.params.eventId = (req.query && req.query.eventId) || (req.body && req.body.eventId);
       }
       return next();
     }
-    
-    // Nếu có ticketCode, lấy eventId từ ticket
+
     const { ticketCode } = req.params;
     
     if (ticketCode) {
@@ -51,8 +43,7 @@ const extractEventIdFromTicket = async (req, res, next) => {
           createResponse(false, 'Ticket not found')
         );
       }
-      
-      // Inject eventId vào params để middleware tiếp theo dùng
+            
       req.params.eventId = result.rows[0].event_id;
     }
     
@@ -65,15 +56,10 @@ const extractEventIdFromTicket = async (req, res, next) => {
   }
 };
 
-/**
- * Middleware tổng hợp cho undo checkin
- * Chỉ owner, manager và admin được undo
- */
 const canUndoCheckin = [
   extractEventIdFromTicket,
   authorizeEventOrganizer(),
   (req, res, next) => {
-    // Admin luôn được phép
     if (req.isAdmin) {
       return next();
     }
@@ -83,13 +69,6 @@ const canUndoCheckin = [
         createResponse(false, 'Event access required')
       );
     }
-
-    // Chỉ owner mới được undo
-    // if (!req.eventAccess || !req.eventAccess.isOwner) {
-    //   return res.status(403).json(
-    //     createResponse(false, 'Only event owner or admin can undo check-ins')
-    //   );
-    // }
 
     const isOwner = req.eventAccess.isOwner;
     const isManager = req.eventAccess.memberRole === 'manager';
@@ -104,14 +83,8 @@ const canUndoCheckin = [
   }
 ];
 
-// All check-in routes require authentication
 router.use(authenticateToken);
 
-/**
- * @route   GET /api/checkin/verify/:ticketCode
- * @desc    Verify ticket before check-in
- * @access  Private (Event Staff)
- */
 router.get('/verify/:ticketCode',
   extractEventIdFromTicket,
   authorizeEventOrganizer(),
@@ -119,11 +92,6 @@ router.get('/verify/:ticketCode',
   CheckinController.verifyTicket
 );
 
-/**
- * @route   POST /api/checkin/:ticketCode
- * @desc    Check-in ticket
- * @access  Private (Event Staff)
- */
 router.post('/:ticketCode',
   checkinLimiter,
   extractEventIdFromTicket,
@@ -132,44 +100,24 @@ router.post('/:ticketCode',
   CheckinController.checkinTicket
 );
 
-/**
- * @route   GET /api/checkin/event/:eventId/stats
- * @desc    Get check-in statistics for event
- * @access  Private (Event Organizer)
- */
 router.get('/event/:eventId/stats',
   authorizeEventOrganizer(),
   requireEventRole('manager','checkin_staff'),
   CheckinController.getCheckinStats
 );
 
-/**
- * @route   GET /api/checkin/event/:eventId/recent
- * @desc    Get recent check-ins for event
- * @access  Private (Event Organizer)
- */
 router.get('/event/:eventId/recent',
   authorizeEventOrganizer(),
   requireEventRole('manager','checkin_staff'),
   CheckinController.getRecentCheckins
 );
 
-/**
- * @route   GET /api/checkin/event/:eventId/search
- * @desc    Search tickets for event
- * @access  Private (Event Organizer)
- */
 router.get('/event/:eventId/search',
   authorizeEventOrganizer(),
   requireEventRole('manager','checkin_staff'),
   CheckinController.searchTickets
 );
 
-/**
- * @route   DELETE /api/checkin/:ticketCode
- * @desc    Undo check-in (Admin/Owner only)
- * @access  Private (Event Owner/Admin)
- */
 router.delete('/:ticketCode/undo',
   ...canUndoCheckin,
   CheckinController.undoCheckin

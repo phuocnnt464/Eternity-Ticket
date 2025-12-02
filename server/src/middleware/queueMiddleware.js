@@ -1,10 +1,6 @@
-// server/src/middleware/queueMiddleware.js
 const QueueController = require('../controllers/queueController');
 const { createResponse } = require('../utils/helpers');
 
-/**
- * Check if user is in active purchase slot
- */
 const checkQueueAccess = async (req, res, next) => {
   try {
     const { session_id } = req.body;
@@ -35,13 +31,10 @@ const checkQueueAccess = async (req, res, next) => {
 
   } catch (error) {
     console.error('Queue access check error:', error);
-    next(); // Don't block on error
+    next();
   }
 };
 
-/**
- * Validate queue request body
- */
 const validateQueueRequest = (req, res, next) => {
   const { session_id } = req.body;
 

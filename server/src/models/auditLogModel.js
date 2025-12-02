@@ -1,9 +1,6 @@
 const pool = require('../config/database');
 
 class AuditLogModel {
-  /**
-   * Create audit log entry
-   */
   static async create(logData) {
     const query = `
       INSERT INTO admin_audit_logs (
@@ -26,9 +23,6 @@ class AuditLogModel {
     return result.rows[0];
   }
 
-   /**
-   * Find all audit logs with filters
-   */
   static async findAll(filters = {}, limit = 100, offset = 0) {
     let query = `
       SELECT aal.*, 
@@ -78,7 +72,6 @@ class AuditLogModel {
 
     const result = await pool.query(query, values);
     
-     // Get total count - FIX: Use proper count query
     const countQuery = `
       SELECT COUNT(*) as total 
       FROM admin_audit_logs aal
@@ -86,9 +79,7 @@ class AuditLogModel {
       WHERE ${whereClause}
     `;
 
-    // Get total count
-    // let countQuery = query.split('ORDER BY')[0].replace(/SELECT.*FROM/, 'SELECT COUNT(*) FROM');
-    const countValues = values.slice(0, -2); // Remove LIMIT and OFFSET
+    const countValues = values.slice(0, -2); 
     const countResult = await pool.query(countQuery, countValues);
     
     const totalCount = parseInt(countResult.rows[0].total) || 0;
@@ -101,9 +92,6 @@ class AuditLogModel {
     };
   }
 
-  /**
-   * Find audit logs by target
-   */
   static async findByTarget(targetType, targetId) {
     const query = `
       SELECT aal.*, 

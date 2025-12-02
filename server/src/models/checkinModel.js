@@ -1,14 +1,7 @@
-// src/models/checkinModel.js
 const pool = require('../config/database');
 const { verifySecureQRData } = require('../utils/qrCodeGenerator');
 
 class CheckinModel {
-  /**
-   * Verify ticket by code or QR data
-   * @param {String} ticketCode - Ticket code
-   * @param {String} eventId - Event ID (optional for additional verification)
-   * @returns {Object|null} Ticket details if valid
-   */
   static async verifyTicket(ticketCode, eventId = null) {
     try {
       let query = `
@@ -52,25 +45,11 @@ class CheckinModel {
     }
   }
 
-  /**
-   * Check-in ticket
-   * @param {String} ticketCode - Ticket code
-   * @param {String} checkedInBy - User ID of person checking in the ticket
-   * @param {String} location - Check-in location (optional)
-   * @returns {Object} Check-in result
-   */
   static async checkinTicket(ticketCode, checkedInBy, location = null) {
     const client = await pool.connect();
 
     try {
       await client.query('BEGIN');
-
-      // Get ticket details
-      // const ticket = await this.verifyTicket(ticketCode);
-
-      // if (!ticket) {
-      //   throw new Error('Ticket not found');
-      // }
 
       const verifyQuery = `
         SELECT t.*, tt.name as ticket_type_name, 
@@ -85,13 +64,11 @@ class CheckinModel {
         FOR UPDATE NOWAIT  -- Khóa row cho đến khi COMMIT
       `;
       
-      // const result = await client.query(verifyQuery, [ticketCode]);
-      
       let result;
       try {
         result = await client.query(verifyQuery, [ticketCode]);
       } catch (lockError) {
-        if (lockError.code === '55P03') { // Lock not available
+        if (lockError.code === '55P03') {
           throw new Error('Ticket is being scanned at another gate. Please wait a moment.');
         }
         throw lockError;
@@ -103,7 +80,6 @@ class CheckinModel {
       
       const ticket = result.rows[0];
 
-      // Verify ticket is valid for check-in
       if (ticket.order_status !== 'paid') {
         throw new Error('Ticket order is not paid. Cannot check in.');
       }
@@ -117,7 +93,6 @@ class CheckinModel {
       }
 
       if (ticket.is_checked_in) {
-        // Already checked in - return check-in details
         return {
           success: false,
           message: 'Ticket already checked in',
@@ -132,7 +107,6 @@ class CheckinModel {
         };
       }
 
-      // Verify check-in user has permission for this event
       const permissionCheck = await client.query(`
         SELECT eom.role
         FROM event_organizer_members eom
@@ -150,7 +124,6 @@ class CheckinModel {
         }
       }
 
-      // Perform check-in
       const checkinQuery = `
         UPDATE tickets
         SET is_checked_in = true,
@@ -193,12 +166,6 @@ class CheckinModel {
     }
   }
 
-  /**
-   * Get check-in statistics for event
-   * @param {String} eventId - Event ID
-   * @param {String} sessionId - Session ID (optional)
-   * @returns {Object} Check-in statistics
-   */
   static async getCheckinStats(eventId, sessionId = null) {
     try {
       let query = `
@@ -236,7 +203,6 @@ class CheckinModel {
 
       const stats = result.rows[0];
 
-      // Get breakdown by ticket type
       let ticketTypeQuery = `
         SELECT 
           tt.name as ticket_type_name,
@@ -281,12 +247,6 @@ class CheckinModel {
     }
   }
 
-  /**
-   * Get recent check-ins for event
-   * @param {String} eventId - Event ID
-   * @param {Number} limit - Number of records to return
-   * @returns {Array} Recent check-ins
-   */
   static async getRecentCheckins(eventId, limit = 50) {
     try {
       const query = `
@@ -315,12 +275,6 @@ class CheckinModel {
     }
   }
 
-  /**
-   * Search tickets for check-in
-   * @param {String} eventId - Event ID
-   * @param {String} searchTerm - Search term (ticket code, holder name, email)
-   * @returns {Array} Matching tickets
-   */
   static async searchTickets(eventId, searchTerm) {
     try {
       const query = `
@@ -360,15 +314,8 @@ class CheckinModel {
     }
   }
 
-  /**
-   * Undo check-in (admin only)
-   * @param {String} ticketCode - Ticket code
-   * @param {String} undoneBy - User ID of person undoing check-in
-   * @returns {Boolean} Success status
-   */
   static async undoCheckin(ticketCode, undoneBy) {
     try {
-      // Verify ticket exists and is checked in
       const ticket = await this.verifyTicket(ticketCode);
 
       if (!ticket) {
@@ -379,7 +326,6 @@ class CheckinModel {
         throw new Error('Ticket is not checked in');
       }
 
-      // Verify user has permission (owner or admin)
       const permissionCheck = await pool.query(`
         SELECT e.organizer_id, u.role
         FROM events e
@@ -397,7 +343,6 @@ class CheckinModel {
         throw new Error('Only event owner or admin can undo check-ins');
       }
 
-      // Undo check-in
       await pool.query(`
         UPDATE tickets
         SET is_checked_in = false,
@@ -418,17 +363,14 @@ class CheckinModel {
 
   static async verifyTicketFromQR(qrToken, eventId = null) {
     try {
-      // Decode JWT QR
       const qrData = verifySecureQRData(qrToken);
       
-      // Verify bằng ticket_code
       const ticket = await this.verifyTicket(qrData.ticket_code, eventId);
       
       if (!ticket) {
         throw new Error('Ticket not found');
       }
       
-      // Additional verification
       if (ticket.event_id !== qrData.event_id) {
         throw new Error('QR code does not match event');
       }

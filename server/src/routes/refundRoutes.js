@@ -5,7 +5,6 @@ const { authenticateToken, authorizeRoles } = require('../middleware/authMiddlew
 const { validate, validateUUIDParam } = require('../middleware/validationMiddleware');
 const { logAdminAudit } = require('../middleware/activityLogger');
 
-// Import Joi schemas
 const {
   createRefundRequestSchema,
   approveRefundSchema,
@@ -14,15 +13,6 @@ const {
   getRefundsQuerySchema
 } = require('../validations/refundValidation');
 
-// =============================================
-// PARTICIPANT ROUTES
-// =============================================
-
-/**
- * @route   POST /api/refunds
- * @desc    Create refund request
- * @access  Private (Participant)
- */
 router.post(
   '/',
   authenticateToken,
@@ -31,11 +21,6 @@ router.post(
   RefundController.createRefundRequest
 );
 
-/**
- * @route   GET /api/refunds/my-requests
- * @desc    Get current user's refund requests
- * @access  Private
- */
 router.get(
   '/my-requests',
   authenticateToken,
@@ -43,15 +28,6 @@ router.get(
   RefundController.getMyRefundRequests
 );
 
-// =============================================
-// ADMIN ROUTES
-// =============================================
-
-/**
- * @route   GET /api/refunds
- * @desc    Get all refund requests (Admin)
- * @access  Private (Admin)
- */
 router.get(
   '/',
   authenticateToken,
@@ -60,11 +36,6 @@ router.get(
   RefundController.getRefundRequests
 );
 
-/**
- * @route   GET /api/refunds/:id
- * @desc    Get refund request by ID
- * @access  Private (Admin or Owner)
- */
 router.get(
   '/:id',
   authenticateToken,
@@ -72,11 +43,6 @@ router.get(
   RefundController.getRefundById
 );
 
-/**
- * @route   PUT /api/refunds/:id/approve
- * @desc    Approve refund request
- * @access  Private (Admin)
- */
 router.put(
   '/:id/approve',
   authenticateToken,
@@ -87,11 +53,6 @@ router.put(
   RefundController.approveRefund
 );
 
-/**
- * @route   PUT /api/refunds/:id/reject
- * @desc    Reject refund request
- * @access  Private (Admin)
- */
 router.put(
   '/:id/reject',
   authenticateToken,
@@ -102,11 +63,6 @@ router.put(
   RefundController.rejectRefund
 );
 
-/**
- * @route   PUT /api/refunds/:id/process
- * @desc    Process refund (complete payment)
- * @access  Private (Admin)
- */
 router.put(
   '/:id/process',
   authenticateToken,

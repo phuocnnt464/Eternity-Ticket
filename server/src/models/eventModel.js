@@ -1,14 +1,7 @@
-// src/models/eventModel.js
 const pool = require('../config/database');
 const { generateSlug } = require('../utils/helpers');
 
 class EventModel {
-  /**
-   * Create new event
-   * @param {Object} eventData - Event data
-   * @param {String} organizerId - Organizer user ID
-   * @returns {Object} Created event
-   */
   static async create(eventData, organizerId) {
     const client = await pool.connect();
     
@@ -40,7 +33,6 @@ class EventModel {
         venue_capacity 
       } = eventData;
 
-      // Generate unique slug
       let slug = generateSlug(title);
       let slugExists = true;
       let counter = 1;
@@ -86,14 +78,6 @@ class EventModel {
       const eventResult = await client.query(eventQuery, eventValues);
       const event = eventResult.rows[0];
 
-      console.log(`✅ Event created successfully:`, {
-        id: event.id,
-        title: event.title,
-        status: event.status,
-        organizer_id: event.organizer_id
-      });
-
-      // Add organizer as owner to event_organizer_members
       const memberQuery = `
         INSERT INTO event_organizer_members (event_id, user_id, role, invited_by, accepted_at, is_active)
         VALUES ($1, $2, 'owner', $2, NOW(), true)
@@ -103,7 +87,6 @@ class EventModel {
 
       await client.query('COMMIT');
 
-      console.log(`✅ Event created: ${event.title} (ID: ${event.id})`);
       return event;
 
     } catch (error) {
@@ -114,12 +97,6 @@ class EventModel {
     }
   }
 
-  /**
-   * Get event by ID with full details
-   * @param {String} eventId - Event ID
-   * @param {String} userId - User ID (optional, for permission checks)
-   * @returns {Object|null} Event with details
-   */
   static async findById(eventId, userId = null) {
     try {
       const query = `
@@ -147,7 +124,6 @@ class EventModel {
 
       const event = result.rows[0];
 
-      // Parse JSON fields
       if (event.additional_info && typeof event.additional_info === 'string') {
         try {
           event.additional_info = JSON.parse(event.additional_info);
@@ -166,12 +142,6 @@ class EventModel {
     }
   }
 
-  /**
-   * Get events with filters and pagination
-   * @param {Object} filters - Filter options
-   * @param {Object} pagination - Pagination options
-   * @returns {Object} Events list with pagination info
-   */
   static async findMany(filters = {}, pagination = { page: 1, limit: 10 }) {
     try {
       const {
@@ -189,40 +159,17 @@ class EventModel {
 
       console.log(`🔍 EventModel.findMany called with filters:`, filters);
 
-      // Build WHERE conditions
       let whereConditions = [];
       let queryParams = [];
       let paramCount = 1;
 
-      // Only add status filter if explicitly provided
-      // if (!status && !organizer_id) {
-      //   // Public listing - only show active events
-      //   whereConditions.push(`e.status = 'active'`);
-      // } else if (status) {
-      //   // Explicit status filter
-      //   whereConditions.push(`e.status = $${paramCount}`);
-      //   queryParams.push(status);
-      //   paramCount++;
-      // }
-
-      // Only add status filter for public listings (no status and no organizer)
-      // Admin calls will have neither, so we need another indicator
       if (status) {
-        // Explicit status filter (from admin or organizer)
         whereConditions.push(`e.status = $${paramCount}`);
         queryParams.push(status);
         paramCount++;
       } else if (!organizer_id && !filters.admin_view) {
-        // Public listing - only show active events
-        // (admin_view flag indicates admin is calling)
         whereConditions.push(`e.status = 'active'`);
       }
-
-      // if (status) {
-      //   whereConditions.push(`e.status = $${paramCount}`);
-      //   queryParams.push(status);
-      //   paramCount++;
-      // }
 
       if (privacy_type) {
         whereConditions.push(`e.privacy_type = $${paramCount}`);
@@ -240,7 +187,6 @@ class EventModel {
         whereConditions.push(`e.organizer_id = $${paramCount}`);
         queryParams.push(organizer_id);
         paramCount++;
-        console.log(`📋 Filtering by organizer_id: ${organizer_id}`);
       }
 
       if (city) {
@@ -262,10 +208,6 @@ class EventModel {
       const whereClause = whereConditions.length > 0 ? 
         `WHERE ${whereConditions.join(' AND ')}` : '';
 
-      console.log(`🔍 Generated WHERE clause: ${whereClause}`);
-      console.log(`🔍 Query parameters:`, queryParams);
-
-      // Main query
       const eventsQuery = `
         SELECT 
           e.id, e.title, e.slug, e.description, e.short_description, 
@@ -309,7 +251,6 @@ class EventModel {
         LIMIT $${paramCount} OFFSET $${paramCount + 1}
       `;
 
-      // Count query
       const countQuery = `
         SELECT COUNT(*) as total
         FROM events e
@@ -317,10 +258,7 @@ class EventModel {
       `;
 
       queryParams.push(limit, offset);
-      const countParams = queryParams.slice(0, -2); // Remove limit and offset for count
-
-      console.log(`🔍 Executing main query with ${queryParams.length} parameters`);
-      console.log(`🔍 Executing count query with ${countParams.length} parameters`);
+      const countParams = queryParams.slice(0, -2); 
 
       const [eventsResult, countResult] = await Promise.all([
         pool.query(eventsQuery, queryParams),
@@ -355,174 +293,147 @@ class EventModel {
       };
 
     } catch (error) {
-      console.error('❌ EventModel.findMany error:', error.message);
+      console.error('EventModel.findMany error:', error.message);
       throw new Error(`Failed to fetch events: ${error.message}`);
     }
   }
 
-  /**
- * Update event
- * @param {String} eventId - Event ID
- * @param {Object} updateData - Data to update
- * @param {String} userId - User ID (for permission check)
- * @returns {Object} Updated event
- */
-static async update(eventId, updateData, userId) {
-  const client = await pool.connect();
+  static async update(eventId, updateData, userId) {
+    const client = await pool.connect();
 
-  try {
-    await client.query('BEGIN');
+    try {
+      await client.query('BEGIN');
 
-    // Check if user has permission to update event
-    const permissionQuery = `
-      SELECT eom.role 
-      FROM event_organizer_members eom
-      WHERE eom.event_id = $1 AND eom.user_id = $2 AND eom.is_active = true
-      AND eom.role IN ('owner', 'manager')
-    `;
+      const permissionQuery = `
+        SELECT eom.role 
+        FROM event_organizer_members eom
+        WHERE eom.event_id = $1 AND eom.user_id = $2 AND eom.is_active = true
+        AND eom.role IN ('owner', 'manager')
+      `;
 
-    const permissionResult = await client.query(permissionQuery, [eventId, userId]);
-    
-    if (permissionResult.rows.length === 0) {
-      throw new Error('Permission denied: You are not authorized to update this event');
-    }
+      const permissionResult = await client.query(permissionQuery, [eventId, userId]);
+      
+      if (permissionResult.rows.length === 0) {
+        throw new Error('Permission denied: You are not authorized to update this event');
+      }
 
-    // Build update query
-    const allowedFields = [
-      'title', 'description', 'short_description', 'category_id',
-      'venue_name', 'venue_address', 'venue_city', 'venue_capacity',
-      'organizer_name', 'organizer_description', 
-      'organizer_contact_email', 'organizer_contact_phone',
-      'start_date', 'end_date',
-      'terms_and_conditions', 'additional_info', 'cover_image', 'thumbnail_image',
-      'logo_image', 'venue_map_image'
-    ];
+      const allowedFields = [
+        'title', 'description', 'short_description', 'category_id',
+        'venue_name', 'venue_address', 'venue_city', 'venue_capacity',
+        'organizer_name', 'organizer_description', 
+        'organizer_contact_email', 'organizer_contact_phone',
+        'start_date', 'end_date',
+        'terms_and_conditions', 'additional_info', 'cover_image', 'thumbnail_image',
+        'logo_image', 'venue_map_image'
+      ];
 
-    const fieldsToUpdate = [];
-    const values = [];
-    let paramCount = 1;
+      const fieldsToUpdate = [];
+      const values = [];
+      let paramCount = 1;
 
-    Object.keys(updateData).forEach(key => {
-      if (!allowedFields.includes(key) || updateData[key] === undefined) return;
+      Object.keys(updateData).forEach(key => {
+        if (!allowedFields.includes(key) || updateData[key] === undefined) return;
 
-      let value = updateData[key];
+        let value = updateData[key];
 
-      // Xử lý additional_info (phải là JSON object)
-      if (key === 'additional_info') {
-        if (typeof value === 'string') {
-          try {
-            value = JSON.parse(value); // Parse nếu là string
-          } catch {
-            value = { note: value }; // Wrap vào object nếu parse fail
+        if (key === 'additional_info') {
+          if (typeof value === 'string') {
+            try {
+              value = JSON.parse(value);
+            } catch {
+              value = { note: value };
+            }
+          }
+          value = JSON.stringify(value); 
+        } 
+        else if (['cover_image', 'thumbnail_image', 'logo_image', 'venue_map_image'].includes(key)) {
+          if (value && typeof value === 'object' && value.path) {
+            value = value.path;
+          }
+          else if (typeof value === 'object' && value !== null) {
+            value = JSON.stringify(value);
           }
         }
-        value = JSON.stringify(value); // Stringify để lưu vào DB
-      } 
-      // Xử lý image fields - lấy path nếu là object
-      else if (['cover_image', 'thumbnail_image', 'logo_image', 'venue_map_image'].includes(key)) {
-        // Nếu multer upload trả về object có path
-        if (value && typeof value === 'object' && value.path) {
-          value = value.path;
+        else {
+          if (typeof value === 'object' && value !== null) {
+            console.warn(`Field ${key} is object, converting to JSON string`);
+            value = JSON.stringify(value);
+          }
         }
-        // Nếu là object nhưng không có path thì stringify
-        else if (typeof value === 'object' && value !== null) {
-          value = JSON.stringify(value);
-        }
-        // Nếu là string thì giữ nguyên (đường dẫn file)
-      }
-      // Các field khác
-      else {
-        // Tránh lưu "[object Object]" vào DB
-        if (typeof value === 'object' && value !== null) {
-          console.warn(`⚠️ Field ${key} is object, converting to JSON string`);
-          value = JSON.stringify(value);
-        }
+
+        fieldsToUpdate.push(`${key} = $${paramCount}`);
+        values.push(value);
+        console.log(`🔧 Updating field ${key}:`, value);
+        paramCount++;
+      });
+
+      if (fieldsToUpdate.length === 0) {
+        throw new Error('No valid fields to update');
       }
 
-      fieldsToUpdate.push(`${key} = $${paramCount}`);
-      values.push(value);
-      console.log(`🔧 Updating field ${key}:`, value);
-      paramCount++;
-    });
+      if (updateData.title) {
+        let newSlug = generateSlug(updateData.title);
+        let slugExists = true;
+        let counter = 1;
 
-    if (fieldsToUpdate.length === 0) {
-      throw new Error('No valid fields to update');
-    }
+        while (slugExists) {
+          const slugCheckQuery = 'SELECT id FROM events WHERE slug = $1 AND id != $2';
+          const slugResult = await client.query(slugCheckQuery, [newSlug, eventId]);
+          
+          if (slugResult.rows.length === 0) {
+            slugExists = false;
+          } else {
+            newSlug = `${generateSlug(updateData.title)}-${counter}`;
+            counter++;
+          }
+        }
 
-    // Update slug if title changed
-    if (updateData.title) {
-      let newSlug = generateSlug(updateData.title);
-      let slugExists = true;
-      let counter = 1;
+        fieldsToUpdate.push(`slug = $${paramCount}`);
+        values.push(newSlug);
+        paramCount++;
+      }
 
-      while (slugExists) {
-        const slugCheckQuery = 'SELECT id FROM events WHERE slug = $1 AND id != $2';
-        const slugResult = await client.query(slugCheckQuery, [newSlug, eventId]);
-        
-        if (slugResult.rows.length === 0) {
-          slugExists = false;
-        } else {
-          newSlug = `${generateSlug(updateData.title)}-${counter}`;
-          counter++;
+      values.push(eventId); 
+
+      const updateQuery = `
+        UPDATE events 
+        SET ${fieldsToUpdate.join(', ')}, updated_at = NOW()
+        WHERE id = $${paramCount}
+        RETURNING *
+      `;
+
+      const result = await client.query(updateQuery, values);
+
+      if (result.rows.length === 0) {
+        throw new Error('Event not found');
+      }
+
+      await client.query('COMMIT');
+
+      const updatedEvent = result.rows[0];
+      
+      if (updatedEvent.additional_info && typeof updatedEvent.additional_info === 'string') {
+        try {
+          updatedEvent.additional_info = JSON.parse(updatedEvent.additional_info);
+        } catch {
+          console.warn('Failed to parse additional_info');
         }
       }
 
-      fieldsToUpdate.push(`slug = $${paramCount}`);
-      values.push(newSlug);
-      paramCount++;
+      console.log(`Event updated: ${updatedEvent.title} (ID: ${updatedEvent.id})`);
+      return updatedEvent;
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Update event error:', error.message);
+      throw error;
+    } finally {
+      client.release();
     }
-
-    values.push(eventId); // Add eventId as last parameter
-
-    const updateQuery = `
-      UPDATE events 
-      SET ${fieldsToUpdate.join(', ')}, updated_at = NOW()
-      WHERE id = $${paramCount}
-      RETURNING *
-    `;
-
-    console.log(`📝 Executing update query with ${values.length} parameters`);
-    const result = await client.query(updateQuery, values);
-
-    if (result.rows.length === 0) {
-      throw new Error('Event not found');
-    }
-
-    await client.query('COMMIT');
-
-    const updatedEvent = result.rows[0];
-    
-    // Parse JSON fields for response
-    if (updatedEvent.additional_info && typeof updatedEvent.additional_info === 'string') {
-      try {
-        updatedEvent.additional_info = JSON.parse(updatedEvent.additional_info);
-      } catch {
-        console.warn('⚠️ Failed to parse additional_info');
-      }
-    }
-
-    console.log(`✅ Event updated: ${updatedEvent.title} (ID: ${updatedEvent.id})`);
-    return updatedEvent;
-
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('❌ Update event error:', error.message);
-    throw error;
-  } finally {
-    client.release();
   }
-}
 
-
-  /**
-   * Delete event (soft delete - set status to cancelled)
-   * @param {String} eventId - Event ID
-   * @param {String} userId - User ID (for permission check)
-   * @returns {Boolean} Success status
-   */
   static async delete(eventId, userId) {
     try {
-      // Check if user is owner
       const permissionQuery = `
         SELECT eom.role 
         FROM event_organizer_members eom
@@ -536,7 +447,6 @@ static async update(eventId, updateData, userId) {
         throw new Error('Permission denied: Only event owners can delete events');
       }
 
-      // Soft delete - set status to cancelled
       const deleteQuery = `
         UPDATE events 
         SET status = 'cancelled', updated_at = NOW()
@@ -558,10 +468,6 @@ static async update(eventId, updateData, userId) {
     }
   }
 
-  /**
-   * Increment view count
-   * @param {String} eventId - Event ID
-   */
   static async incrementViewCount(eventId) {
     try {
       const query = `
@@ -572,16 +478,10 @@ static async update(eventId, updateData, userId) {
 
       await pool.query(query, [eventId]);
     } catch (error) {
-      // Don't throw error for view count issues
       console.error('Failed to increment view count:', error.message);
     }
   }
 
-  /**
-   * Get availability status for event
-   * @param {Object} event - Event object
-   * @returns {String} Availability status
-   */
   static getAvailabilityStatus(event) {
     const totalTickets = parseInt(event.total_tickets) || 0;
     const soldTickets = parseInt(event.sold_tickets) || 0;
@@ -592,10 +492,6 @@ static async update(eventId, updateData, userId) {
     return 'available';
   }
 
-  /**
-   * Get categories
-   * @returns {Array} Categories list
-   */
   static async getCategories() {
     try {
       const query = `
@@ -613,16 +509,12 @@ static async update(eventId, updateData, userId) {
     }
   }
 
-  /**
-  * Submit event for admin approval
-  * Change status from 'draft' to 'pending'
-  */
- static async submitForApproval(eventId, userId) {
+
+  static async submitForApproval(eventId, userId) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // Check permission
       const permissionQuery = `
         SELECT role FROM event_organizer_members
         WHERE event_id = $1 AND user_id = $2 AND is_active = true
@@ -634,7 +526,6 @@ static async update(eventId, updateData, userId) {
         throw new Error('Only event owner can submit for approval');
       }
 
-      // Check event has required data
       const eventQuery = `
         SELECT 
           title, venue_name, venue_address,
@@ -645,7 +536,6 @@ static async update(eventId, updateData, userId) {
       const eventResult = await client.query(eventQuery, [eventId]);
       const event = eventResult.rows[0];
 
-      // Validate before submit
       if (!event.title || !event.venue_name || !event.venue_address) {
         throw new Error('Event must have title, venue name, and address');
       }
@@ -656,7 +546,6 @@ static async update(eventId, updateData, userId) {
         throw new Error('Event must have at least one ticket type');
       }
 
-      // Update status to pending
       const updateQuery = `
         UPDATE events
         SET status = 'pending', updated_at = NOW()
@@ -671,7 +560,6 @@ static async update(eventId, updateData, userId) {
 
       await client.query('COMMIT');
     
-      console.log(`📤 Event submitted for approval: ${event.title}`);
       return result.rows[0];
 
     } catch (error) {
@@ -681,16 +569,12 @@ static async update(eventId, updateData, userId) {
       client.release();
     }
   }
-  
-  /**
-   * Approve event (Admin only)
-   */
+
   static async approve(eventId, adminId) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // ✅ THÊM VALIDATION
       const validationQuery = `
         SELECT 
           e.id,
@@ -708,7 +592,6 @@ static async update(eventId, updateData, userId) {
       
       const event = result.rows[0];
       
-      // Validate requirements
       if (parseInt(event.session_count) === 0) {
         throw new Error('Cannot approve event without sessions');
       }
@@ -731,7 +614,7 @@ static async update(eventId, updateData, userId) {
     
       await client.query('COMMIT');
 
-      console.log(`✅ Event approved: ${updateResult.rows[0].title}`);
+      console.log(`Event approved: ${updateResult.rows[0].title}`);
       return updateResult.rows[0];
       
     } catch (error) {
@@ -742,9 +625,6 @@ static async update(eventId, updateData, userId) {
     }
   }
 
-  /**
-   * Reject event (Admin only)
-   */
   static async reject(eventId, adminId, reason) {
     if (!reason || reason.trim().length === 0) {
       throw new Error('Rejection reason is required');
@@ -767,13 +647,10 @@ static async update(eventId, updateData, userId) {
       throw new Error('Event not found or not pending approval');
     }
     
-    console.log(`❌ Event rejected: ${result.rows[0].title}`);
+    console.log(`Event rejected: ${result.rows[0].title}`);
     return result.rows[0];
   }
 
-  /**
-   * Get events by organizer
-   */
   static async findByOrganizer(organizerId, filters = {}, pagination = { page: 1, limit: 10 }) {
     const { status } = filters;
     const { page, limit } = pagination;
@@ -850,9 +727,6 @@ static async update(eventId, updateData, userId) {
     };
   }
 
-  /**
-   * Get pending events (Admin only)
-   */
   static async findPendingApproval(pagination = {}) {
     const { page = 1, limit = 20 } = pagination;
     const offset = (page - 1) * limit;
@@ -901,9 +775,6 @@ static async update(eventId, updateData, userId) {
     };
   }
 
-  /**
-   * Check user permission
-   */
   static async checkPermission(eventId, userId, requiredRoles = ['owner', 'manager']) {
     const query = `
       SELECT role FROM event_organizer_members
@@ -923,9 +794,6 @@ static async update(eventId, updateData, userId) {
     };
   }
 
-  /**
-   * Get event statistics
-   */
   static async getStatistics(eventId) {
     const query = `
       SELECT 
@@ -973,7 +841,6 @@ static async update(eventId, updateData, userId) {
       WHERE e.id = $1
     `;
 
-    // ✅ Sales by ticket type query
     const salesByTicketQuery = `
       SELECT 
         tt.id,
@@ -990,7 +857,6 @@ static async update(eventId, updateData, userId) {
       ORDER BY tt.sort_order, tt.price
     `;
     
-    // ✅ Sales trend query (last 30 days)
     const salesTrendQuery = `
       SELECT 
         DATE(o.created_at) as date,
@@ -1070,10 +936,6 @@ static async update(eventId, updateData, userId) {
     };
   }
 
-  /**
-   * Cancel event and auto-create refund requests
-   * Admin only
-   */
   static async cancelEvent(eventId, adminId, cancellationReason) {
     const client = await pool.connect();
     
@@ -1096,7 +958,6 @@ static async update(eventId, updateData, userId) {
       
       const event = eventResult.rows[0];
       
-      // 2. Get all paid orders for this event
       const ordersResult = await client.query(`
         SELECT id, user_id, total_amount, order_number
         FROM orders
@@ -1104,8 +965,7 @@ static async update(eventId, updateData, userId) {
       `, [eventId]);
       
       console.log(`📋 Found ${ordersResult.rows.length} paid orders to refund`);
-      
-      // 3. Create refund requests for all orders
+
       for (const order of ordersResult.rows) {
         await client.query(`
           INSERT INTO refund_requests (
@@ -1120,21 +980,18 @@ static async update(eventId, updateData, userId) {
           adminId
         ]);
         
-        // 4. Update order status to refunded
         await client.query(`
           UPDATE orders
           SET status = 'refunded', updated_at = NOW()
           WHERE id = $1
         `, [order.id]);
         
-        // 5. Update tickets to refunded
         await client.query(`
           UPDATE tickets
           SET status = 'refunded', refunded_at = NOW(), updated_at = NOW()
           WHERE order_id = $1
         `, [order.id]);
         
-        // 6. Restore ticket quantities
         await client.query(`
           UPDATE ticket_types tt
           SET sold_quantity = sold_quantity - oi.quantity,
@@ -1143,8 +1000,7 @@ static async update(eventId, updateData, userId) {
           WHERE tt.id = oi.ticket_type_id 
             AND oi.order_id = $1
         `, [order.id]);
-        
-        // 7. Create notification
+
         await client.query(`
           INSERT INTO notifications (
             user_id, type, title, content, event_id
@@ -1154,16 +1010,10 @@ static async update(eventId, updateData, userId) {
           `The event "${event.title}" has been cancelled. Your order ${order.order_number} will be refunded automatically.`,
           eventId
         ]);
-        
-        // 8. Send email (optional, sau transaction)
       }
       
       await client.query('COMMIT');
       
-      console.log(`✅ Event cancelled: ${event.title}`);
-      console.log(`💰 Created ${ordersResult.rows.length} automatic refund requests`);
-      
-      // Send emails outside transaction
       const emailService = require('../services/emailService');
       for (const order of ordersResult.rows) {
         const userResult = await pool.query(

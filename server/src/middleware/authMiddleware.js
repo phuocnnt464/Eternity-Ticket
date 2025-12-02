@@ -1,11 +1,7 @@
-// src/middleware/authMiddleware.js
 const { verifyToken, createResponse } = require('../utils/helpers');
 const UserModel = require('../models/userModel');
 const pool = require('../config/database');
 
-/**
- * Log failed authentication attempt
- */
 async function logFailedAuth(ip, reason) {
   try {
     await pool.query(`
@@ -17,9 +13,6 @@ async function logFailedAuth(ip, reason) {
   }
 }
 
-/**
- * Check rate limit for IP
- */
 async function checkRateLimit(key) {
   try {
     const result = await pool.query(`
@@ -33,13 +26,10 @@ async function checkRateLimit(key) {
     return parseInt(result.rows[0]?.count || 0);
   } catch (error) {
     console.error('Rate limit check error:', error);
-    return 0; // Don't block on error
+    return 0;
   }
 }
 
-/**
- * Increment fail counter
- */
 async function incrementFailCounter(key) {
   try {
     await pool.query(`
@@ -53,13 +43,8 @@ async function incrementFailCounter(key) {
   }
 }
 
-/**
- * JWT Authentication Middleware
- * Validates JWT token and adds user info to request object
- */
 const authenticateToken = async (req, res, next) => {
   try {
-    // Get token from Authorization header
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -70,7 +55,6 @@ const authenticateToken = async (req, res, next) => {
       );
     }
 
-    // ✅ CHECK BLACKLIST BEFORE VERIFY
     const redisService = require('../services/redisService');
     if (redisService.isReady()) {
       const blacklistKey = `blacklist:token:${token}`;
@@ -83,7 +67,6 @@ const authenticateToken = async (req, res, next) => {
       }
     }
 
-     // ✅ Check rate limit trước khi verify
     const rateLimitKey = `auth_fail:${req.ip}`;
     const failedAttempts = await checkRateLimit(rateLimitKey);
     
@@ -93,10 +76,8 @@ const authenticateToken = async (req, res, next) => {
       );
     }
 
-    // Verify token
     const decoded = verifyToken(token);
     
-    // Get fresh user data from database
     const user = await UserModel.findById(decoded.id);
     
     if (!user) {
@@ -111,14 +92,12 @@ const authenticateToken = async (req, res, next) => {
       );
     }
 
-    // Check if account is locked
     if (user.account_locked_until && new Date(user.account_locked_until) > new Date()) {
       return res.status(423).json(
         createResponse(false, 'Account is temporarily locked. Please try again later.')
       );
     }
 
-    // Add user info to request object
     req.user = {
       id: user.id,
       email: user.email,
@@ -133,7 +112,6 @@ const authenticateToken = async (req, res, next) => {
     next();
 
   } catch (error) {
-    // Increment fail counter
     await incrementFailCounter(`auth_fail:${req.ip}`);
     
     console.error('❌ Auth middleware error:', error.message);
@@ -163,7 +141,6 @@ const authorizeRoles = (...allowedRoles) => {
       );
     }
 
-    // Flatten array if nested
     const roles = allowedRoles.flat();
 
     if (!roles.includes(req.user.role)) {
@@ -179,12 +156,6 @@ const authorizeRoles = (...allowedRoles) => {
   };
 };
 
-/**
- * Resource owner or admin authorization
- * @param {String} paramName - Name of the parameter containing resource owner ID
- * @example
- * router.put('/users/:userId', authenticateToken, authorizeOwnerOrAdmin('userId'), handler)
- */
 const authorizeOwnerOrAdmin = (paramName = 'userId') => {
   return (req, res, next) => {
     if (!req.user) {

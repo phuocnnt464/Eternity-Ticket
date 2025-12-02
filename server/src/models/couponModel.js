@@ -41,25 +41,22 @@ class CouponModel {
     const coupon = await this.findByCode(code, eventId);
     
     if (!coupon) {
-      return { valid: false, message: 'Mã giảm giá không hợp lệ hoặc đã hết hạn' };
+      return { valid: false, message: 'invalid or expired coupon' };
     }
 
-    // Check membership tier restriction
     if (coupon.membership_tiers && coupon.membership_tiers.length > 0) {
       if (!coupon.membership_tiers.includes(membershipTier)) {
-        return { valid: false, message: 'Mã giảm giá này chỉ dành cho hội viên đặc biệt' };
+        return { valid: false, message: 'This coupon is only for special members' };
       }
     }
 
-    // Check minimum order amount
     if (coupon.min_order_amount && orderAmount < coupon.min_order_amount) {
       return { 
         valid: false, 
-        message: `Đơn hàng phải tối thiểu ${coupon.min_order_amount.toLocaleString()}₫` 
+        message: `Order must be at least ${coupon.min_order_amount.toLocaleString()}₫` 
       };
     }
 
-    // Check user usage limit
     if (coupon.usage_limit_per_user) {
       const usageQuery = `
         SELECT COUNT(*) as count 
@@ -70,11 +67,10 @@ class CouponModel {
       const userUsageCount = parseInt(usageResult.rows[0].count);
 
       if (userUsageCount >= coupon.usage_limit_per_user) {
-        return { valid: false, message: 'Bạn đã sử dụng hết số lần áp dụng mã này' };
+        return { valid: false, message: 'You have reached the maximum number of uses for this coupon' };
       }
     }
 
-    // Calculate discount
     let discountAmount = 0;
     if (coupon.type === 'percentage') {
       discountAmount = (orderAmount * coupon.discount_value) / 100;
@@ -165,7 +161,6 @@ class CouponModel {
 
   static async delete(id) {
     try {
-      // Soft delete - just deactivate
       const query = `
         UPDATE coupons
         SET is_active = false, updated_at = NOW()
@@ -232,7 +227,6 @@ class CouponModel {
         VALUES ($1, $2, $3, $4, NOW())
       `, [couponId, userId, orderId, discountAmount]);
 
-      // Increment used_count
       await client.query(`
         UPDATE coupons
         SET used_count = used_count + 1,

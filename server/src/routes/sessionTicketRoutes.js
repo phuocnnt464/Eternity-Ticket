@@ -1,4 +1,3 @@
-// src/routes/sessionTicketRoutes.js
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const SessionTicketController = require('../controllers/sessionTicketController');
@@ -18,25 +17,15 @@ const {
 
 const router = express.Router();
 
-// Rate limiting for session/ticket operations
 const sessionTicketLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 50, // limit each IP to 50 operations per hour
+  windowMs: 60 * 60 * 1000, 
+  max: 50,
   message: {
     success: false,
     message: 'Too many session/ticket operations, please try again later.'
   }
 });
 
-// ===============================
-// SESSION ROUTES
-// ===============================
-
-/**
- * @route   POST /api/event-sessions/:eventId/sessions
- * @desc    Create new session for event
- * @access  Private (Event Owner/Manager)
- */
 router.post('/:eventId/sessions',
   sessionTicketLimiter,
   authenticateToken,
@@ -46,21 +35,11 @@ router.post('/:eventId/sessions',
   SessionTicketController.createSession
 );
 
-/**
- * @route   GET /api/event-sessions/:eventId/sessions
- * @desc    Get all sessions for event
- * @access  Public
- */
 router.get('/:eventId/sessions',
   validate(uuidParamSchema, 'params'),
   SessionTicketController.getEventSessions
 );
 
-/**
- * @route   PUT /api/event-sessions/session/:sessionId
- * @desc    Update session
- * @access  Private (Event Owner/Manager)
- */
 router.put('/session/:sessionId',
   sessionTicketLimiter,
   authenticateToken,
@@ -70,11 +49,6 @@ router.put('/session/:sessionId',
   SessionTicketController.updateSession
 );
 
-/**
- * @route   DELETE /api/event-sessions/session/:sessionId
- * @desc    Delete session (soft delete)
- * @access  Private (Event Owner/Manager)
- */
 router.delete('/session/:sessionId',
   authenticateToken,
   authorizeRoles('organizer'),
@@ -82,15 +56,6 @@ router.delete('/session/:sessionId',
   SessionTicketController.deleteSession
 );
 
-// ===============================
-// TICKET TYPE ROUTES
-// ===============================
-
-/**
- * @route   POST /api/event-sessions/session/:sessionId/tickets
- * @desc    Create ticket type for session
- * @access  Private (Event Owner/Manager)
- */
 router.post('/session/:sessionId/tickets',
   sessionTicketLimiter,
   authenticateToken,
@@ -100,21 +65,11 @@ router.post('/session/:sessionId/tickets',
   SessionTicketController.createTicketType
 );
 
-/**
- * @route   GET /api/event-sessions/session/:sessionId/tickets
- * @desc    Get ticket types for session
- * @access  Public
- */
 router.get('/session/:sessionId/tickets',
   validate(uuidParamSchema, 'params'),
   SessionTicketController.getSessionTicketTypes
 );
 
-/**
- * @route   PUT /api/event-sessions/ticket/:ticketTypeId
- * @desc    Update ticket type
- * @access  Private (Event Owner/Manager)
- */
 router.put('/ticket/:ticketTypeId',
   sessionTicketLimiter,
   authenticateToken,
@@ -124,11 +79,6 @@ router.put('/ticket/:ticketTypeId',
   SessionTicketController.updateTicketType
 );
 
-/**
- * @route   DELETE /api/event-sessions/ticket/:ticketTypeId
- * @desc    Delete ticket type (soft delete)
- * @access  Private (Event Owner/Manager)
- */
 router.delete('/ticket/:ticketTypeId',
   authenticateToken,
   authorizeRoles('organizer'),
@@ -136,15 +86,6 @@ router.delete('/ticket/:ticketTypeId',
   SessionTicketController.deleteTicketType
 );
 
-// ===============================
-// COMBINED ROUTES
-// ===============================
-
-/**
- * @route   GET /api/event-sessions/:eventId/tickets
- * @desc    Get event with all sessions and ticket types (for purchase page)
- * @access  Public (with optional auth for private events)
- */
 router.get('/:eventId/tickets',
   validate(uuidParamSchema, 'params'),
   optionalAuth,

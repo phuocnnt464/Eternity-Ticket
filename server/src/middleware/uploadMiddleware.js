@@ -1,4 +1,3 @@
-// src/middleware/uploadMiddleware.js
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
@@ -6,7 +5,6 @@ const fsSync = require('fs');
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 
-// Upload directories
 const UPLOAD_DIRS = {
   events: {
     covers: 'uploads/events/covers',
@@ -20,7 +18,6 @@ const UPLOAD_DIRS = {
   temp: 'uploads/temp'
 };
 
-// Ensure upload directories exist
 const ensureDirectoryExists = (dir) => {
   if (!fsSync.existsSync(dir)) {
     fsSync.mkdirSync(dir, { recursive: true });
@@ -28,22 +25,19 @@ const ensureDirectoryExists = (dir) => {
   }
 };
 
-// Create all upload directories on startup
 const initializeUploadDirectories = () => {
   try {
     Object.values(UPLOAD_DIRS.events).forEach(ensureDirectoryExists);
     Object.values(UPLOAD_DIRS.users).forEach(ensureDirectoryExists);
     ensureDirectoryExists(UPLOAD_DIRS.temp);
-    console.log('✅ Upload directories initialized');
+    // console.log('Upload directories initialized');
   } catch (error) {
-    console.error('❌ Failed to initialize upload directories:', error);
+    console.error('Failed to initialize upload directories:', error);
   }
 };
 
-// Initialize on load
 initializeUploadDirectories();
 
-// Image processing configurations
 const IMAGE_CONFIGS = {
   event_cover: {
     width: 1280,
@@ -82,7 +76,6 @@ const IMAGE_CONFIGS = {
   }
 };
 
-// Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, UPLOAD_DIRS.temp);
@@ -95,7 +88,6 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter
 const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = [
     'image/jpeg', 'image/jpg', 
@@ -111,40 +103,28 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Multer configuration
 const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 2 * 1024 * 1024, // 2MB
-    files: 10 // Max 10 files per request
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 2 * 1024 * 1024, 
+    files: 10 
   }
 });
 
-/**
- * Process and resize uploaded image
- * @param {String} inputPath - Input file path
- * @param {String} outputPath - Output file path
- * @param {Object} config - Image processing config
- * @returns {Promise<String>} Output file path
- */
 const processImage = async (inputPath, outputPath, config) => {
   try {
-     // Get image metadata
     const metadata = await sharp(inputPath).metadata();
 
-    // Validate image format
     const allowedFormats = ['jpeg', 'jpg', 'png', 'webp'];
     if (!allowedFormats.includes(metadata.format)) {
       throw new Error(`Unsupported image format: ${metadata.format}`);
     }
     
-    // Validate dimensions (optional)
     if (metadata.width < 100 || metadata.height < 100) {
       throw new Error('Image dimensions too small (min 100x100)');
     }
     
-    // Configure sharp pipeline
     let pipeline = sharp(inputPath).resize({
       width: config.width,
       height: config.height,
@@ -152,8 +132,6 @@ const processImage = async (inputPath, outputPath, config) => {
       position: 'center',
       withoutEnlargement: false
     });
-      // .jpeg({ quality: config.quality })
-      // .toFile(outputPath);
 
     switch (config.format) {
       case 'jpeg':
@@ -177,28 +155,18 @@ const processImage = async (inputPath, outputPath, config) => {
         break;
     }
 
-    // Save processed image
     const info = await pipeline.toFile(outputPath);
     
-     // ✅ FIX: Close sharp instance trước khi delete
-    pipeline = null;  // Release reference
+    pipeline = null;  
     
-    // ✅ FIX: Delay nhỏ để Windows release file handle
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Delete temp file
     try {
       await fs.unlink(inputPath);
     } catch (unlinkError) {
-      // ✅ FIX: Không throw error nếu không delete được
       console.warn(`⚠️ Could not delete temp file: ${inputPath}`, unlinkError.message);
-      // File sẽ được cleanup sau
     }
     
-    // Delete temp file
-    // await fs.unlink(inputPath);
-
-    // return outputPath;
     return {
       path: outputPath,
       size: info.size,
@@ -207,7 +175,6 @@ const processImage = async (inputPath, outputPath, config) => {
       format: info.format
     };
   } catch (error) {
-    // Clean up on error
     try {
       if (fsSync.existsSync(inputPath)) {
         await fs.unlink(inputPath);
@@ -219,9 +186,6 @@ const processImage = async (inputPath, outputPath, config) => {
   }
 };
 
-/**
- * Clean up temporary files
- */
 const cleanupTempFiles = async (files) => {
   if (!files) return;
 
@@ -238,9 +202,6 @@ const cleanupTempFiles = async (files) => {
   }
 };
 
-/**
- * Middleware to handle event image uploads
- */
 const uploadEventImagesBase = upload.fields([
   { name: 'cover_image', maxCount: 1 },
   { name: 'thumbnail_image', maxCount: 1 },
@@ -251,7 +212,7 @@ const uploadEventImagesBase = upload.fields([
 const uploadEventImages = (req, res, next) => {
   uploadEventImagesBase(req, res, (err) => {
     if (err) {
-      console.error('❌ Multer upload error:', err);
+      console.error('Multer upload error:', err);
       return res.status(400).json({
         success: false,
         error: {
@@ -261,56 +222,46 @@ const uploadEventImages = (req, res, next) => {
       });
     }
 
-    // ✅ Debug logs
-    console.log('📂 Uploaded files:', req.files ? Object.keys(req.files) : 'none');
-    console.log('📝 Form fields:', Object.keys(req.body).length ? Object.keys(req.body) : 'empty');
+    // console.log('Uploaded files:', req.files ? Object.keys(req.files) : 'none');
+    // console.log('Form fields:', Object.keys(req.body).length ? Object.keys(req.body) : 'empty');
     
     if (req.body && Object.getPrototypeOf(req.body) === null) {
       const fixedBody = {};
       
-      // ✅ SỬA: Dùng Object.prototype.hasOwnProperty.call() thay vì .hasOwnProperty()
       for (const key in req.body) {
-        if (Object.prototype.hasOwnProperty.call(req.body, key)) {  // ✅ FIXED!
+        if (Object.prototype.hasOwnProperty.call(req.body, key)) {  
           fixedBody[key] = req.body[key];
         }
       }
       
       req.body = fixedBody;
-      console.log('✅ Fixed body prototype. Keys:', Object.keys(req.body));
+      // console.log('Fixed body prototype. Keys:', Object.keys(req.body));
     }
     next();
   });
 };
 
-/**
- * Middleware to handle user avatar upload
- */
+// Middleware to handle user avatar upload
 const uploadUserAvatar = upload.single('avatar');
 
-/**
- * Middleware for single image upload (generic)
- */
+// Middleware for single image upload 
 const uploadSingleImage = (fieldName = 'image') => {
   return upload.single(fieldName);
 };
 
-/**
- * Middleware for multiple images upload (generic)
- */
+// Middleware for multiple images upload 
 const uploadMultipleImages = (fieldName = 'images', maxCount = 5) => {
   return upload.array(fieldName, maxCount);
 };
 
-/**
- * Process event images after upload
- */
+
 const processEventImages = async (req, res, next) => {
   try {
-    console.log('📦 req.body before processing:', req.body); // ✅ THÊM
-    console.log('📂 req.files:', req.files); // ✅ THÊM
+    // console.log('req.body before processing:', req.body); 
+    // console.log('req.files:', req.files); 
 
     if (!req.files || Object.keys(req.files).length === 0) {
-      console.log('⏭️ No files to process, skipping...'); 
+      // console.log('No files to process, skipping...'); 
       return next();
     }
 
@@ -390,13 +341,11 @@ const processEventImages = async (req, res, next) => {
       })());
     }
 
-    // Await all processing tasks
     await Promise.all(processingTasks);
 
     if (errors.length > 0) {
       console.error('Image processing errors: ', errors);
 
-      // clean up any processed images
       await cleanupProcessedImages(processedImages);
       
       await cleanupTempFiles(req.files);
@@ -410,17 +359,11 @@ const processEventImages = async (req, res, next) => {
       });
     }
 
-    // Add processed image to request object
-    // req.body = {
-    //   ...req.body,
-    //   ...processedImages
-    // };
     Object.assign(req.body, processedImages);
 
-    //Store for potential cleanup
     req.processedImages = processedImages;
 
-    console.log('✅ Processed images:', processedImages); // Debug log
+    // console.log('Processed images:', processedImages); 
 
     next();
   } catch (error) {
@@ -444,9 +387,6 @@ const processEventImages = async (req, res, next) => {
   }
 };
 
-/**
- * Process user avatar after upload
- */
 const processUserAvatar = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -469,7 +409,6 @@ const processUserAvatar = async (req, res, next) => {
   } catch (error) {
     console.error('Avatar processing error:', error.message);
     
-    // Clean up temp file
     if (req.file){
       await cleanupTempFiles([req.file]);
     }
@@ -484,24 +423,17 @@ const processUserAvatar = async (req, res, next) => {
   }
 };
 
-/**
- * Delete file
- * @param {String} filePath - File path to delete
- */
 const deleteFile = async (filePath) => {
   try {
     if (!filePath) return false;
 
-     // ✅ Validate path không có ".."
     if (filePath.includes('..') || !filePath.startsWith('/uploads/')) {
       console.error('Invalid file path:', filePath);
       return false;
     }
 
-    // Convert URL path to filesystem path
     const fsPath = path.join(process.cwd(), filePath.replace(/^\//, ''));
     
-     // ✅ Đảm bảo file nằm trong thư mục uploads
     const uploadsDir = path.join(process.cwd(), 'uploads');
     if (!fsPath.startsWith(uploadsDir)) {
       console.error('Path traversal attempt:', filePath);
@@ -521,9 +453,6 @@ const deleteFile = async (filePath) => {
   }
 };
 
-/**
- * Clean up processed images 
- * */
 const cleanupProcessedImages = async (processedImages) => {
   if (!processedImages) return;
   
@@ -534,11 +463,6 @@ const cleanupProcessedImages = async (processedImages) => {
   await Promise.allSettled(deletePromises);
 }
 
-/**
- * Clean up old files for an entity
- * @param {Object} oldData - Old entity data with image URLs
- * @param {Object} newData - New entity data with image URLs
- */
 const cleanupOldImages = async (oldData, newData) => {
   const imageFields = [
     'cover_image', 'thumbnail_image', 
@@ -551,13 +475,6 @@ const cleanupOldImages = async (oldData, newData) => {
   await Promise.allSettled(deletePromises);
 };
 
-
-/**
- * Validate image dimensions
- * @param {String} imagePath - Path to image
- * @param {Object} requirements - Required dimensions
- * @returns {Promise<Boolean>} Is valid
- */
 const validateImageDimensions = async (imagePath, requirements) => {
   try {
     const metadata = await sharp(imagePath).metadata();

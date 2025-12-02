@@ -1,15 +1,9 @@
-// src/models/userModel.js
 const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 
 class UserModel {
-  /**
-   * Create new user
-   * @param {Object} userData - User data
-   * @returns {Object} Created user and verification token
-   */
   static async create(userData) {
     const {
       email,
@@ -26,11 +20,9 @@ class UserModel {
     try {
       await client.query('BEGIN');
 
-      // Hash password
       const salt = await bcrypt.genSalt(12);
       const password_hash = await bcrypt.hash(password, salt);
       
-      // Generate verification token
       const email_verification_token = uuidv4();
 
       const userQuery = `
@@ -55,7 +47,6 @@ class UserModel {
 
       const userResult = await client.query(userQuery, userValues);
       
-      // If user is participant, create basic membership
       if (role === 'participant') {
         const membershipQuery = `
           INSERT INTO memberships (user_id, tier, is_active)
@@ -87,11 +78,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Find user by email
-   * @param {String} email - User email
-   * @returns {Object|null} User data
-   */
   static async findByEmail(email) {
     const query = `
       SELECT u.*, m.tier as membership_tier
@@ -122,11 +108,6 @@ class UserModel {
   }
   }
 
-  /**
-   * Check if email exists
-   * @param {String} email - Email to check
-   * @returns {Boolean} Email exists
-   */
   static async emailExists(email) {
     const query = `
       SELECT EXISTS(SELECT 1 FROM users WHERE email = $1) as exists
@@ -140,11 +121,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Find user by ID
-   * @param {String} id - User ID
-   * @returns {Object|null} User data
-   */
   static async findById(id) {
     const query = `
       SELECT u.id, u.email, u.role, u.first_name, u.last_name, u.phone,
@@ -165,12 +141,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Verify password
-   * @param {String} plainPassword - Plain text password
-   * @param {String} hashedPassword - Hashed password from database
-   * @returns {Boolean} Password match result
-   */
   static async verifyPassword(plainPassword, hashedPassword) {
     try {
       return await bcrypt.compare(plainPassword, hashedPassword);
@@ -179,10 +149,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Update last login timestamp
-   * @param {String} userId - User ID
-   */
   static async updateLastLogin(userId) {
     const query = `
       UPDATE users 
@@ -198,10 +164,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Increment failed login attempts
-   * @param {String} userId - User ID
-   */
   static async incrementFailedLoginAttempts(userId) {
     const query = `
       UPDATE users 
@@ -217,10 +179,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Reset failed login attempts
-   * @param {String} userId - User ID
-   */
   static async resetFailedLoginAttempts(userId) {
     const query = `
       UPDATE users 
@@ -237,20 +195,8 @@ class UserModel {
     }
   }
 
-  /**
-   * Lock account temporarily
-   * @param {String} userId - User ID
-   * @param {Number} minutes - Lock duration in minutes
-   */
   static async lockAccount(userId, minutes = 15) {
     const lockUntil = new Date(Date.now() + minutes * 60 * 1000);
-    
-    // const query = `
-    //   UPDATE users 
-    //   SET account_locked_until = NOW() + INTERVAL '${minutes} minutes',
-    //       updated_at = NOW()
-    //   WHERE id = $1
-    // `;
     
     const query = `
       UPDATE users
@@ -268,11 +214,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Get user membership info
-   * @param {String} userId - User ID
-   * @returns {Object|null} Membership data
-   */
   static async getUserMembership(userId) {
     const query = `
       SELECT 
@@ -297,11 +238,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Verify email with token
-   * @param {String} token - Verification token
-   * @returns {Object|null} User data if verification successful
-   */
   static async verifyEmail(token) {
     const client = await pool.connect();
     
@@ -335,15 +271,9 @@ class UserModel {
     }
   }
 
-  /**
-   * Generate password reset token
-   * @param {String} userId - User ID
-   * @returns {String} Reset token
-   */
   static async generatePasswordResetToken(userId) {
     const resetToken = crypto.randomBytes(32).toString('hex');
-    // const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-    
+
     const query = `
       UPDATE users 
       SET reset_password_token = $1,
@@ -353,31 +283,20 @@ class UserModel {
     `;
     
     try {
-      // await pool.query(query, [tokenHash, userId]);
       await pool.query(query, [resetToken, userId]);
 
-      return resetToken; // Return unhashed token to send via email
+      return resetToken; 
     } catch (error) {
       throw new Error(`Error generating password reset token: ${error.message}`);
     }
   }
 
-  /**
-   * Reset password with token
-   * @param {String} token - Reset token
-   * @param {String} newPassword - New password
-   * @returns {Object|null} User data if reset successful
-   */
   static async resetPassword(token, newPassword) {
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
       
-      // Hash the token to compare with database
-      // const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-      
-      // Find user with valid token
       const findQuery = `
         SELECT id, email, reset_password_token
         FROM users
@@ -386,22 +305,19 @@ class UserModel {
         AND is_active = true
       `;
       
-      // const userResult = await client.query(findQuery, [tokenHash]);
       const userResult = await client.query(findQuery, [token]);
 
       if (userResult.rows.length === 0) {
         await client.query('ROLLBACK');
-        console.log('❌ No matching token found in database');
+        console.log('No matching token found in database');
         return null;
       }
       
       const user = userResult.rows[0];
       
-      // Hash new password
       const salt = await bcrypt.genSalt(12);
       const passwordHash = await bcrypt.hash(newPassword, salt);
       
-      // Update password and clear reset token
       const updateQuery = `
         UPDATE users 
         SET password_hash = $1,
@@ -426,84 +342,26 @@ class UserModel {
     }
   }
 
-  /**
-   * Update user profile
-   * @param {String} userId - User ID
-   * @param {Object} updateData - Data to update
-   * @returns {Object} Updated user data
-   */
-  // static async updateProfile(userId, updateData) {
-  //   const allowedFields = [
-  //     'first_name', 'last_name', 'phone', 'avatar_url', 
-  //     'date_of_birth', 'gender', 'address', 'city', 'country'
-  //   ];
-    
-  //   const fieldsToUpdate = [];
-  //   const values = [];
-  //   let paramCount = 1;
-
-  //   // Build dynamic query
-  //   Object.keys(updateData).forEach(key => {
-  //     if (allowedFields.includes(key) && updateData[key] !== undefined) {
-  //       fieldsToUpdate.push(`${key} = $${paramCount}`);
-  //       values.push(updateData[key]);
-  //       paramCount++;
-  //     }
-  //   });
-
-  //   if (fieldsToUpdate.length === 0) {
-  //     throw new Error('No valid fields to update');
-  //   }
-
-  //   values.push(userId); // Add userId as last parameter
-
-  //   const query = `
-  //     UPDATE users 
-  //     SET ${fieldsToUpdate.join(', ')}, updated_at = NOW()
-  //     WHERE id = $${paramCount} AND is_active = true
-  //     RETURNING id, email, role, first_name, last_name, phone,
-  //               avatar_url, date_of_birth, gender, address, city, country,
-  //               is_email_verified, updated_at
-  //   `;
-
-  //   try {
-  //     const result = await pool.query(query, values);
-      
-  //     if (result.rows.length === 0) {
-  //       throw new Error('User not found or inactive');
-  //     }
-      
-  //     return result.rows[0];
-  //   } catch (error) {
-  //     throw new Error(`Error updating user profile: ${error.message}`);
-  //   }
-  // }
-
-  // server/src/models/userModel.js
-
   static async updateProfile(userId, updateData) {
     const allowedFields = [
       'first_name', 'last_name', 'phone', 'avatar_url', 
       'date_of_birth', 'gender', 'address', 'city', 'country'
     ];
     
-    // ✅ FIX: Sanitize data
     const sanitizedData = {};
     
     Object.keys(updateData).forEach(key => {
       if (allowedFields.includes(key) && updateData[key] !== undefined) {
-        // Convert empty string to null
         sanitizedData[key] = updateData[key] === '' ? null : updateData[key];
       }
     });
     
-    console.log('🔄 Sanitized data:', sanitizedData); // Debug
+    console.log('Sanitized data:', sanitizedData); // Debug
     
     if (Object.keys(sanitizedData).length === 0) {
       throw new Error('No valid fields to update');
     }
     
-    // Build dynamic query
     const fieldsToUpdate = [];
     const values = [];
     let paramCount = 1;
@@ -514,7 +372,7 @@ class UserModel {
       paramCount++;
     });
 
-    values.push(userId); // Add userId as last parameter
+    values.push(userId); 
 
     const query = `
       UPDATE users 
@@ -526,8 +384,8 @@ class UserModel {
     `;
 
     try {
-      console.log('📤 Query:', query);
-      console.log('📤 Values:', values);
+      // console.log('Query:', query);
+      // console.log('Values:', values);
       
       const result = await pool.query(query, values);
       
@@ -535,30 +393,22 @@ class UserModel {
         throw new Error('User not found or inactive');
       }
       
-      console.log('✅ Profile updated successfully');
+      // console.log('Profile updated successfully');
       return result.rows[0];
     } catch (error) {
-      console.error('❌ Database error:', error.message);
-      console.error('❌ Query:', query);
-      console.error('❌ Values:', values);
+      console.error('Database error:', error.message);
+      // console.error('Query:', query);
+      // console.error('Values:', values);
       throw new Error(`Error updating user profile: ${error. message}`);
     }
   }
 
-  /**
-   * Change user password
-   * @param {String} userId - User ID
-   * @param {String} currentPassword - Current password
-   * @param {String} newPassword - New password
-   * @returns {Boolean} Success status
-   */
   static async changePassword(userId, currentPassword, newPassword) {
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
       
-      // Get current password hash
       const getUserQuery = `
         SELECT password_hash FROM users 
         WHERE id = $1 AND is_active = true
@@ -570,7 +420,6 @@ class UserModel {
         throw new Error('User not found');
       }
       
-      // Verify current password
       const isCurrentPasswordValid = await bcrypt.compare(
         currentPassword, 
         userResult.rows[0].password_hash
@@ -579,12 +428,10 @@ class UserModel {
       if (!isCurrentPasswordValid) {
         throw new Error('Current password is incorrect');
       }
-      
-      // Hash new password
+
       const salt = await bcrypt.genSalt(12);
       const newPasswordHash = await bcrypt.hash(newPassword, salt);
       
-      // Update password
       const updateQuery = `
         UPDATE users 
         SET password_hash = $1, updated_at = NOW()
@@ -604,11 +451,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Get user statistics
-   * @param {String} userId - User ID
-   * @returns {Object} User statistics
-   */
   static async getUserStats(userId) {
     const query = `
       SELECT 
@@ -644,11 +486,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Deactivate user account
-   * @param {String} userId - User ID
-   * @returns {Boolean} Success status
-   */
   static async deactivateAccount(userId) {
     const query = `
       UPDATE users 
@@ -664,11 +501,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Get all users (Admin only)
-   * @param {Object} filters - Filter options
-   * @returns {Array} List of users
-   */
   static async getAllUsers(filters = {}) {
     const { role, is_active, page = 1, limit = 20 } = filters;
     
@@ -726,11 +558,6 @@ class UserModel {
     }
   }
   
-  /**
-  * Generate new email verification token
-  * @param {String} userId - User ID
-  * @returns {String} Verification token
-  */
   static async generateEmailVerificationToken(userId) {
     const token = uuidv4();
   
@@ -749,12 +576,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Search users by name or email (Admin)
-   * @param {String} searchTerm - Search term
-   * @param {Number} limit - Result limit
-   * @returns {Array} Matching users
-   */
   static async searchUsers(searchTerm, limit = 10) {
     const query = `
       SELECT 
@@ -784,12 +605,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Update user role (Admin only)
-   * @param {String} userId - User ID
-   * @param {String} newRole - New role
-   * @returns {Object} Updated user
-   */
   static async updateUserRole(userId, newRole) {
     const allowedRoles = ['participant', 'organizer', 'admin', 'sub_admin'];
     
@@ -817,11 +632,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Reactivate user account (Admin only)
-   * @param {String} userId - User ID
-   * @returns {Boolean} Success status
-   */
   static async reactivateAccount(userId) {
     const query = `
       UPDATE users 
@@ -840,12 +650,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Get user activity logs (Admin)
-   * @param {String} userId - User ID
-   * @param {Number} limit - Result limit
-   * @returns {Array} Activity logs
-   */
   static async getUserActivityLogs(userId, limit = 50) {
     const query = `
       SELECT 
@@ -869,10 +673,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Get users count by role (Admin dashboard)
-   * @returns {Object} Count by role
-   */
   static async getUserCountByRole() {
     const query = `
       SELECT 
@@ -897,12 +697,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Get recently registered users (Admin dashboard)
-   * @param {Number} days - Days to look back
-   * @param {Number} limit - Result limit
-   * @returns {Array} Recent users
-   */
   static async getRecentUsers(days = 7, limit = 10) {
     const query = `
       SELECT 
@@ -924,12 +718,6 @@ class UserModel {
     }
   }
 
-  /**
-   * Bulk update users (Admin only)
-   * @param {Array} userIds - Array of user IDs
-   * @param {Object} updateData - Data to update
-   * @returns {Number} Number of updated users
-   */
   static async bulkUpdateUsers(userIds, updateData) {
     const allowedFields = ['is_active', 'role'];
     const updates = [];
@@ -962,23 +750,16 @@ class UserModel {
     }
   }
 
-  /**
-   * Delete user permanently (Admin only - DANGEROUS)
-   * @param {String} userId - User ID
-   * @returns {Boolean} Success status
-   */
   static async deleteUserPermanently(userId) {
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
 
-      // Delete related data first due to foreign key constraints
       await client.query('DELETE FROM activity_logs WHERE user_id = $1', [userId]);
       await client.query('DELETE FROM notifications WHERE user_id = $1', [userId]);
       await client.query('DELETE FROM user_sessions WHERE user_id = $1', [userId]);
-      
-      // Delete user
+
       const result = await client.query('DELETE FROM users WHERE id = $1', [userId]);
       
       await client.query('COMMIT');

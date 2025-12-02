@@ -1,11 +1,7 @@
-// server/src/models/queueModel.js
 const pool = require('../config/database');
 const redisService = require('../services/redisService');
 
 class QueueModel {
-  /**
-   * Get waiting room configuration
-   */
   static async getWaitingRoomConfig(sessionId) {
     try {
       const query = `
@@ -29,9 +25,6 @@ class QueueModel {
     }
   }
 
-  /**
-   * Create waiting room config
-   */
   static async createWaitingRoomConfig(configData) {
     try {
       const {
@@ -65,9 +58,6 @@ class QueueModel {
     }
   }
 
-  /**
-   * Add user to waiting queue (database)
-   */
   static async addToQueue(queueData) {
     try {
       const {
@@ -108,41 +98,9 @@ class QueueModel {
     }
   }
 
-  /**
-   * Get next queue number
-   */
   static async getNextQueueNumber(sessionId) {
-    // const client = await pool.connect();
     try {
-      // await client.query('BEGIN');
-      // const query = `
-      //   SELECT COALESCE(MAX(queue_number), 0) + 1 as next_number
-      //   FROM waiting_queue
-      //   WHERE session_id = $1
-      //   FOR UPDATE
-      // `;
-
-      // const result = await client.query(query, [sessionId]);
-      // const nextNumber = result.rows[0].next_number;
-
-      // await client.query('COMMIT');
-
       const redis = redisService.getClient();
-      // ✅ Check null
-      // if (!redis) {
-      //   throw new Error('Redis unavailable - cannot get next queue number');
-      // }
-
-      // const counterKey = `queue_counter:${sessionId}`;
-      
-      // ✅ Atomic increment
-      // const nextNumber = await redis.incr(counterKey);
-      
-      // Set TTL 24 hours nếu chưa có
-      // const ttl = await redis.ttl(counterKey);
-      // if (ttl === -1) {
-      //   await redis.expire(counterKey, 86400);
-      // }
 
       if (redis) {
         try {
@@ -154,15 +112,14 @@ class QueueModel {
             await redis.expire(counterKey, 86400);
           }
 
-          console.log(`✅ Got queue number ${nextNumber} from Redis`);
+          // console.log(`Got queue number ${nextNumber} from Redis`);
           return nextNumber;
         } catch (redisError) {
-          console. warn('⚠️ Redis incr failed:', redisError);
-          // Continue to database fallback
+          console. warn('Redis incr failed:', redisError);     
         }
       }
 
-      console.warn('⚠️ Using database for queue number');
+      // console.warn('Using database for queue number');
       const result = await pool.query(`
         SELECT COALESCE(MAX(queue_number), 0) + 1 as next_number
         FROM waiting_queue
@@ -170,23 +127,15 @@ class QueueModel {
       `, [sessionId]);
       
       const nextNumber = result.rows[0].next_number;
-      console.log(`✅ Got queue number ${nextNumber} from database`);
+      // console.log(`Got queue number ${nextNumber} from database`);
       
       return nextNumber;
     } catch (error) {
-      // await client.query('ROLLBACK');
-      // throw new Error(`Failed to get next queue number: ${error.message}`);
       console.error('Failed to get next queue number:', error);
       return null;
     } 
-    // finally {
-    //   client.release();
-    // }
   }
 
-  /**
-   * Activate user for purchase
-   */
   static async activateUser(userId, sessionId, expiresAt) {
     try {
       const query = `
@@ -214,9 +163,6 @@ class QueueModel {
     }
   }
 
-  /**
-   * Mark order as completed
-   */
   static async completeOrder(userId, sessionId) {
     try {
       const query = `
@@ -237,9 +183,6 @@ class QueueModel {
     }
   }
 
-  /**
-   * Get user's queue status from database
-   */
   static async getUserQueueStatus(userId, sessionId) {
     try {
       const query = `
@@ -262,9 +205,6 @@ class QueueModel {
     }
   }
 
-  /**
-   * Cleanup expired sessions
-   */
   static async cleanupExpiredSessions() {
     try {
       const query = `
@@ -287,9 +227,6 @@ class QueueModel {
     }
   }
 
-  /**
-   * Update heartbeat timestamp
-   */
   static async updateHeartbeat(userId, sessionId) {
     try {
       const query = `
@@ -308,9 +245,6 @@ class QueueModel {
     }
   }
 
-  /**
-   * Update queue status
-   */
   static async updateQueueStatus(userId, sessionId, newStatus) {
     try {
       const query = `
@@ -330,9 +264,6 @@ class QueueModel {
     }
   }
 
-  /**
-   * Expire user slot
-   */
   static async expireUser(userId, sessionId) {
     try {
       const query = `
@@ -346,8 +277,7 @@ class QueueModel {
       `;
 
       const result = await pool.query(query, [userId, sessionId]);
-      
-      // Remove from Redis active set
+
       const redis = redisService.getClient();
       if (redis) {
         await redis.zrem(`active:${sessionId}`, userId);
@@ -360,9 +290,6 @@ class QueueModel {
     }
   }
 
-  /**
-   * Leave queue (cancel)
-   */
   static async leaveQueue(userId, sessionId) {
     try {
       const current = await pool.query(`
@@ -373,19 +300,18 @@ class QueueModel {
       `, [userId, sessionId]);
       
       if (current.rows.length === 0) {
-        return false;  // No record
+        return false; 
       }
       
       const currentStatus = current.rows[0]. status;
       
-      // ✅ CHỈ cancel nếu đang waiting (KHÔNG cancel nếu active/completed)
       if (currentStatus !== 'completed') {
-        console.log(`ℹ️ Not cancelling - user status: ${currentStatus}`);
+        // console.log(`Not cancelling - user status: ${currentStatus}`);
         return false;
       }
 
       if (currentStatus === 'cancelled' || currentStatus === 'expired') {
-        console.log(`ℹ️ Already ${currentStatus}`);
+        // console.log(`Already ${currentStatus}`);
         return false;
       }
 
@@ -400,13 +326,12 @@ class QueueModel {
           AND status IN ('waiting','active')
       `;
 
-      // const result = await pool.query(query, [userId, sessionId]);
-    const result = await pool.query(query, [userId, sessionId, newStatus]);
+      const result = await pool.query(query, [userId, sessionId, newStatus]);
     
-    if (result.rowCount > 0) {
-      console.log(`✅ User ${userId} left queue: ${currentStatus} → ${newStatus}`);
-      return true;
-    }
+      if (result.rowCount > 0) {
+        console.log(`User ${userId} left queue: ${currentStatus} → ${newStatus}`);
+        return true;
+      }
     
     return false;
 
@@ -415,9 +340,6 @@ class QueueModel {
     }
   }
 
-  /**
-   * Get queue statistics
-   */
   static async getQueueStatistics(sessionId) {
     try {
       const query = `
@@ -441,21 +363,14 @@ class QueueModel {
     }
   }
 
-  // =============================================
   // REDIS OPERATIONS
-  // =============================================
 
-  /**
-   * Add to Redis queue (FIFO)
-   */
   static async addToRedisQueue(sessionId, userData) {
     try {
       const redis = redisService.getClient();
 
-      // ✅ Graceful degradation
       if (!redis) {
-        console.warn('⚠️ Redis unavailable - queue operations degraded');
-        // Có thể lưu vào database thay thế
+        // console.warn('Redis unavailable - queue operations degraded');
         return 0;
       }
     
@@ -464,31 +379,25 @@ class QueueModel {
 
       const length = await redis.rPush(queueKey, queueData);
 
-      // ✅ Set TTL 2 giờ cho queue key (nếu chưa có TTL)
       const ttl = await redis.ttl(queueKey);
-      if (ttl === -1) { // -1 = key tồn tại nhưng không có TTL
-        await redis.expire(queueKey, 2 * 60 * 60); // 2 hours
+      if (ttl === -1) {
+        await redis.expire(queueKey, 2 * 60 * 60);
       }
 
       return length;
 
     } catch (error) {
-      // throw new Error(`Failed to add to Redis queue: ${error.message}`);
       console.error('Failed to add to Redis queue:', error);
-      return 0; // Graceful fallback
+      return 0;
     }
   }
 
-  /**
-   * Get Redis queue length
-   */
   static async getRedisQueueLength(sessionId) {
     try {
       const redis = redisService.getClient();
 
-      // ✅ Check null
       if (!redis) {
-        console.warn('⚠️ Redis unavailable - returning 0 for queue length');
+        console.warn('Redis unavailable - returning 0 for queue length');
         return 0;
       }
     
@@ -497,22 +406,17 @@ class QueueModel {
       return await redis.lLen(queueKey);
 
     } catch (error) {
-      // throw new Error(`Failed to get queue length: ${error.message}`);
       console.error('Failed to get Redis queue length:', error);
-      return 0; // Graceful fallback
+      return 0;
     }
   }
 
-  /**
-   * Get user position in Redis queue
-   */
   static async getRedisQueuePosition(sessionId, userId) {
     try {
       const redis = redisService.getClient();
 
-      // ✅ Check null
       if (!redis) {
-        console.warn('⚠️ Redis unavailable - cannot get queue position');
+        // console.warn('Redis unavailable - cannot get queue position');
         return null;
       }
       const queueKey = `queue:${sessionId}`;
@@ -521,29 +425,24 @@ class QueueModel {
       for (let i = 0; i < queueData.length; i++) {
         const data = JSON.parse(queueData[i]);
         if (data.user_id === userId) {
-          return i + 1; // 1-indexed position
+          return i + 1;
         }
       }
 
       return null;
 
     } catch (error) {
-      // throw new Error(`Failed to get queue position: ${error.message}`);
       console.error('Failed to get Redis queue position:', error);
       return null;
     }
   }
 
-  /**
-   * Pop users from Redis queue (FIFO)
-   */
   static async popFromRedisQueue(sessionId, count) {
     try {
       const redis = redisService.getClient();
 
-      // ✅ Check null
       if (!redis) {
-        console.warn('⚠️ Redis unavailable - cannot pop from queue');
+        // console.warn('Redis unavailable - cannot pop from queue');
         return [];
       }
 
@@ -559,22 +458,17 @@ class QueueModel {
       return users;
 
     } catch (error) {
-      // throw new Error(`Failed to pop from queue: ${error.message}`);
       console.error('Failed to pop from Redis queue:', error);
       return [];
     }
   }
 
-  /**
-   * Set active user in Redis
-   */
   static async setActiveUser(sessionId, userId, expiresAtOrMinutes) {
     try {
       const redis = redisService.getClient();
 
-      // ✅ Check null
       if (!redis) {
-        console.warn('⚠️ Redis unavailable - cannot set active user');
+        console.warn('Redis unavailable - cannot set active user');
         return false;
       }
 
@@ -584,18 +478,16 @@ class QueueModel {
       let timeoutSeconds;
       
       if (expiresAtOrMinutes instanceof Date) {
-        // ✅ Passed as Date object → use directly
         expiresAt = expiresAtOrMinutes;
         timeoutSeconds = Math.ceil((expiresAt - new Date()) / 1000);
       } else {
-        // ✅ Passed as minutes → calculate
         const timeoutMinutes = expiresAtOrMinutes;
         expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
         timeoutSeconds = timeoutMinutes * 60;
       }
 
       if (timeoutSeconds <= 0) {
-        console.error('❌ Invalid timeout:', {
+        console.error('Invalid timeout:', {
           expiresAt: expiresAt?. toISOString(),
           timeoutSeconds,
           now: new Date().toISOString()
@@ -609,40 +501,26 @@ class QueueModel {
         expires_at: expiresAt.toISOString()
       });
 
-      // const activeData = {
-      //   user_id: userId,
-      //   activated_at: new Date().toISOString(),
-      //   expires_at: expiresAt.toISOString() // ✅ Lưu expires_at
-      // };
-
-      // await redis.setEx(activeKey, timeoutMinutes * 60, data);
-
-      // Pipeline to atomic operations
       const pipeline = redis.multi();
       pipeline.setEx(activeKey, timeoutSeconds, data);
-      pipeline.sAdd(activeSetKey, userId);  // Add to SET
-      pipeline.expire(activeSetKey, timeoutSeconds + 60); // Buffer 1 min
+      pipeline.sAdd(activeSetKey, userId);  
+      pipeline.expire(activeSetKey, timeoutSeconds + 60); 
       await pipeline.exec();
 
       return true;
 
     } catch (error) {
-      // throw new Error(`Failed to set active user: ${error.message}`);
       console.error('Failed to set active user in Redis:', error);
       return false;
     }
   }
 
-  /**
-   * Check if user is active in Redis
-   */
   static async getActiveUser(sessionId, userId) {
     try {
       const redis = redisService.getClient();
 
-      // ✅ Check null
       if (!redis) {
-        console.warn('⚠️ Redis unavailable - cannot get active user');
+        console.warn('Redis unavailable - cannot get active user');
         return null;
       }
       const activeKey = `active:${sessionId}:${userId}`;
@@ -653,69 +531,50 @@ class QueueModel {
       return JSON.parse(data);
 
     } catch (error) {
-      // throw new Error(`Failed to get active user: ${error.message}`);
       console.error('Failed to get active user in Redis:', error);
       return null;
     }
   }
 
-  /**
-   * Remove active user from Redis
-   */
   static async removeActiveUser(sessionId, userId) {
     try {
       const redis = redisService.getClient();
 
-      // ✅ Check null
       if (!redis) {
-        console.warn('⚠️ Redis unavailable - cannot remove active user');
+        console.warn('Redis unavailable - cannot remove active user');
         return false;
       }
 
       const activeKey = `active:${sessionId}:${userId}`;
       const activeSetKey = `active_set:${sessionId}`;
       
-      // await redis.del(activeKey);
-      // Atomic remove from both
       const pipeline = redis.multi();
       pipeline.del(activeKey);
-      pipeline.sRem(activeSetKey, userId);  // Remove from SET
+      pipeline.sRem(activeSetKey, userId); 
       await pipeline.exec();
       return true;
 
     } catch (error) {
-      // throw new Error(`Failed to remove active user: ${error.message}`);
       console.error('Failed to remove active user in Redis:', error);
       return false;
     }
   }
 
-  /**
-   * Get active users count
-   */
   static async getActiveUsersCount(sessionId) {
     try {
       const redis = redisService.getClient();
-      // const pattern = `active:${sessionId}:*`;
-      // const keys = await redis.keys(pattern);
       
-      // return keys.length;
-
-      // ✅ Handle Redis unavailable
       if (!redis) {
-        console.warn('⚠️ Redis unavailable - returning 0 for active count');
-        // Có thể query từ database như fallback
+        console.warn('Redis unavailable - returning 0 for active count');
         return 0;
       }
       const activeSetKey = `active_set:${sessionId}`;
     
-      // O(1) operation instead of O(N) scan
       return await redis.sCard(activeSetKey);
 
     } catch (error) {
-      // throw new Error(`Failed to get active users count: ${error.message}`);
       console.error('Failed to get active users count:', error);
-      return 0; // Graceful fallback
+      return 0; 
     }
   }
 }

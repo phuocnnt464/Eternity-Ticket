@@ -1,25 +1,15 @@
-// src/middleware/validationMiddleware.js
 const { createResponse, validateUUID } = require('../utils/helpers');
 const Joi = require('joi');
 const validator = require('validator');
 const sanitizeHtml = require('sanitize-html');
 
-/**
- * Validation middleware factory
- * @param {Object} schema - Joi validation schema
- * @param {String} source - Source of data to validate (body, params, query)
- * @returns {Function} Express middleware
- */
 const validate = (schema, source = 'body') => {
   return (req, res, next) => {
     let dataToValidate = req[source];
     
-    // Handle multipart/form-data (file uploads with form fields)
-    // Nếu request là multipart → req.body toàn string
     if (req.is('multipart/form-data') && source === 'body') {
       const parsedData = {};
 
-      // Helper function
       const getJSONDepth = (obj, depth = 0) => {
         if (typeof obj !== 'object' || obj === null) return depth;
         if (Object.keys(obj).length === 0) return depth;
@@ -28,19 +18,13 @@ const validate = (schema, source = 'body') => {
 
       for (const key in dataToValidate) {
         try {
-          // Try to parse JSON String (object/array)
-          // Nếu là JSON string (object/array) → parse
-          // parsed[key] = JSON.parse(dataToValidate[key]);
-
           const jsonValue = JSON.parse(dataToValidate[key]);
   
-          // ✅ Validate size
           const stringified = JSON.stringify(jsonValue);
           if (stringified.length > 100000) { // 100KB limit
             throw new Error('JSON payload too large');
           }
           
-          // ✅ Validate depth (optional)
           const depth = getJSONDepth(jsonValue);
           if (depth > 10) {
             throw new Error('JSON nested too deep');
@@ -48,34 +32,24 @@ const validate = (schema, source = 'body') => {
 
           parsedData[key] = jsonValue;
         } catch(error) {
-          //Keep as string if not valid json
-          // nếu không parse được thì giữ nguyên string
-          // parsed[key] = dataToValidate[key];
-
-          // if (error.message &&  (error.message.includes('JSON') || error.message.includes('payload'))) {
-          //   throw error; // Re-throw validation errors
-          // }
           parsedData[key] = dataToValidate[key];
         }
       }
       dataToValidate = parsedData;
     }
 
-    // Validate data against schema
     const { error, value } = schema.validate(dataToValidate, {
-      abortEarly: false, // Collect all errors, not just the first one
-      allowUnknown: false, // Don't allow unknown fields
-      stripUnknown: true, // Remove unknown fields from the result
-      convert: true, //Type coercion
-      presence: 'optional' // Fields are optional unless marked required in schema
+      abortEarly: false, 
+      allowUnknown: false, 
+      stripUnknown: true, 
+      convert: true, 
+      presence: 'optional' 
     });
 
     if (error) {
-      // Format errors for better readability
       const formattedErrors = error.details.reduce((acc, curr) => {
         const field = curr.path.join('.') || 'general';
 
-        // Group multiple errors for the same field
         if (acc[field]) {
           acc[field] = Array.isArray(acc[field])
           ? [...acc[field], curr.message]
@@ -87,9 +61,8 @@ const validate = (schema, source = 'body') => {
       }, {});
 
       console.log(' Validation error:', formattedErrors);
-      console.log('📦 Data received:', JSON.stringify(dataToValidate, null, 2));
+      // console.log(' Data received:', JSON.stringify(dataToValidate, null, 2));
 
-      // Create error response
       const response = createResponse(
         false,
         'Validation failed. Please check your input and try again.',
@@ -103,10 +76,8 @@ const validate = (schema, source = 'body') => {
       return res.status(400).json(response);
     }
 
-    // Replace the original data with validated and sanitized data
     req[source] = value;
 
-    // Add validation flag
     req.validated = req.validated || {};
     req.validated[source] = true;
 
@@ -114,22 +85,11 @@ const validate = (schema, source = 'body') => {
   };
 };
 
-/**
- * Validate multiple schemas for different sources
- * @param {Object} schemas - Object with schemas for body, params, query
- * @example
- * validateMultiple({
- *   body: bodySchema,
- *   params: paramsSchema,
- *   query: querySchema
- * })
- */
 const validateMultiple = (schemas) => {
   return (req, res, next) => {
     const errors = {};
     let hasError = false;
 
-    // Validate each source
     for (const [source, schema] of Object.entries(schemas)) {
       const { error, value } = schema.validate(req[source], {
         abortEarly: false,
@@ -158,14 +118,6 @@ const validateMultiple = (schemas) => {
   };
 };
 
-// =============================================
-// CUSTOM VALIDATORS
-// =============================================
-
-/**
- * Validate UUID parameter
- * @param {String} paramName - Parameter name to validate
- */
 const validateUUIDParam = (paramName = 'id') => {
   return (req, res, next) => {
     const paramValue = req.params[paramName];
@@ -186,10 +138,6 @@ const validateUUIDParam = (paramName = 'id') => {
   };
 };
 
-/**
- * Validate multiple UUID parameters
- * @param {Array} paramNames - Array of parameter names
- */
 const validateUUIDParams = (...paramNames) => {
   return (req, res, next) => {
     const invalidParams = [];
@@ -214,10 +162,6 @@ const validateUUIDParams = (...paramNames) => {
   };
 };
 
-/**
- * Validate pagination query parameters
- * @param {Object} options - Pagination options
- */
 const validatePagination = (options = {}) => {
   const {
     defaultPage = 1,
@@ -229,12 +173,10 @@ const validatePagination = (options = {}) => {
     let page = parseInt(req.query.page) || defaultPage;
     let limit = parseInt(req.query.limit) || defaultLimit;
 
-    // Validate page
     if (page < 1) {
       page = defaultPage;
     }
 
-    // Validate limit
     if (limit < 1) {
       limit = defaultLimit;
     }
@@ -245,7 +187,6 @@ const validatePagination = (options = {}) => {
       );
     }
 
-    // Add validated pagination to request
     req.pagination = {
       page,
       limit,
@@ -256,17 +197,11 @@ const validatePagination = (options = {}) => {
   };
 };
 
-/**
- * Validate sort query parameter
- * @param {Array} allowedFields - Allowed fields for sorting
- * @param {String} defaultSort - Default sort field and order
- */
 const validateSort = (allowedFields = [], defaultSort = 'created_at:desc') => {
   return (req, res, next) => {
     const sortQuery = req.query.sort || defaultSort;
     const [field, order = 'asc'] = sortQuery.split(':');
 
-    // Validate field
     if (allowedFields.length > 0 && !allowedFields.includes(field)) {
       return res.status(400).json(
         createResponse(
@@ -276,14 +211,12 @@ const validateSort = (allowedFields = [], defaultSort = 'created_at:desc') => {
       );
     }
 
-    // Validate order
     if (!['asc', 'desc'].includes(order.toLowerCase())) {
       return res.status(400).json(
         createResponse(false, 'Sort order must be "asc" or "desc"')
       );
     }
 
-    // Add to request
     req.sort = {
       field,
       order: order.toLowerCase()
@@ -293,9 +226,6 @@ const validateSort = (allowedFields = [], defaultSort = 'created_at:desc') => {
   };
 };
 
-/**
- * Validate date range query parameters
- */
 const validateDateRange = () => {
   return (req, res, next) => {
     const { start_date, end_date } = req.query;
@@ -320,7 +250,6 @@ const validateDateRange = () => {
       req.query.end_date = endDate;
     }
 
-    // Validate range
     if (start_date && end_date && req.query.start_date > req.query.end_date) {
       return res.status(400).json(
         createResponse(false, 'start_date must be before end_date')
@@ -331,14 +260,10 @@ const validateDateRange = () => {
   };
 };
 
-/**
- * Validate file upload
- * @param {Object} options - Upload options
- */
 const validateFileUpload = (options = {}) => {
   const {
     allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'],
-    maxSize = 2 * 1024 * 1024, // 2MB
+    maxSize = 2 * 1024 * 1024, 
     required = false,
     fieldName = 'file'
   } = options;
@@ -346,23 +271,19 @@ const validateFileUpload = (options = {}) => {
   return (req, res, next) => {
     const file = req.file || (req.files && req.files[fieldName]);
 
-    // Check if file is required
     if (required && !file) {
       return res.status(400).json(
         createResponse(false, `File upload is required for field: ${fieldName}`)
       );
     }
 
-    // If no file and not required, continue
     if (!file) {
       return next();
     }
 
-    // Handle multiple files
     const files = Array.isArray(file) ? file : [file];
 
     for (const uploadedFile of files) {
-      // Check file type
       if (!allowedTypes.includes(uploadedFile.mimetype)) {
         return res.status(400).json(
           createResponse(
@@ -372,7 +293,6 @@ const validateFileUpload = (options = {}) => {
         );
       }
 
-      // Check file size
       if (uploadedFile.size > maxSize) {
         const maxSizeMB = (maxSize / (1024 * 1024)).toFixed(2);
         const fileSizeMB = (uploadedFile.size / (1024 * 1024)).toFixed(2);
@@ -390,19 +310,9 @@ const validateFileUpload = (options = {}) => {
   };
 };
 
-/**
- * Validate multiple file uploads
- * @param {Object} fieldConfigs - Configuration for each field
- * @example
- * validateMultipleFiles({
- *   cover: { allowedTypes: ['image/jpeg'], maxSize: 5MB },
- *   thumbnail: { required: true }
- * })
- */
 const validateMultipleFiles = (fieldConfigs = {}) => {
   return (req, res, next) => {
     if (!req.files) {
-      // Check if any field is required
       const requiredFields = Object.entries(fieldConfigs)
         .filter(([_, config]) => config.required)
         .map(([field]) => field);
@@ -416,7 +326,6 @@ const validateMultipleFiles = (fieldConfigs = {}) => {
       return next();
     }
 
-    // Validate each uploaded field
     for (const [fieldName, config] of Object.entries(fieldConfigs)) {
       const files = req.files[fieldName];
 
@@ -430,7 +339,6 @@ const validateMultipleFiles = (fieldConfigs = {}) => {
         const fileArray = Array.isArray(files) ? files : [files];
         
         for (const file of fileArray) {
-          // Check type
           if (config.allowedTypes && !config.allowedTypes.includes(file.mimetype)) {
             return res.status(400).json(
               createResponse(
@@ -440,7 +348,6 @@ const validateMultipleFiles = (fieldConfigs = {}) => {
             );
           }
 
-          // Check size
           if (config.maxSize && file.size > config.maxSize) {
             return res.status(400).json(
               createResponse(
@@ -452,36 +359,20 @@ const validateMultipleFiles = (fieldConfigs = {}) => {
         }
       }
     }
-
     next();
   };
 };
 
-/**
- * Sanitize HTML input to prevent XSS
- * @param {Array} fields - Fields to sanitize (empty = all)
- */
 const sanitizeInput = (fields = []) => {
   return (req, res, next) => {
     const sanitizeString = (str) => {
       if (typeof str !== 'string') return str;
 
-      // ✅ Step 1: Escape HTML entities
       let cleaned = validator.escape(str);
       
-      // ✅ Step 2: Normalize whitespace
       cleaned = validator.trim(cleaned);
-      cleaned = validator.stripLow(cleaned); // Remove control chars
+      cleaned = validator.stripLow(cleaned); 
       
-      // return str
-      //   .trim()
-      //   .replace(/[<>]/g, '')              // Remove HTML tags
-      //   .replace(/javascript:/gi, '')      // Remove javascript: protocol
-      //   .replace(/on\w+=/gi, '')           // Remove event handlers
-      //   .replace(/script/gi, '')           // Remove script keyword
-      //   .replace(/eval\(/gi, '');          // Remove eval
-
-      // ✅ Step 3: Remove dangerous patterns (after escape)
       cleaned = cleaned
         .replace(/javascript:/gi, '')
         .replace(/data:/gi, '')
@@ -489,7 +380,6 @@ const sanitizeInput = (fields = []) => {
         .replace(/file:/gi, '')
         .replace(/on\w+\s*=/gi, ''); // Event handlers
       
-      // ✅ Step 4: Limit length to prevent DOS
       if (cleaned.length > 10000) {
         cleaned = cleaned.substring(0, 10000);
       }
@@ -501,9 +391,8 @@ const sanitizeInput = (fields = []) => {
       const sanitized = {};
       
       for (const [key, value] of Object.entries(obj)) {
-        // ✅ Sanitize keys too (prevent prototype pollution)
         if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-          continue; // Skip dangerous keys
+          continue; 
         }
         
         const cleanKey = validator.escape(key);
@@ -526,7 +415,6 @@ const sanitizeInput = (fields = []) => {
       return sanitized;
     };
 
-    // Sanitize specified fields or all fields
     if (req.body) {
       if (fields.length > 0) {
         fields.forEach(field => {
@@ -545,12 +433,10 @@ const sanitizeInput = (fields = []) => {
       }
     }
 
-    // ✅ Sanitize query params too
     if (req.query) {
       req.query = sanitizeObject(req.query);
     }
     
-    // ✅ Sanitize path params
     if (req.params) {
       req.params = sanitizeObject(req.params);
     }
@@ -559,21 +445,6 @@ const sanitizeInput = (fields = []) => {
   };
 };
 
-// const sanitizeHTML = (input) => {
-//   if (typeof input !== 'string') return input;
-  
-//   const sanitizeHtml = require('sanitize-html');
-  
-//   return sanitizeHtml(input, {
-//     allowedTags: [], // No HTML allowed
-//     allowedAttributes: {},
-//     disallowedTagsMode: 'recursiveEscape'
-//   });
-// };
-
-/**
- * ✅ STRICT HTML SANITIZATION (for rich text fields)
- */
 const sanitizeHTML = (allowedTags = []) => {
   return (req, res, next) => {
     const sanitizeField = (field) => {
@@ -599,10 +470,6 @@ const sanitizeHTML = (allowedTags = []) => {
   };
 };
 
-/**
- * Check for required fields in request body
- * @param {Array} requiredFields - Array of required field names
- */
 const requireFields = (...requiredFields) => {
   return (req, res, next) => {
     const missingFields = [];
@@ -626,9 +493,6 @@ const requireFields = (...requiredFields) => {
   };
 };
 
-/**
- * Validate membership order creation
- */
 const validateMembershipOrder = (req, res, next) => {
   const schema = Joi.object({
     tier: Joi.string()
@@ -681,7 +545,6 @@ const validateMembershipOrder = (req, res, next) => {
 module.exports = {
   // Core validation
   validate,
-  // ...customValidations
   validateMultiple,
   
   // UUID validation

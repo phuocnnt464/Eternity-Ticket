@@ -1,12 +1,6 @@
-// server/src/models/notificationModel.js
 const pool = require('../config/database');
 
 class NotificationModel {
-  /**
-   * Create notification
-   * @param {Object} data - Notification data
-   * @returns {Object} Created notification
-   */
   static async create(data) {
     try {
       const { 
@@ -37,18 +31,14 @@ class NotificationModel {
         notificationData ? JSON.stringify(notificationData) : null
       ]);
       
-      console.log(`✅ Notification created for user ${user_id}: ${title}`);
       return result.rows[0];
       
     } catch (error) {
-      console.error('❌ Create notification error:', error);
+      console.error('Create notification error:', error);
       throw error;
     }
   }
 
-  /**
-   * Get notifications for user with pagination
-   */
   static async findByUser(userId, options = {}) {
     try {
       const { 
@@ -83,14 +73,11 @@ class NotificationModel {
       return result.rows;
       
     } catch (error) {
-      console.error('❌ Find notifications error:', error);
+      console.error('Find notifications error:', error);
       throw error;
     }
   }
 
-  /**
-   * Mark notification as read
-   */
   static async markAsRead(notificationId, userId) {
     try {
       const result = await pool.query(`
@@ -102,14 +89,11 @@ class NotificationModel {
 
       return result.rows[0] || null;
     } catch (error) {
-      console.error('❌ Mark as read error:', error);
+      console.error('Mark as read error:', error);
       throw error;
     }
   }
-
-  /**
-   * Mark all as read for user
-   */
+    
   static async markAllAsRead(userId) {
     try {
       const result = await pool.query(`
@@ -121,14 +105,11 @@ class NotificationModel {
 
       return result.rowCount;
     } catch (error) {
-      console.error('❌ Mark all as read error:', error);
+      console.error('Mark all as read error:', error);
       throw error;
     }
   }
 
-  /**
-   * Delete notification
-   */
   static async delete(notificationId, userId) {
     try {
       const result = await pool.query(`
@@ -139,14 +120,11 @@ class NotificationModel {
 
       return result.rows[0] || null;
     } catch (error) {
-      console.error('❌ Delete notification error:', error);
+      console.error('Delete notification error:', error);
       throw error;
     }
   }
 
-  /**
-   * Get unread count
-   */
   static async getUnreadCount(userId) {
     try {
       const result = await pool.query(`
@@ -157,32 +135,27 @@ class NotificationModel {
 
       return parseInt(result.rows[0].unread_count) || 0;
     } catch (error) {
-      console.error('❌ Get unread count error:', error);
+      console.error('Get unread count error:', error);
       throw error;
     }
   }
 
-  /**
-   * Helper: Create event approved notification
-   */
   static async notifyEventApproved(userId, eventId, eventTitle) {
     return await this.create({
       user_id: userId,
       type: 'system',
-      title: 'Event Approved ✅',
+      title: 'Event Approved',
       content: `Your event "${eventTitle}" has been approved and is now live!`,
       event_id: eventId
     });
   }
 
-  /**
-   * Helper: Create event rejected notification
-   */
+ 
   static async notifyEventRejected(userId, eventId, eventTitle, reason) {
     return await this.create({
       user_id: userId,
       type: 'system',
-      title: 'Event Rejected ❌',
+      title: 'Event Rejected',
       content: `Your event "${eventTitle}" was not approved. Reason: ${reason}`,
       event_id: eventId
     });
@@ -195,7 +168,7 @@ class NotificationModel {
     return await this.create({
       user_id: userId,
       type: 'refund_completed',
-      title: 'Refund Completed 💰',
+      title: 'Refund Completed',
       content: `Your refund for order ${orderNumber} has been completed. Amount: ${amount} VND`,
       order_id: orderId
     });

@@ -1,4 +1,3 @@
-// src/routes/orderRoutes.js
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const OrderController = require('../controllers/orderController');
@@ -18,10 +17,9 @@ const {
 
 const router = express.Router();
 
-// Rate limiting for order operations
 const orderCreationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // limit each IP to 20 order attempts per hour
+  max: 20,
   message: {
     success: false,
     message: 'Too many order attempts, please try again later.',
@@ -30,22 +28,16 @@ const orderCreationLimiter = rateLimit({
 });
 
 const paymentLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 10 payment attempts per 15 minutes
+  windowMs: 15 * 60 * 1000, 
+  max: 10, 
   message: {
     success: false,
     message: 'Too many payment attempts, please try again later.'
   }
 });
 
-// All order routes require authentication
 router.use(authenticateToken);
 
-/**
- * @route   POST /api/orders
- * @desc    Create new order
- * @access  Private (Participant)
- */
 router.post('/',
   orderCreationLimiter,
   authorizeRoles('participant'),
@@ -55,31 +47,16 @@ router.post('/',
   OrderController.createOrder
 );
 
-/**
- * @route   GET /api/orders
- * @desc    Get user orders with pagination and filtering
- * @access  Private
- */
 router.get('/',
   validate(orderQuerySchema, 'query'),
   OrderController.getUserOrders
 );
 
-/**
- * @route   GET /api/orders/:orderId
- * @desc    Get order by ID
- * @access  Private (Order Owner or Admin)
- */
 router.get('/:orderId',
   validate(orderParamSchema, 'params'),
   OrderController.getOrder
 );
 
-/**
- * @route   POST /api/orders/:orderId/payment
- * @desc    Process payment for order
- * @access  Private (Order Owner)
- */
 router.post('/:orderId/payment',
   paymentLimiter,
   validate(orderParamSchema, 'params'),
@@ -87,21 +64,11 @@ router.post('/:orderId/payment',
   OrderController.processPayment
 );
 
-/**
- * @route   PUT /api/orders/:orderId/cancel
- * @desc    Cancel pending order
- * @access  Private (Order Owner)
- */
 router.put('/:orderId/cancel',
   validate(orderParamSchema, 'params'),
   OrderController.cancelOrder
 );
 
-/**
- * @route   GET /api/orders/:orderId/tickets
- * @desc    Get order tickets (for download/view)
- * @access  Private (Order Owner)
- */
 router.get('/:orderId/tickets',
   validate(orderParamSchema, 'params'),
   OrderController.getOrderTickets
@@ -112,62 +79,11 @@ router.get('/:orderId/download-pdf',
   OrderController.downloadTicketsPDF
 );
 
-/**
- * @route   POST /api/orders/:orderId/payment/vnpay
- * @desc    Get VNPay payment URL
- * @access  Private
- */
-router.post('/:orderId/payment/vnpay',
-  authenticateToken,
-  validateUUIDParam('orderId'),
-  OrderController.getVNPayURL
-);
-
-/**
- * @route   GET /api/orders/payment/vnpay-return
- * @desc    VNPay return callback (from VNPay server)
- * @access  Public
- */
-router.get('/payment/vnpay-return', 
-  OrderController.vnpayReturn
-);
-
-/**
- * @route   GET /api/orders/payment/vnpay-ipn
- * @desc    VNPay IPN callback (server-to-server)
- * @access  Public
- */
-router.get('/payment/vnpay-ipn', 
-  OrderController.vnpayIPN // Dùng chung logic
-);
-
-// Admin routes
-
-/**
- * @route   POST /api/orders/cleanup/expired
- * @desc    Cleanup expired orders (Admin/Cron job)
- * @access  Private (Admin)
- */
 router.post('/cleanup/expired',
   authorizeRoles('admin', 'sub_admin'),
   OrderController.cleanupExpiredOrders
 );
 
-/**
- * @route   GET /api/orders/debug/vnpay
- * @desc    Debug VNPay configuration
- * @access  Private (for development only)
- */
-router.get('/debug/vnpay',
-  authenticateToken,
-  OrderController.debugVNPay
-);
-
-/**
- * @route   POST /api/orders/:orderId/payment/mock
- * @desc    Mock payment (for development/testing)
- * @access  Private
- */
 router.post('/:orderId/payment/mock',
   authenticateToken,
   validateUUIDParam('orderId'),

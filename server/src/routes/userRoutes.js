@@ -1,4 +1,3 @@
-// src/routes/userRoutes.js
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const UserController = require('../controllers/userController');
@@ -14,10 +13,9 @@ const { uploadUserAvatar, processUserAvatar } = require('../middleware/uploadMid
 
 const router = express.Router();
 
-// Rate limiting for sensitive operations
 const sensitiveOperationsLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3, // limit each IP to 3 requests per windowMs
+  windowMs: 15 * 60 * 1000, 
+  max: 3,
   message: {
     success: false,
     error: {
@@ -28,8 +26,8 @@ const sensitiveOperationsLimiter = rateLimit({
 });
 
 const profileUpdateLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 10, // limit each IP to 10 profile updates per 5 minutes
+  windowMs: 5 * 60 * 1000, 
+  max: 10, 
   message: {
     success: false,
     error: {
@@ -38,15 +36,7 @@ const profileUpdateLimiter = rateLimit({
   }
 });
 
-// =============================================
-// USER PROFILE ROUTES
-// =============================================
 
-/**
- * @route   GET /api/users/:userId
- * @desc    Get user by ID
- * @access  Private (Owner or Admin)
- */
 router.get('/:userId',
   authenticateToken,
   validateUUIDParam('userId'),
@@ -54,11 +44,6 @@ router.get('/:userId',
   UserController.getUserById
 );
 
-/**
- * @route   PUT /api/users/:userId
- * @desc    Update user profile
- * @access  Private (Owner or Admin)
- */
 router.put('/:userId',
   authenticateToken,
   profileUpdateLimiter,
@@ -69,11 +54,6 @@ router.put('/:userId',
   UserController.updateProfile
 );
 
-/**
- * @route   POST /api/users/:userId/avatar
- * @desc    Upload user avatar
- * @access  Private (Owner or Admin)
- */
 router.post('/:userId/avatar',
   authenticateToken,
   validateUUIDParam('userId'),
@@ -84,11 +64,6 @@ router.post('/:userId/avatar',
   UserController.uploadAvatar
 );
 
-/**
- * @route   DELETE /api/users/:userId
- * @desc    Deactivate user account
- * @access  Private (Owner or Admin)
- */
 router.delete('/:userId',
   authenticateToken,
   sensitiveOperationsLimiter,
@@ -98,15 +73,6 @@ router.delete('/:userId',
   UserController.deactivateAccount
 );
 
-// =============================================
-// USER HISTORY ROUTES
-// =============================================
-
-/**
- * @route   GET /api/users/:userId/tickets
- * @desc    Get user's ticket history
- * @access  Private (Owner or Admin)
- */
 router.get('/:userId/tickets',
   authenticateToken,
   validateUUIDParam('userId'),
@@ -115,11 +81,6 @@ router.get('/:userId/tickets',
   UserController.getTicketHistory
 );
 
-/**
- * @route   GET /api/users/:userId/orders
- * @desc    Get user's order history
- * @access  Private (Owner or Admin)
- */
 router.get('/:userId/orders',
   authenticateToken,
   validateUUIDParam('userId'),
@@ -128,15 +89,6 @@ router.get('/:userId/orders',
   UserController.getOrderHistory
 );
 
-// =============================================
-// USER ACCOUNT MANAGEMENT
-// =============================================
-// Statistics endpoint
-/**
- * @route   GET /api/users/stats
- * @desc    Get user statistics (orders, tickets, spending)
- * @access  Private
- */
 router.get('/:userId/stats',
   authenticateToken,
   validateUUIDParam('userId'),
@@ -180,124 +132,4 @@ router.get('/:userId/stats',
     }
   }
 );
-
-// Preferences endpoint (for future features)
-/**
- * @route   GET /api/users/preferences
- * @desc    Get user preferences
- * @access  Private
- */
-router.get('/:userId/preferences', 
-  authenticateToken,
-  validateUUIDParam('userId'),
-  authorizeOwnerOrAdmin('userId'),
-  (req, res) => {
-    // Placeholder for user preferences
-    const { createResponse } = require('../utils/helpers');
-  
-    const defaultPreferences = {
-      notifications: {
-        email: true,
-        sms: false,
-        push: true,
-        event_reminders: true,
-        marketing: false
-      },
-      privacy: {
-        profile_visibility: 'private',
-        show_activity: false,
-        // data_usage: 'essential_only'
-      },
-      display: {
-        language: 'en',
-        timezone: 'Asia/Ho_Chi_Minh',
-        currency: 'VND',
-        date_format: 'DD/MM/YYYY'
-      }
-    };
-
-    res.json(createResponse(
-      true,
-      'User preferences retrieved successfully',
-      { preferences: defaultPreferences }
-    ));
-  }
-);
-
-/**
- * @route   PUT /api/users/preferences
- * @desc    Update user preferences
- * @access  Private
- */
-router.put('/:userId/preferences',
-  authenticateToken,
-  validateUUIDParam('userId'),
-  authorizeOwnerOrAdmin('userId'),
-  (req, res) => {
-    // Placeholder for updating user preferences
-    const { createResponse } = require('../utils/helpers');
-  
-    res.json(createResponse(
-      true,
-      'User preferences updated successfully',
-      { preferences: req.body }
-    ));
-  }
-);
-
-/**
- * @route   GET /api/users/debug
- * @desc    Debug user data
- * @access  Private
- */
-router.get('/:userId/debug', 
-  authenticateToken, 
-  validateUUIDParam('userId'),
-  authorizeOwnerOrAdmin('userId'),
-  async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    const pool = require('../config/database');
-    
-    console.log(`🔍 Debug info for user: ${userId}`);
-    
-    // Check user exists
-    const userCheck = await pool.query('SELECT id, email, role FROM users WHERE id = $1', [userId]);
-    console.log('👤 User found:', userCheck.rows[0]);
-    
-    // Check orders
-    const orderCheck = await pool.query('SELECT COUNT(*) as count FROM orders WHERE user_id = $1', [userId]);
-    console.log('📋 Orders count:', orderCheck.rows[0].count);
-    
-    // Check tickets
-    const ticketCheck = await pool.query('SELECT COUNT(*) as count FROM tickets WHERE user_id = $1', [userId]);
-    console.log('🎫 Tickets count:', ticketCheck.rows[0].count);
-    
-    // Check events
-    const eventCheck = await pool.query('SELECT COUNT(*) as count FROM events');
-    console.log('🎉 Events count:', eventCheck.rows[0].count);
-    
-    // Check categories
-    const categoryCheck = await pool.query('SELECT COUNT(*) as count FROM categories');
-    console.log('📂 Categories count:', categoryCheck.rows[0].count);
-    
-    const { createResponse } = require('../utils/helpers');
-    
-    res.json(createResponse(true, 'Debug info retrieved', {
-      user: userCheck.rows[0],
-      counts: {
-        orders: parseInt(orderCheck.rows[0].count),
-        tickets: parseInt(ticketCheck.rows[0].count),
-        events: parseInt(eventCheck.rows[0].count),
-        categories: parseInt(categoryCheck.rows[0].count)
-      }
-    }));
-    
-  } catch (error) {
-    console.error('❌ Debug error:', error.message);
-    const { createResponse } = require('../utils/helpers');
-    res.status(500).json(createResponse(false, `Debug error: ${error.message}`));
-  }
-});
-
 module.exports = router;

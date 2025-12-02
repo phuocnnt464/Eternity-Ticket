@@ -1,9 +1,6 @@
 const pool = require('../config/database');
 
 class RefundModel {
-  /**
-   * Create refund request
-   */
   static async create(refundData) {
     const query = `
       INSERT INTO refund_requests (
@@ -22,9 +19,6 @@ class RefundModel {
     return result.rows[0];
   }
 
-   /**
-   * Find refund by ID
-   */
   static async findById(id) {
     const query = `
       SELECT rr.*, 
@@ -42,9 +36,6 @@ class RefundModel {
     return result.rows[0];
   }
 
-  /**
-   * Find all refunds with filters
-   */
   static async findAll(filters = {}, limit = 50, offset = 0) {
     let query = `
       SELECT rr.*, 
@@ -86,9 +77,6 @@ class RefundModel {
     return result.rows;
   }
 
-  /**
-   * Update refund status (simple update)
-   */
   static async updateStatus(id, status, reviewedBy, reviewNotes = null) {
     const query = `
       UPDATE refund_requests 
@@ -104,20 +92,12 @@ class RefundModel {
     return result.rows[0];
   }
 
-  /**
-   * Approve refund request with full transaction handling
-   * @param {String} refundId - Refund request ID
-   * @param {String} adminId - Admin user ID
-   * @param {String} reviewNotes - Optional review notes
-   * @returns {Object} Updated refund data
-   */
   static async approve(refundId, adminId, reviewNotes = null) {
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
 
-      // 1. Get and lock refund details
       const refundQuery = await client.query(`
         SELECT r.*, o.total_amount, o.user_id, o.payment_method, o.id as order_id,
               u.email as user_email, 
@@ -137,7 +117,6 @@ class RefundModel {
 
       const refund = refundQuery.rows[0];
 
-      // 2. Update refund status to approved
       await client.query(`
         UPDATE refund_requests 
         SET status = 'approved',
@@ -148,7 +127,6 @@ class RefundModel {
         WHERE id = $3
       `, [adminId, reviewNotes, refundId]);
 
-      // 3. Update order status to refunded
       await client.query(`
         UPDATE orders 
         SET status = 'refunded',
@@ -156,7 +134,6 @@ class RefundModel {
         WHERE id = $1
       `, [refund.order_id]);
 
-      // 4. Update all tickets to refunded
       await client.query(`
         UPDATE tickets 
         SET status = 'refunded',
@@ -165,7 +142,6 @@ class RefundModel {
         WHERE order_id = $1
       `, [refund.order_id]);
 
-      // 5. Restore ticket quantities
       await client.query(`
         UPDATE ticket_types tt
         SET sold_quantity = sold_quantity - oi.quantity,
@@ -175,7 +151,6 @@ class RefundModel {
           AND oi.order_id = $1
       `, [refund.order_id]);
 
-      // 6. Create notification for user
       await client.query(`
         INSERT INTO notifications (user_id, type, title, content, data)
         VALUES ($1, 'refund_approved', 'Refund Approved', $2, $3)
@@ -191,7 +166,7 @@ class RefundModel {
 
       await client.query('COMMIT');
 
-      console.log(`✅ Refund ${refundId} approved by admin ${adminId}`);
+      // console.log(`Refund ${refundId} approved by admin ${adminId}`);
 
       // Return refund data for email
       return {
@@ -203,20 +178,13 @@ class RefundModel {
 
     } catch (error) {
       await client.query('ROLLBACK');
-      console.error('❌ Approve refund error:', error);
+      console.error('Approve refund error:', error);
       throw error;
     } finally {
       client.release();
     }
   }
 
-  /**
-   * Reject refund request
-   * @param {String} refundId - Refund request ID
-   * @param {String} adminId - Admin user ID
-   * @param {String} rejectionReason - Reason for rejection (required)
-   * @returns {Object} Updated refund data
-   */
   static async reject(refundId, adminId, rejectionReason) {
     const client = await pool.connect();
 
@@ -227,7 +195,6 @@ class RefundModel {
         throw new Error('Rejection reason is required');
       }
 
-      // 1. Get and lock refund details
       const refundQuery = await client.query(`
         SELECT r.*, o.user_id, o.id as order_id,
               u.email as user_email,
@@ -247,7 +214,6 @@ class RefundModel {
 
       const refund = refundQuery.rows[0];
 
-      // 2. Update refund status to rejected
       await client.query(`
         UPDATE refund_requests 
         SET status = 'rejected',
@@ -258,7 +224,6 @@ class RefundModel {
         WHERE id = $3
       `, [adminId, rejectionReason, refundId]);
 
-      // 3. Create notification for user
       await client.query(`
         INSERT INTO notifications (user_id, type, title, content, data)
         VALUES ($1, 'refund_rejected', 'Refund Rejected', $2, $3)
@@ -274,7 +239,7 @@ class RefundModel {
 
       await client.query('COMMIT');
 
-      console.log(`✅ Refund ${refundId} rejected by admin ${adminId}`);
+      // console.log(`Refund ${refundId} rejected by admin ${adminId}`);
 
       // Return refund data for email
       return {
@@ -294,9 +259,6 @@ class RefundModel {
     }
   }
 
-  /**
-   * Process refund (mark as completed)
-   */
   static async processRefund(id, processedBy, transactionId) {
     const query = `
       UPDATE refund_requests 
