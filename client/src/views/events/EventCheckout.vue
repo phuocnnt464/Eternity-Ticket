@@ -487,8 +487,6 @@ onMounted(async () => {
 
     console.log('🔍 Session ID:', session.value.id)
 
-    // ✅ CHECK: Có queue store với status active không?
-    const queueStore = useQueueStore()
     if (queueStore.status === 'active' && queueStore.expiresAt) {
       const expiresAt = new Date(queueStore.expiresAt)
       const now = new Date()
