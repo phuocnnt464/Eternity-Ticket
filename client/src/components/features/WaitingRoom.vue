@@ -245,6 +245,8 @@ const pollStatistics = async () => {
     const response = await queueAPI.getStatistics(props.sessionId)
     const data = response.data.data || response.data
     
+    statistics.value = data
+    
     totalInQueue.value = data.current?.waiting_count || 0
     activeCount.value = data.current?.active_count || 0
     
