@@ -554,7 +554,7 @@ class QueueModel {
   /**
    * Set active user in Redis
    */
-  static async setActiveUser(sessionId, userId, timeoutMinutes) {
+  static async setActiveUser(sessionId, userId, expiresAtOrMinutes) {
     try {
       const redis = redisService.getClient();
 
@@ -580,6 +580,15 @@ class QueueModel {
         timeoutSeconds = timeoutMinutes * 60;
       }
 
+      if (timeoutSeconds <= 0) {
+        console.error('❌ Invalid timeout:', {
+          expiresAt: expiresAt?. toISOString(),
+          timeoutSeconds,
+          now: new Date().toISOString()
+        });
+        return false;
+      }
+
       const data = JSON.stringify({
         status: 'active',
         activated_at: new Date().toISOString(),
@@ -596,9 +605,9 @@ class QueueModel {
 
       // Pipeline to atomic operations
       const pipeline = redis.multi();
-      pipeline.setEx(activeKey, timeoutMinutes * 60, data);
+      pipeline.setEx(activeKey, timeoutSeconds, data);
       pipeline.sAdd(activeSetKey, userId);  // Add to SET
-      pipeline.expire(activeSetKey, timeoutMinutes * 60 + 60); // Buffer 1 min
+      pipeline.expire(activeSetKey, timeoutSeconds + 60); // Buffer 1 min
       await pipeline.exec();
 
       return true;
