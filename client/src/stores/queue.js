@@ -9,7 +9,15 @@ export const useQueueStore = defineStore('queue', () => {
   function $reset() {
     queuePosition.value = null
     estimatedWaitTime.value = null
-    // Reset tất cả state
+    isInQueue.value = false
+    queueId.value = null
+    queueNumber. value = null
+    status.value = 'waiting'
+    estimatedWait.value = null
+    expiresAt.value = null  
+    eventId.value = null
+    sessionId.value = null
+    lastHeartbeat.value = null
   }
   // ==========================================
   const isInQueue = ref(false)
@@ -26,6 +34,23 @@ export const useQueueStore = defineStore('queue', () => {
   // Queue config
   const queueTimeout = ref(15 * 60 * 1000) // 15 minutes in ms
   const heartbeatFrequency = ref(30 * 1000) // 30 seconds in ms
+
+   const checkAndClearExpired = () => {
+    if (expiresAt.value) {
+      const expires = new Date(expiresAt.value)
+      const now = new Date()
+      
+      if (now >= expires) {
+        console.log('⚠️ Queue store expired on load, clearing... ', {
+          expired_at: expiresAt.value,
+          now: now. toISOString()
+        })
+        $reset()
+        return true
+      }
+    }
+    return false
+  }
 
   // ==========================================
   // GETTERS
@@ -257,7 +282,9 @@ export const useQueueStore = defineStore('queue', () => {
     completeQueue,
     expireQueue,
     checkExpiration,
-    leaveQueue
+    leaveQueue,
+    
+    checkAndClearExpired 
   }
 }, {
   persist: true

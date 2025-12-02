@@ -249,9 +249,6 @@ class AuthController {
       const accessToken = generateAccessToken(tokenPayload);
       const refreshToken = generateRefreshToken(tokenPayload);
 
-      // TODO: Save session
-      // await sessionService.createSession(user.id, refreshToken, req);
-
       // Get user membership info
       const membership = await UserModel.getUserMembership(user.id);
 

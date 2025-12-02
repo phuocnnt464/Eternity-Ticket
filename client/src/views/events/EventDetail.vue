@@ -7,6 +7,7 @@ import { sessionsAPI } from '@/api/sessions.js'
 import { queueAPI } from '@/api/queue.js'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
+import { useQueueStore } from '@/stores/queue'
 import Badge from '@/components/common/Badge.vue'
 import Button from '@/components/common/Button.vue'
 import Spinner from '@/components/common/Spinner.vue'
@@ -34,6 +35,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
+const queueStore = useQueueStore()
 
 const event = ref(null)
 const sessions = ref([])
@@ -246,6 +248,10 @@ const handlePurchase = async () => {
       cartStore.items = []
     }
 
+    const queueStore = useQueueStore()
+    queueStore.$reset()
+    console.log('✅ Queue store reset before joining')
+
     cartStore.setEventAndSession(event.value, selectedSession.value)
     
     selectedTickets.value. forEach(ticket => {
@@ -285,6 +291,11 @@ const handlePurchase = async () => {
     }
 
     if (data.can_purchase) {
+      if (data.expires_at) {
+        queueStore.expiresAt = data.expires_at
+        console.log('✅ Set expires_at from joinQueue:', data.expires_at)
+      }
+
       router.push({
         name: 'EventCheckout',
         params: { slug: route.params.slug }

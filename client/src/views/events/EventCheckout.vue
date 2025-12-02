@@ -451,7 +451,13 @@ const handleCancelPayment = () => {
 
 onMounted(async () => {
   try {
-  // Load user info
+
+    const wasExpired = queueStore.checkAndClearExpired()
+    if (wasExpired) {
+      console.log('⚠️ Cleared expired queue store')
+    }
+
+    // Load user info
     if (authStore.user) {
       customerInfo.value = {
         first_name: authStore.user.first_name || '',
@@ -484,7 +490,7 @@ onMounted(async () => {
     // ✅ CHECK: Có queue store với status active không?
     const queueStore = useQueueStore()
     if (queueStore.status === 'active' && queueStore.expiresAt) {
-     const expiresAt = new Date(queueStore.expiresAt)
+      const expiresAt = new Date(queueStore.expiresAt)
       const now = new Date()
       
       console.log('🔍 Queue store check:', {

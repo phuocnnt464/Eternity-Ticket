@@ -174,9 +174,17 @@ const pollStatus = async () => {
     
     console.log('🔄 Poll status:', data.status, 'Position:', data.queue_position)
     
+    
     if (data.expires_at) {
+      const oldExpires = queueStore.expiresAt
       queueStore.expiresAt = data.expires_at
-      console.log('✅ Updated expires_at:', data.expires_at)
+      
+      if (oldExpires !== data.expires_at) {
+        console.log('✅ Updated expires_at:', {
+          old: oldExpires,
+          new: data.expires_at
+        })
+      }
     }
 
     // Update store
@@ -199,17 +207,20 @@ const pollStatus = async () => {
         can_purchase: data.can_purchase
       })
 
-      if (data.expires_at) {
-        queueStore.expiresAt = data.expires_at
-      }
-
       // Start countdown
       if (data.expires_at) {
-        const activeUntil = new Date(data. expires_at)
+        const expiresAt = new Date(data.expires_at)
+        const now = new Date()
+
+        if (now >= expiresAt) {
+          console.error('❌ Activated but already expired!')
+          emit('expired')
+          return
+        }
         
         countdownInterval.value = setInterval(() => {
           const now = new Date()
-          const diff = Math.floor((activeUntil - now) / 1000)
+          const diff = Math.floor((expiresAt - now) / 1000)
           
           if (diff <= 0) {
             remainingTime.value = 0
@@ -260,7 +271,7 @@ onMounted(async () => {
     // Update store với data từ API
     // queueStore.joinQueue(data)
 
-     if (data.expires_at) {
+    if (data.expires_at) {
       queueStore.expiresAt = data.expires_at
       console.log('✅ Set expires_at from server:', data.expires_at)
     }
@@ -281,8 +292,19 @@ onMounted(async () => {
 
     startHeartbeat()
     
-     if (data.status === 'active' || data.can_purchase) {
+    if (data.status === 'active' || data.can_purchase) {
       console. log('✅ User already active')
+
+      if (data.expires_at) {
+        const expiresAt = new Date(data.expires_at)
+        const now = new Date()
+        
+        if (now >= expiresAt) {
+          console. error('❌ Already expired on mount!')
+          emit('error', 'Your purchase time has expired.  Please join the queue again.')
+          return
+        }
+      }
 
       startCountdown()
       emit('ready')
@@ -290,10 +312,11 @@ onMounted(async () => {
       console.log(`⏳ User waiting, position: ${data.queue_position}`)
     }
 
+    await pollStatistics()
+
     pollStatus()  // Call immediately
     statusPollInterval.value = setInterval(pollStatus, 2000)
     
-    pollStatistics()
     statisticsPollInterval.value = setInterval(pollStatistics, 3000)
   } catch (error) {
     emit('error', error.message)
