@@ -8,7 +8,12 @@ export const queueAPI = {
 
   // GET /api/queue/status/:sessionId
   getStatus: (sessionId) => {
-    return api.get(`/queue/status/${sessionId}`)
+    return api.get(`/queue/status/${sessionId}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    })
   },
 
   // POST /api/queue/heartbeat
@@ -23,6 +28,11 @@ export const queueAPI = {
 
   // GET /api/queue/statistics/:sessionId
   getStatistics: (sessionId) => {
-    return api.get(`/queue/statistics/${sessionId}`)
+    return api.get(`/queue/statistics/${sessionId}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    })
   }
 }

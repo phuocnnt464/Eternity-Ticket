@@ -32,6 +32,9 @@ const queueMovement = ref(0)
 
 const statisticsInterval = ref(null)
 
+const statusPollInterval = ref(null)
+const statisticsPollInterval = ref(null)
+
 const queueStatus = computed(() => queueStore.currentQueue)
 
 const isWaiting = computed(() => {
@@ -128,6 +131,60 @@ const estimatedWaitMinutes = computed(() => {
   return Math.ceil((queueStatus.value?.estimated_wait || 0))
 })
 
+const pollStatus = async () => {
+  try {
+    const response = await queueAPI.getStatus(props.sessionId)
+    const data = response.data. data || response.data
+    
+    console.log('🔄 Poll status:', data.status, 'Position:', data.queue_position)
+    
+    // Update store
+    if (data.status) {
+      queueStore.updateStatus(data.status)
+    }
+    
+    if (data.queue_position !== undefined || data.queue_number) {
+      queueStore.updatePosition({
+        queue_number: data. queue_number || data.queue_position,
+        estimated_wait_minutes: data.estimated_wait_minutes,
+        status: data.status
+      })
+    }
+    
+    if (data.expires_at) {
+      queueStore.expiresAt = data.expires_at
+    }
+    
+    // ✅ CHECK: Nếu status = 'active' và hiện đang waiting → Emit ready! 
+    if ((data.status === 'active' || data.can_purchase) && isWaiting.value) {
+      console.log('✅✅✅ STATUS CHANGED TO ACTIVE!  Emitting ready.. .')
+      
+      // Start countdown
+      if (data.expires_at) {
+        const activeUntil = new Date(data. expires_at)
+        
+        countdownInterval.value = setInterval(() => {
+          const now = new Date()
+          const diff = Math.floor((activeUntil - now) / 1000)
+          
+          if (diff <= 0) {
+            remainingTime.value = 0
+            clearInterval(countdownInterval.value)
+            emit('expired')
+          } else {
+            remainingTime.value = diff
+          }
+        }, 1000)
+      }
+      
+      emit('ready')
+    }
+    
+  } catch (error) {
+    console.error('Poll status error:', error)
+  }
+}
+
 const pollStatistics = async () => {
   try {
     const response = await queueAPI. getStatistics(props.sessionId)
@@ -183,10 +240,12 @@ onMounted(async () => {
     } else {
       console.log(`⏳ User waiting, position: ${data.queue_position}`)
     }
+
+    pollStatus()  // Call immediately
+    statusPollInterval.value = setInterval(pollStatus, 2000)
     
     pollStatistics()
-    statisticsInterval.value = setInterval(pollStatistics, 10000)
-
+    statisticsPollInterval.value = setInterval(pollStatistics, 3000)
   } catch (error) {
     emit('error', error.message)
   }
@@ -199,8 +258,11 @@ onBeforeUnmount(() => {
   if (countdownInterval.value) {
     clearInterval(countdownInterval.value)
   }
-  if (statisticsInterval.value) {  
-    clearInterval(statisticsInterval.value)
+  if (statusPollInterval. value) {
+    clearInterval(statusPollInterval.value)
+  }
+  if (statisticsPollInterval.value) {  
+    clearInterval(statisticsPollInterval.value)
   }
 
   try {

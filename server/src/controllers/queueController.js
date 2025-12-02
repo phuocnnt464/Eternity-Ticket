@@ -235,6 +235,10 @@ class QueueController {
         ));
       }
 
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+
       res.json(createResponse(
         true,
         hasWaitingRoom ? 'Waiting room available' : 'Not in queue',
@@ -327,6 +331,10 @@ class QueueController {
         QueueModel.getRedisQueueLength(sessionId),
         QueueModel.getActiveUsersCount(sessionId)
       ]);
+
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
 
       res.json(createResponse(
         true,
