@@ -1,9 +1,6 @@
 import { ref } from 'vue'
 import { UPLOAD_LIMITS } from '@/utils/constants'
 
-/**
- * Image upload composable
- */
 export function useImageUpload(options = {}) {
   const {
     maxSize = UPLOAD_LIMITS.IMAGE_MAX_SIZE,
@@ -18,11 +15,9 @@ export function useImageUpload(options = {}) {
   const progress = ref(0)
   const error = ref(null)
 
-  // Validate file
   const validateFile = (fileToValidate) => {
     error.value = null
 
-    // Check if file exists
     if (!fileToValidate) {
       error.value = 'Please select a file'
       return false
@@ -44,7 +39,6 @@ export function useImageUpload(options = {}) {
     return true
   }
 
-  // Validate image dimensions
   const validateDimensions = (img) => {
     if (maxWidth && img.width > maxWidth) {
       error.value = `Image width must not exceed ${maxWidth}px`
@@ -59,7 +53,6 @@ export function useImageUpload(options = {}) {
     return true
   }
 
-  // Create preview
   const createPreview = (fileToPreview) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -67,7 +60,6 @@ export function useImageUpload(options = {}) {
       reader.onload = (e) => {
         preview.value = e.target.result
 
-        // If dimensions validation is needed
         if (maxWidth || maxHeight) {
           const img = new Image()
           img.onload = () => {
@@ -97,7 +89,6 @@ export function useImageUpload(options = {}) {
     })
   }
 
-  // Handle file selection
   const handleFileSelect = async (event) => {
     const selectedFile = event.target?.files?.[0] || event
 
@@ -117,7 +108,6 @@ export function useImageUpload(options = {}) {
     }
   }
 
-  // Upload file
   const uploadFile = async (uploadFn) => {
     if (!file.value) {
       error.value = 'No file selected'
@@ -142,7 +132,6 @@ export function useImageUpload(options = {}) {
     }
   }
 
-  // Clear selection
   const clear = () => {
     file.value = null
     preview.value = null
@@ -150,7 +139,6 @@ export function useImageUpload(options = {}) {
     progress.value = 0
   }
 
-  // Compress image
   const compressImage = (quality = 0.8) => {
     return new Promise((resolve, reject) => {
       if (!file.value || !preview.value) {

@@ -136,17 +136,17 @@ const adminBadge = computed(() => {
     <div class="md:hidden h-[56px]"></div>
 
     <div class="flex">
-      <!-- ✅ Sidebar - Fixed Width, No Transform on Active -->
+      <!-- Sidebar -->
       <aside 
         :class="[
           'fixed md:sticky md:top-0 left-0 h-screen z-40 transition-transform duration-300',
-          'w-72 flex-shrink-0',  // ← flex-shrink-0 prevents width changes
+          'w-72 flex-shrink-0',
           'bg-gradient-to-b from-red-900 via-red-950 to-black',
           'shadow-2xl',
           sidebarOpen ? 'translate-x-0 top-[56px] md:top-0' : '-translate-x-full md:translate-x-0'
         ]"
       >
-        <!-- Logo Section -->
+
         <div class="hidden md:block p-6 border-b border-red-800/50">
           <RouterLink to="/" class="flex items-center space-x-3 group">
             <img 
@@ -162,7 +162,6 @@ const adminBadge = computed(() => {
           </RouterLink>
         </div>
 
-        <!-- Profile Card -->
         <div class="p-4 border-b border-red-800/50">
           <div class="flex items-center space-x-3">
             <div class="relative flex-shrink-0">
@@ -186,7 +185,6 @@ const adminBadge = computed(() => {
           </div>
         </div>
 
-        <!-- ✅ Navigation - NO scale transform on active -->
         <nav class="flex-1 overflow-y-auto p-4 space-y-2">
           <RouterLink
             v-for="item in filteredNavigation"
@@ -200,13 +198,11 @@ const adminBadge = computed(() => {
                 : 'text-gray-300 hover:bg-white/5 hover:text-white'
             ]"
           >
-            <!-- Background overlay -->
             <div 
               v-if="isActive(item. href)"
               class="absolute inset-0 bg-white/10 rounded-xl"
             ></div>
             
-            <!-- ✅ Icon - NO scale on hover when active -->
             <component 
               :is="item.icon" 
               :class="[
@@ -217,7 +213,6 @@ const adminBadge = computed(() => {
             
             <span class="font-semibold relative z-10 text-sm flex-1">{{ item.name }}</span>
             
-            <!-- Active Indicator -->
             <div 
               v-if="isActive(item.href)"
               class="w-2 h-2 bg-white rounded-full relative z-10 flex-shrink-0"
@@ -246,7 +241,6 @@ const adminBadge = computed(() => {
         </div>
       </aside>
 
-      <!-- Backdrop -->
       <div 
         v-if="sidebarOpen"
         @click="sidebarOpen = false"
@@ -254,7 +248,6 @@ const adminBadge = computed(() => {
         style="top: 56px;"
       ></div>
 
-      <!-- ✅ Main Content - Stable Width -->
       <main class="flex-1 min-w-0 min-h-screen">  <!-- ← min-w-0 prevents flex grow issues -->
         <!-- Page Content -->
         <div class="p-4 md:p-8">
@@ -266,7 +259,6 @@ const adminBadge = computed(() => {
 </template>
 
 <style scoped>
-/* Custom scrollbar */
 aside nav::-webkit-scrollbar {
   width: 6px;
 }

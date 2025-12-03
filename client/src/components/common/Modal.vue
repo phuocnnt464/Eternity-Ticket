@@ -1,4 +1,3 @@
-<!-- client/src/components/common/Modal.vue -->
 
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
@@ -44,7 +43,6 @@ const close = () => {
   }
 }
 
-// ✅ Prevent body scroll when modal open
 onMounted(() => {
   if (props.modelValue) {
     document.body.style.overflow = 'hidden'
@@ -71,10 +69,8 @@ onUnmounted(() => {
         class="fixed inset-0 z-50 overflow-y-auto"
         @click. self="close"
       >
-        <!-- ✅ Backdrop -->
         <div class="fixed inset-0 bg-black/50 transition-opacity" @click="close" />
 
-        <!-- ✅ Modal Container - Centered with padding -->
         <div class="flex min-h-full items-center justify-center p-4 sm:p-6 lg:p-8">
           <Transition
             enter-active-class="transition ease-out duration-300"
@@ -89,12 +85,11 @@ onUnmounted(() => {
               :class="[
                 'relative w-full bg-white rounded-lg shadow-xl',
                 'flex flex-col',
-                'max-h-[90vh]', // ✅ Max height 90% of viewport
+                'max-h-[90vh]',
                 sizeClasses
               ]"
               @click.stop
             >
-              <!-- ✅ Header - Fixed at top -->
               <div class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 flex-shrink-0">
                 <h3 class="text-lg sm:text-xl font-semibold text-gray-900 pr-8">
                   {{ title }}
@@ -108,12 +103,10 @@ onUnmounted(() => {
                 </button>
               </div>
 
-              <!-- ✅ Content - Scrollable -->
               <div class="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6">
                 <slot />
               </div>
 
-              <!-- ✅ Footer - Fixed at bottom -->
               <div
                 v-if="$slots.footer"
                 class="flex-shrink-0 px-4 sm:px-6 py-4 border-t border-gray-200 bg-gray-50"
@@ -129,7 +122,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* ✅ Ensure scrollbar styling */
 .overflow-y-auto::-webkit-scrollbar {
   width: 8px;
 }

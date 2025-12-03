@@ -36,7 +36,6 @@ const startScanning = async () => {
         emit('scan', decodedText)
       },
       (errorMessage) => {
-        // Scanning errors are normal, just ignore
       }
     )
     

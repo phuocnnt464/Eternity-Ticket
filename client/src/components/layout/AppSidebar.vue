@@ -35,7 +35,6 @@ const isActive = (href) => {
       isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
     ]"
   >
-    <!-- Logo (Desktop) -->
     <div class="hidden md:flex items-center space-x-3 p-6 border-b">
       <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg flex items-center justify-center">
         <span class="text-white font-bold text-xl">ET</span>
@@ -45,12 +44,10 @@ const isActive = (href) => {
       </span>
     </div>
 
-    <!-- User Info Slot -->
     <div v-if="$slots.user" class="p-6 border-b">
       <slot name="user" />
     </div>
 
-    <!-- Navigation -->
     <nav class="flex-1 overflow-y-auto p-4">
       <RouterLink
         v-for="item in navigation"
@@ -72,7 +69,6 @@ const isActive = (href) => {
       </RouterLink>
     </nav>
 
-    <!-- Footer Slot -->
     <div v-if="$slots.footer" class="p-4 border-t">
       <slot name="footer" />
     </div>

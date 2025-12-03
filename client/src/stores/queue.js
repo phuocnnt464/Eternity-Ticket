@@ -19,11 +19,11 @@ export const useQueueStore = defineStore('queue', () => {
     sessionId.value = null
     lastHeartbeat.value = null
   }
-  // ==========================================
+
   const isInQueue = ref(false)
   const queueId = ref(null)
   const queueNumber = ref(null)
-  const status = ref('waiting') // waiting, active, expired, completed
+  const status = ref('waiting') 
   const estimatedWait = ref(null)
   const expiresAt = ref(null)
   const eventId = ref(null)
@@ -31,9 +31,8 @@ export const useQueueStore = defineStore('queue', () => {
   const heartbeatInterval = ref(null)
   const lastHeartbeat = ref(null)
   
-  // Queue config
-  const queueTimeout = ref(15 * 60 * 1000) // 15 minutes in ms
-  const heartbeatFrequency = ref(30 * 1000) // 30 seconds in ms
+  const queueTimeout = ref(15 * 60 * 1000)
+  const heartbeatFrequency = ref(30 * 1000) 
 
    const checkAndClearExpired = () => {
     if (expiresAt.value) {
@@ -41,7 +40,7 @@ export const useQueueStore = defineStore('queue', () => {
       const now = new Date()
       
       if (now >= expires) {
-        console.log('⚠️ Queue store expired on load, clearing... ', {
+        console.log('Queue store expired on load, clearing... ', {
           expired_at: expiresAt.value,
           now: now. toISOString()
         })
@@ -52,9 +51,6 @@ export const useQueueStore = defineStore('queue', () => {
     return false
   }
 
-  // ==========================================
-  // GETTERS
-  // ==========================================
   const canPurchase = computed(() => status.value === 'active')
   const isWaiting = computed(() => status.value === 'waiting')
   
@@ -84,13 +80,6 @@ export const useQueueStore = defineStore('queue', () => {
     return isInQueue.value && queueId.value && queueNumber.value
   })
 
-  // ==========================================
-  // ACTIONS
-  // ==========================================
-  
-  /**
-   * Join queue
-   */
   const joinQueue = async (sessionId) => {
     try {
       const response = await queueAPI.joinQueue({ session_id: sessionId })
@@ -111,10 +100,6 @@ export const useQueueStore = defineStore('queue', () => {
     }
   }
 
-  /**
-   * Update queue status
-   */
-  
   const updateStatus = (newStatus) => {
     status.value = newStatus
      // Set expiry time when activated
@@ -125,9 +110,6 @@ export const useQueueStore = defineStore('queue', () => {
     }
   }
   
-  /**
-   * Update queue position
-   */
   const updatePosition = (data) => {
     queueNumber.value = data.queue_number
     estimatedWait.value = data.estimated_wait_minutes
@@ -145,9 +127,6 @@ export const useQueueStore = defineStore('queue', () => {
     }
   }
 
-  /**
-   * Start heartbeat
-   */
   const startHeartbeat = (callback) => {
     if (heartbeatInterval.value) {
       clearInterval(heartbeatInterval.value)
@@ -161,9 +140,6 @@ export const useQueueStore = defineStore('queue', () => {
     }, heartbeatFrequency.value)
   }
   
-  /**
-   * Stop heartbeat
-   */
   const stopHeartbeat = () => {
     if (heartbeatInterval.value) {
       clearInterval(heartbeatInterval.value)
@@ -171,7 +147,6 @@ export const useQueueStore = defineStore('queue', () => {
     }
   }
   
-  // Leave queue
   const leaveQueue = async (sessionId) => {
     try {
       await queueAPI.leaveQueue(sessionId)
@@ -181,9 +156,6 @@ export const useQueueStore = defineStore('queue', () => {
     }
   }
 
-  /**
-   * Exit queue
-   */
   const exitQueue = () => {
     stopHeartbeat()
 
@@ -198,22 +170,15 @@ export const useQueueStore = defineStore('queue', () => {
     lastHeartbeat.value = null
   }
 
-  /**
-   * Complete queue (after successful purchase)
-   */
   const completeQueue = () => {
     status.value = 'completed'
     stopHeartbeat()
     
-    // Auto exit after 5 seconds
     setTimeout(() => {
       exitQueue()
     }, 5000)
   }
   
-  /**
-   * Expire queue
-   */
   const expireQueue = () => {
     status.value = 'expired'
     stopHeartbeat()
@@ -226,10 +191,6 @@ export const useQueueStore = defineStore('queue', () => {
     estimated_wait: estimatedWait.value
   }))
 
-  
-  /**
-   * Check if queue expired
-   */
   const checkExpiration = () => {
     if (expiresAt.value && status.value === 'active') {
       const now = new Date().getTime()

@@ -1,9 +1,6 @@
 import { ref, onUnmounted } from 'vue'
 import { queueAPI } from '@/api'
 
-/**
- * Queue composable for waiting room functionality
- */
 export function useQueue(sessionId) {
   const queuePosition = ref(null)
   const estimatedWaitTime = ref(null)
@@ -12,7 +9,6 @@ export function useQueue(sessionId) {
   const error = ref(null)
   const pollInterval = ref(null)
 
-  // Join queue
   const joinQueue = async () => {
     error.value = null
 
@@ -24,7 +20,6 @@ export function useQueue(sessionId) {
       queuePosition.value = data.position
       estimatedWaitTime.value = data.estimated_wait_time
 
-      // Start polling queue status
       startPolling()
 
       return { success: true, data }
@@ -34,7 +29,6 @@ export function useQueue(sessionId) {
     }
   }
 
-  // Check queue status
   const checkQueueStatus = async () => {
     try {
       const response = await queueAPI.getQueueStatus(sessionId)
@@ -44,7 +38,6 @@ export function useQueue(sessionId) {
       estimatedWaitTime.value = data.estimated_wait_time
       canPurchase.value = data.can_purchase
 
-      // If user can purchase, stop polling
       if (canPurchase.value) {
         stopPolling()
       }
@@ -57,7 +50,6 @@ export function useQueue(sessionId) {
     }
   }
 
-  // Leave queue
   const leaveQueue = async () => {
     stopPolling()
     error.value = null
@@ -77,7 +69,6 @@ export function useQueue(sessionId) {
     }
   }
 
-  // Start polling queue status
   const startPolling = (interval = 5000) => {
     if (pollInterval.value) {
       clearInterval(pollInterval.value)
@@ -88,7 +79,6 @@ export function useQueue(sessionId) {
     }, interval)
   }
 
-  // Stop polling
   const stopPolling = () => {
     if (pollInterval.value) {
       clearInterval(pollInterval.value)
@@ -96,7 +86,6 @@ export function useQueue(sessionId) {
     }
   }
 
-  // Format wait time
   const formatWaitTime = (seconds) => {
     if (!seconds) return '0 seconds'
 
@@ -114,7 +103,6 @@ export function useQueue(sessionId) {
     return `${minutes}m ${remainingSeconds}s`
   }
 
-  // Cleanup on unmount
   onUnmounted(() => {
     stopPolling()
     if (isInQueue.value) {

@@ -7,18 +7,14 @@ export const useCartStore = defineStore('cart', () => {
 
   function $reset() {
     items.value = []
-    // Reset tất cả state về giá trị ban đầu
   }
-  // ==========================================
+
   const event = ref(null)
   const session = ref(null)
   const couponCode = ref('')
   const couponDiscount = ref(0)
   const appliedCoupon = ref(null)
   
-  // ==========================================
-  // GETTERS
-  // ==========================================
   const itemCount = computed(() => {
     return items.value.reduce((sum, item) => sum + item.quantity, 0)
   })
@@ -53,18 +49,10 @@ export const useCartStore = defineStore('cart', () => {
   
   const hasEvent = computed(() => !!event.value)
 
-  // ==========================================
-  // ACTIONS
-  // ==========================================
-  
-  /**
-   * Set event and session
-   */
   const setEventAndSession = (eventData, sessionData) => {
     event.value = eventData
     session.value = sessionData
     
-    // Clear items if changing event/session
     if (items.value.length > 0) {
       const currentEventId = items.value[0]?.event_id
       const currentSessionId = items.value[0]?.session_id
@@ -75,19 +63,14 @@ export const useCartStore = defineStore('cart', () => {
     }
   }
 
-  /**
-   * Add item to cart
-   */
   const addItem = (ticket) => {
     const existingItem = items.value.find(
       item => item.ticket_type_id === ticket.ticket_type_id
     )
     
     if (existingItem) {
-      // Update quantity
       const newQuantity = existingItem.quantity + ticket.quantity
       
-      // Check max quantity
       if (newQuantity > ticket.max_quantity_per_order) {
         throw new Error(`Maximum ${ticket.max_quantity_per_order} tickets per order`)
       }
@@ -95,7 +78,6 @@ export const useCartStore = defineStore('cart', () => {
       existingItem.quantity = newQuantity
       existingItem.subtotal = existingItem.price * newQuantity
     } else {
-      // Add new item
       items.value.push({
         ticket_type_id: ticket.ticket_type_id,
         name: ticket.name,
@@ -110,25 +92,18 @@ export const useCartStore = defineStore('cart', () => {
     }
   }
 
-  /**
-   * Remove item from cart
-   */
   const removeItem = (ticketTypeId) => {
     items.value = items.value.filter(
       item => item.ticket_type_id !== ticketTypeId
     )
   }
   
-  /**
-   * Update item quantity
-   */
   const updateQuantity = (ticketTypeId, quantity) => {
     const item = items.value.find(
       item => item.ticket_type_id === ticketTypeId
     )
     
     if (item) {
-      // Check min/max
       if (quantity < item.min_quantity_per_order) {
         throw new Error(`Minimum ${item.min_quantity_per_order} tickets required`)
       }
@@ -142,27 +117,18 @@ export const useCartStore = defineStore('cart', () => {
     }
   }
 
-   /**
-   * Apply coupon
-   */
   const applyCoupon = (coupon, discount) => {
     appliedCoupon.value = coupon
     couponCode.value = coupon.code
     couponDiscount.value = discount
   }
   
-  /**
-   * Remove coupon
-   */
   const removeCoupon = () => {
     appliedCoupon.value = null
     couponCode.value = ''
     couponDiscount.value = 0
   }
   
-  /**
-   * Clear cart
-   */
   const clear = () => {
     items.value = []
     event.value = null
@@ -172,9 +138,6 @@ export const useCartStore = defineStore('cart', () => {
     appliedCoupon.value = null
   }
 
-  /**
-   * Validate cart before checkout
-   */
   const validate = () => {
     if (isEmpty.value) {
       throw new Error('Cart is empty')
@@ -184,7 +147,6 @@ export const useCartStore = defineStore('cart', () => {
       throw new Error('Event or session not selected')
     }
     
-    // Check session min/max tickets
     const totalTickets = itemCount.value
     const sessionMinTickets = session.value.min_tickets_per_order || 1
     const sessionMaxTickets = session.value.max_tickets_per_order || 10
@@ -200,9 +162,6 @@ export const useCartStore = defineStore('cart', () => {
     return true
   }
   
-  /**
-   * Get order data for checkout
-   */
   const getOrderData = () => {
     return {
       event_id: event.value.id,
@@ -222,7 +181,6 @@ export const useCartStore = defineStore('cart', () => {
   }
   
   return {
-     // State
     items,
     $reset,
     

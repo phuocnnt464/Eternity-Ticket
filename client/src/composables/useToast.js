@@ -1,13 +1,9 @@
 import { ref } from 'vue'
 
-/**
- * Toast notification composable
- */
 export function useToast() {
   const toasts = ref([])
   let nextId = 0
 
-  // Add toast
   const addToast = (message, type = 'info', duration = 3000) => {
     const id = nextId++
     const toast = {
@@ -20,7 +16,6 @@ export function useToast() {
 
     toasts.value.push(toast)
 
-    // Auto remove after duration
     if (duration > 0) {
       setTimeout(() => {
         removeToast(id)
@@ -30,7 +25,6 @@ export function useToast() {
     return id
   }
 
-  // Remove toast
   const removeToast = (id) => {
     const index = toasts.value.findIndex(t => t.id === id)
     if (index !== -1) {
@@ -38,12 +32,10 @@ export function useToast() {
     }
   }
 
-  // Clear all toasts
   const clearToasts = () => {
     toasts.value = []
   }
 
-  // Shorthand methods
   const success = (message, duration = 3000) => {
     return addToast(message, 'success', duration)
   }
@@ -61,10 +53,9 @@ export function useToast() {
   }
 
   const loading = (message = 'Loading...') => {
-    return addToast(message, 'loading', 0) // Don't auto-dismiss loading toasts
+    return addToast(message, 'loading', 0) 
   }
 
-  // Update toast (useful for loading -> success/error)
   const updateToast = (id, updates) => {
     const index = toasts.value.findIndex(t => t.id === id)
     if (index !== -1) {
@@ -73,7 +64,6 @@ export function useToast() {
         ...updates
       }
 
-      // Set timeout if duration changed
       if (updates.duration && updates.duration > 0) {
         setTimeout(() => {
           removeToast(id)
@@ -82,7 +72,6 @@ export function useToast() {
     }
   }
 
-  // Promise wrapper for async operations
   const promise = async (promiseFn, messages = {}) => {
     const {
       loading: loadingMsg = 'Loading...',
@@ -132,7 +121,6 @@ export function useToast() {
   }
 }
 
-// Global toast instance (singleton)
 let globalToastInstance = null
 
 export function useGlobalToast() {

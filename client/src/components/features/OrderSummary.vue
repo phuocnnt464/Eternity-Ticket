@@ -54,7 +54,6 @@ const formatPrice = (price) => {
   <div class="card">
     <h3 class="text-lg font-semibold mb-4">Order Summary</h3>
 
-    <!-- Items -->
     <div v-if="showDetails && items.length > 0" class="space-y-3 mb-4">
       <div 
         v-for="(item, index) in items"
@@ -76,7 +75,6 @@ const formatPrice = (price) => {
 
     <div class="divider"></div>
 
-    <!-- Pricing Breakdown -->
     <div class="space-y-2 text-sm">
       <div class="flex justify-between">
         <span class="text-gray-600">Subtotal</span>
@@ -108,7 +106,6 @@ const formatPrice = (price) => {
 
     <div class="divider"></div>
 
-    <!-- Total -->
     <div class="flex justify-between items-center">
       <span class="text-lg font-semibold">Total</span>
       <span class="text-2xl font-bold text-primary-600">
@@ -116,7 +113,6 @@ const formatPrice = (price) => {
       </span>
     </div>
 
-    <!-- Info -->
     <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
       <p>✓ You have 15 minutes to complete the payment</p>
       <p class="mt-1">✓ Tickets will be sent to your email</p>

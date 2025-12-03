@@ -1,4 +1,3 @@
-// client/src/composables/useEventPermissions.js
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { eventsAPI } from '@/api/events'
@@ -33,12 +32,12 @@ export function useEventPermissions(eventId) {
       if (currentMember) {
         eventRole.value = currentMember.role
         isOwner.value = currentMember.role === 'owner'
-        console.log('✅ User role in event:', eventRole.value)
+        console.log('User role in event:', eventRole.value)
       } else {
-        console. warn('⚠️ User is not a member of this event')
+        console.warn('User is not a member of this event')
       }
     } catch (err) {
-      console.error('❌ Failed to fetch event role:', err)
+      console.error('Failed to fetch event role:', err)
       error.value = err.response?.data?.message || 'Failed to fetch event role'
       
       if (err.response?.status === 403) {
@@ -49,48 +48,38 @@ export function useEventPermissions(eventId) {
     }
   }
   
-  // Owner: Thêm Manager hoặc Check-in Staff
-  // Manager: CHỈ thêm được Check-in Staff
   const canManageTeam = computed(() => {
     return ['owner', 'manager'].includes(eventRole.value)
   })
 
-  // Manager CHỈ XEM orders, không chỉnh sửa
   const canViewOrders = computed(() => {
     return ['owner', 'manager'].includes(eventRole.value)
   })
 
-  // Tất cả roles có thể check-in
   const canCheckIn = computed(() => {
     return ['owner', 'manager', 'checkin_staff'].includes(eventRole.value)
   })
 
-  // ❌ CHỈ OWNER mới chỉnh sửa event
   const canEditEvent = computed(() => {
     return eventRole.value === 'owner'
   })
 
-  // ❌ CHỈ OWNER xem statistics
   const canViewStatistics = computed(() => {
     return eventRole.value === 'owner'
   })
 
-  // ❌ CHỈ OWNER quản lý sessions & tickets
   const canManageSessions = computed(() => {
     return eventRole.value === 'owner'
   })
 
-  // ❌ CHỈ OWNER quản lý coupons
   const canManageCoupons = computed(() => {
     return eventRole.value === 'owner'
   })
 
-  // ❌ CHỈ OWNER xóa event
   const canDeleteEvent = computed(() => {
     return eventRole.value === 'owner'
   })
 
-  // ✅ THÊM: Manager có thể gửi email, xuất báo cáo
   const canExportReports = computed(() => {
     return ['owner', 'manager'].includes(eventRole.value)
   })

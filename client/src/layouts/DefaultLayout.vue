@@ -53,19 +53,15 @@ onMounted(async () => {
 
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
     <AppHeader />
 
-    <!-- Main Content -->
     <main>
       <RouterView />
     </main>
 
-    <!-- Footer -->
     <AppFooter />
   </div>
 </template>
 
 <style scoped>
-/* Transitions đã có trong App.vue global styles */
 </style>

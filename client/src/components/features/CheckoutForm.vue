@@ -100,7 +100,6 @@ const updateValue = () => {
     <h3 class="text-lg font-semibold mb-4">Customer Information</h3>
 
     <form @submit.prevent="handleSubmit" class="space-y-4">
-      <!-- First Name & Last Name -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           v-model="form.first_name"
@@ -121,7 +120,6 @@ const updateValue = () => {
         />
       </div>
 
-      <!-- Email -->
       <Input
         v-model="form.email"
         type="email"
@@ -133,7 +131,6 @@ const updateValue = () => {
         @blur="updateValue"
       />
 
-      <!-- Phone -->
       <Input
         v-model="form.phone"
         type="tel"
@@ -144,7 +141,6 @@ const updateValue = () => {
         @blur="updateValue"
       />
 
-      <!-- Coupon Code -->
       <div v-if="allowCoupon">
         <label class="block text-sm font-medium text-gray-700 mb-2">
           Discount Coupon (Optional)
@@ -189,7 +185,6 @@ const updateValue = () => {
         </p>
       </div>
 
-      <!-- Actions Slot -->
       <slot name="actions" :submit="handleSubmit" :loading="loading" />
     </form>
   </div>

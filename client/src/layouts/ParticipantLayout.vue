@@ -97,7 +97,7 @@ const membershipBadge = computed(() => {
 
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- ✅ Mobile Header - White with Shadow -->
+    <!-- Mobile Header -->
     <div class="md:hidden bg-white shadow-md fixed top-0 left-0 right-0 z-50 border-b border-gray-200">
       <div class="flex items-center justify-between px-4 py-3">
         <div class="flex items-center space-x-3">
@@ -121,11 +121,9 @@ const membershipBadge = computed(() => {
       </div>
     </div>
 
-    <!-- Spacer -->
     <div class="md:hidden h-[56px]"></div>
 
     <div class="flex">
-      <!-- ✅ Sidebar - White, Clean, Modern -->
       <aside 
         :class="[
           'fixed md:sticky md:top-0 left-0 h-screen z-40 transition-transform duration-300',
@@ -134,7 +132,6 @@ const membershipBadge = computed(() => {
           sidebarOpen ? 'translate-x-0 top-[56px] md:top-0' : '-translate-x-full md:translate-x-0'
         ]"
       >
-        <!-- Logo Section - Desktop -->
         <div class="hidden md:block p-6 border-b border-gray-200">
           <RouterLink to="/" class="flex items-center space-x-3 group">
             <img 
@@ -150,7 +147,6 @@ const membershipBadge = computed(() => {
           </RouterLink>
         </div>
 
-        <!-- ✅ User Profile Card - Modern Gradient -->
         <div class="p-4 border-b border-gray-200">
           <div class="bg-gradient-to-br from-primary-50 via-accent-50 to-primary-50 rounded-xl p-4 border border-primary-100 shadow-sm">
             <div class="flex items-center space-x-3 mb-3">
@@ -171,7 +167,6 @@ const membershipBadge = computed(() => {
               </div>
             </div>
             
-            <!-- Membership Badge -->
             <div v-if="membershipBadge" class="flex items-center justify-center">
               <div :class="['inline-flex items-center px-3 py-2 rounded-full shadow-md font-bold text-sm', membershipBadge.class]">
                 <component :is="membershipBadge.icon" class="w-4 h-3 mr-1" />
@@ -181,7 +176,6 @@ const membershipBadge = computed(() => {
           </div>
         </div>
 
-        <!-- ✅ Navigation - Colorful Icons -->
         <nav class="flex-1 overflow-y-auto p-4 space-y-2">
           <RouterLink
             v-for="item in navigation"
@@ -213,7 +207,6 @@ const membershipBadge = computed(() => {
             </div>
             <span class="font-medium">{{ item.name }}</span>
             
-            <!-- Active Indicator -->
             <div 
               v-if="isActive(item.href)"
               :class="['ml-auto w-2 h-2 rounded-full', item.color. replace('text-', 'bg-')]"
@@ -221,9 +214,7 @@ const membershipBadge = computed(() => {
           </RouterLink>
         </nav>
 
-        <!-- ✅ Footer Actions -->
         <div class="p-4 border-t border-gray-200 space-y-2">
-          <!-- Back to Home -->
           <RouterLink
             to="/"
             @click="sidebarOpen = false"
@@ -235,7 +226,6 @@ const membershipBadge = computed(() => {
             <span class="font-medium">Back to Home</span>
           </RouterLink>
 
-          <!-- Logout -->
           <button 
             @click="handleLogout"
             class="flex items-center space-x-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 w-full transition-all group"
@@ -248,7 +238,6 @@ const membershipBadge = computed(() => {
         </div>
       </aside>
 
-      <!-- Backdrop -->
       <div 
         v-if="sidebarOpen"
         @click="sidebarOpen = false"
@@ -256,9 +245,7 @@ const membershipBadge = computed(() => {
         style="top: 56px;"
       ></div>
 
-      <!-- ✅ Main Content - Clean White Background -->
       <main class="flex-1">
-        <!-- Page Content -->
         <div class="p-4 md:p-8">
           <RouterView />
         </div>
@@ -268,7 +255,6 @@ const membershipBadge = computed(() => {
 </template>
 
 <style scoped>
-/* Custom scrollbar for sidebar */
 aside nav::-webkit-scrollbar {
   width: 6px;
 }

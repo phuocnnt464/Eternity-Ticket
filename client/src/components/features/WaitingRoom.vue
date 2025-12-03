@@ -90,7 +90,6 @@ const estimatedWait = computed(() => {
   const concurrentLimit = statistics.value?.waiting_room?.concurrent_purchase_limit || 1
   const ahead = peopleAhead.value
   
-  // Estimate 1 minute per person
   const minutes = Math.ceil((ahead / concurrentLimit) * timeoutMin)
   if (minutes < 1) return 'Less than a minute'
   if (minutes === 1) return '1 minute'
@@ -187,7 +186,6 @@ const pollStatus = async () => {
       }
     }
 
-    // Update store
     if (data.status) {
       queueStore.updateStatus(data.status)
     }
@@ -200,14 +198,12 @@ const pollStatus = async () => {
       })
     }
     
-    // ✅ CHECK: Nếu status = 'active' và hiện đang waiting → Emit ready! 
     if ((data.status === 'active' || data.can_purchase) && isWaiting.value) {
-      console.log('✅✅✅ STATUS CHANGED TO ACTIVE!  Emitting ready.. .', {
+      console.log('STATUS CHANGED TO ACTIVE!  Emitting ready.. .', {
         expires_at: data.expires_at,
         can_purchase: data.can_purchase
       })
 
-      // Start countdown
       if (data.expires_at) {
         const expiresAt = new Date(data.expires_at)
         const now = new Date()
@@ -250,7 +246,6 @@ const pollStatistics = async () => {
     totalInQueue.value = data.current?.waiting_count || 0
     activeCount.value = data.current?.active_count || 0
     
-    // Track movement
     const current = queueStatus.value?.position
     if (previousPosition.value && current < previousPosition.value) {
       queueMovement.value = previousPosition.value - current
@@ -264,18 +259,14 @@ const pollStatistics = async () => {
 
 onMounted(async () => {
   try {
-    // await queueStore.joinQueue(props.sessionId)
-    // const response = await queueAPI.joinQueue({ session_id: props.sessionId })
     const response = await queueAPI.getStatus(props.sessionId)
     const data = response.data.data || response.data
 
-    console.log('🔍 WaitingRoom mounted, status:', data)
-    // Update store với data từ API
-    // queueStore.joinQueue(data)
+    console.log('WaitingRoom mounted, status:', data)
 
     if (data.expires_at) {
       queueStore.expiresAt = data.expires_at
-      console.log('✅ Set expires_at from server:', data.expires_at)
+      console.log('Set expires_at from server:', data.expires_at)
     }
 
     if (data.status) {
@@ -295,14 +286,14 @@ onMounted(async () => {
     startHeartbeat()
     
     if (data.status === 'active' || data.can_purchase) {
-      console. log('✅ User already active')
+      console.log('User already active')
 
       if (data.expires_at) {
         const expiresAt = new Date(data.expires_at)
         const now = new Date()
         
         if (now >= expiresAt) {
-          console. error('❌ Already expired on mount!')
+          console.error('Already expired on mount!')
           emit('error', 'Your purchase time has expired.  Please join the queue again.')
           return
         }
@@ -316,7 +307,7 @@ onMounted(async () => {
 
     await pollStatistics()
 
-    pollStatus()  // Call immediately
+    pollStatus()  
     statusPollInterval.value = setInterval(pollStatus, 2000)
     
     statisticsPollInterval.value = setInterval(pollStatistics, 3000)
@@ -344,19 +335,18 @@ onBeforeUnmount(() => {
   if (currentStatus === 'waiting') {
     try {
       queueAPI.leaveQueue(props.sessionId)
-      console.log('✅ Left queue on unmount (was waiting)')
+      console.log('Left queue on unmount (was waiting)')
     } catch (error) {
       console.error('Failed to leave queue:', error)
     }
   } else {
-    console.log(`ℹ️ Not leaving queue - status: ${currentStatus}`)
+    console.log(`Not leaving queue - status: ${currentStatus}`)
   }
 })
 </script>
 
 <template>
   <div class="max-w-2xl mx-auto">
-    <!-- Waiting Status -->
     <div v-if="isWaiting" class="card text-center">
       <div class="mb-6">
         <Spinner size="xl" class="mx-auto mb-4" />
@@ -395,7 +385,6 @@ onBeforeUnmount(() => {
           Queue Progress
         </h3>
         
-        <!-- Progress Bar -->
         <div class="mb-4">
           <div class="flex justify-between text-sm mb-2">
             <span class="font-medium">Position in queue: {{ queueStatus?.position || '-' }}</span>
@@ -425,7 +414,6 @@ onBeforeUnmount(() => {
           </div>
         </div>
         
-        <!-- Movement Indicator -->
         <div v-if="queueMovement > 0" class="mt-4 bg-green-50 border border-green-200 rounded p-2 text-center">
           <p class="text-sm text-green-800">
             Moved up {{ queueMovement }} position{{ queueMovement > 1 ? 's' : '' }}! 
@@ -502,7 +490,6 @@ onBeforeUnmount(() => {
       </Button>
     </div>
 
-    <!-- Expired Status -->
     <div v-else-if="isExpired" class="card text-center">
       <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <XCircleIcon class="w-10 h-10 text-red-600" />
@@ -518,7 +505,6 @@ onBeforeUnmount(() => {
       </Button>
     </div>
 
-    <!-- Loading -->
     <div v-else class="card text-center">
       <Spinner size="xl" class="mx-auto mb-4" />
       <p class="text-gray-600">Connecting to queue...</p>

@@ -1,5 +1,4 @@
 <script setup>
-// ...   existing script (giữ nguyên toàn bộ)
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'  
 import { eventsAPI } from '@/api/events.js'
@@ -299,7 +298,6 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-4">
-    <!-- ✅ Summary Card - Top -->
     <div class="bg-gradient-to-r from-primary-50 to-accent-50 border-2 border-primary-200 rounded-xl p-5">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center space-x-2">
@@ -326,7 +324,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- ✅ Premium Limit Warning -->
     <div 
       v-if="premiumLimitInfo"
       class="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl p-5 shadow-lg"
@@ -347,7 +344,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- ✅ Ticket Types - Redesigned -->
     <div class="space-y-3">
       <div
         v-for="ticket in ticketTypes"
@@ -360,20 +356,17 @@ onMounted(async () => {
           selections[ticket.id] > 0 && 'border-primary-400 shadow-md'
         ]"
       >
-        <!-- ✅ Selected Indicator -->
         <div 
           v-if="selections[ticket.id] > 0" 
           class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-600 to-accent-600"
         ></div>
 
         <div class="p-5">
-          <!-- Header -->
           <div class="flex items-start justify-between mb-4">
             <div class="flex-1">
               <div class="flex items-center gap-2 mb-2">
                 <h4 class="font-bold text-xl text-gray-900">{{ ticket.name }}</h4>
                 
-                <!-- Status Badge -->
                 <Badge 
                   v-if="getSaleStatus(ticket).isPremiumAccess === true"
                   variant="warning"
@@ -389,12 +382,10 @@ onMounted(async () => {
                 </Badge>
               </div>
               
-              <!-- Description -->
               <p v-if="ticket.description" class="text-sm text-gray-600 mb-3">
                 {{ ticket.description }}
               </p>
               
-              <!-- Early Access Warning -->
               <div 
                 v-if="isInEarlyAccessPeriod(ticket) && !canAccessEarlyTicket(ticket)" 
                 class="inline-flex items-center bg-orange-100 text-orange-800 px-3 py-1 rounded-lg text-xs font-medium mb-3"
@@ -403,7 +394,6 @@ onMounted(async () => {
                 Premium only
               </div>
               
-              <!-- Constraints -->
               <div class="flex flex-wrap gap-3 text-xs">
                 <span class="inline-flex items-center bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-medium">
                   Min: {{ ticket.min_quantity_per_order }}
@@ -424,7 +414,6 @@ onMounted(async () => {
               </div>
             </div>
             
-            <!-- Price -->
             <div class="text-right ml-4">
               <p class="text-sm text-gray-500 mb-1">Price</p>
               <div class="text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
@@ -433,7 +422,6 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- ✅ Quantity Selector - Enhanced -->
           <div 
             :class="[
               'flex items-center justify-between pt-4 border-t-2',
@@ -441,7 +429,6 @@ onMounted(async () => {
             ]"
           >
             <div class="flex items-center space-x-3">
-              <!-- Minus Button -->
               <button
                 @click="updateQuantity(ticket.id, -1)"
                 :disabled="!isAvailable(ticket) || selections[ticket.id] === 0"
@@ -455,14 +442,12 @@ onMounted(async () => {
                 <MinusIcon class="w-4 h-4" />
               </button>
               
-              <!-- Quantity Display -->
               <div class="w-14 h-10 flex items-center justify-center bg-gray-100 rounded-xl">
                 <span class="text-xl font-bold text-gray-900">
                   {{ selections[ticket.id] || 0 }}
                 </span>
               </div>
               
-              <!-- Plus Button -->
               <button
                 @click="updateQuantity(ticket.id, 1)"
                 :disabled="!isAvailable(ticket) || !canAddMoreTicket(ticket.id)"
@@ -477,7 +462,6 @@ onMounted(async () => {
               </button>
             </div>
 
-            <!-- Subtotal -->
             <div v-if="selections[ticket.id] > 0" class="text-right">
               <p class="text-xs text-gray-500 mb-1">Subtotal</p>
               <p class="text-lg font-bold text-primary-600">
@@ -489,7 +473,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- ✅ Empty State -->
     <div v-if="ticketTypes.length === 0" class="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
       <TicketIcon class="w-16 h-16 text-gray-400 mx-auto mb-3" />
       <p class="text-gray-600 font-medium">No tickets available</p>

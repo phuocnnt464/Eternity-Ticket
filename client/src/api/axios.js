@@ -10,7 +10,6 @@ const api = axios.create({
   },
 })
 
-// Request interceptor
 api.interceptors.request.use(
   (config) => {
     const authStore = useAuthStore()
@@ -27,7 +26,6 @@ api.interceptors.request.use(
   }
 )
 
-// ✅ FIX: Response interceptor với proper error handling
 let isRefreshing = false
 let refreshSubscribers = []
 
@@ -40,11 +38,10 @@ const onRefreshed = (token) => {
   refreshSubscribers = []
 }
 
-// Response interceptor
 api.interceptors.response.use(
   (response) => {
     if (response.config.responseType === 'blob') {
-      return response  // Trả nguyên response để giữ blob
+      return response
     }
     return response.data
   },
@@ -52,18 +49,15 @@ api.interceptors.response.use(
     const originalRequest = error.config
     const authStore = useAuthStore()
 
-    // Token expired - try refresh
     if (error.response?.status === 401 && !originalRequest._retry &&
       !originalRequest.url.includes('/auth/refresh-token') &&
       !originalRequest.url.includes('/auth/login')
     ) {
 
-      // ✅ CHECK: Có refresh token không?
       const refreshToken = authStore.refreshToken
       
       if (!refreshToken) {
-        // ❌ Không có refresh token → Logout ngay
-        console.warn('⚠️ No refresh token available. Logging out...')
+        console.warn('No refresh token available. Logging out...')
         authStore.logout()
         router.push('/auth/login')
         return Promise.reject(error)
@@ -71,7 +65,6 @@ api.interceptors.response.use(
 
       originalRequest._retry = true
 
-      // ✅ Nếu đang refresh, queue request
       if (isRefreshing) {
         return new Promise((resolve) => {
           subscribeTokenRefresh((token) => {
@@ -102,9 +95,8 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${access_token}`
         return api(originalRequest)
       } catch (refreshError) {
-        console.error('❌ Token refresh failed:', refreshError)
+        console.error('Token refresh failed:', refreshError)
 
-        // ✅ Clear queue
         refreshSubscribers = []
         isRefreshing = false
 

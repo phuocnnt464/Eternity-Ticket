@@ -49,7 +49,6 @@ const props = defineProps({
   }
 })
 
-// ← SỬA: Thêm 'blur' vào emit
 const emit = defineEmits(['update:modelValue', 'blur'])
 
 const showPassword = ref(false)
@@ -95,7 +94,6 @@ const handleInput = (event) => {
   emit('update:modelValue', event.target.value)
 }
 
-// ← THÊM: Handle blur event
 const handleBlur = (event) => {
   emit('blur', event)
 }

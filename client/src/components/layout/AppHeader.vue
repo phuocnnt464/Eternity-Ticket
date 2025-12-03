@@ -45,7 +45,6 @@ const getDashboardLink = computed(() => {
   return '/'
 })
 
-// Get user avatar or initials
 const userAvatar = computed(() => authStore.user?.avatar_url)
 const userInitials = computed(() => {
   const firstName = authStore.user?.first_name || ''
@@ -58,7 +57,6 @@ const handleImageError = (event) => {
   event.target.nextElementSibling.style.display = 'flex'
 }
 
-// ✅ Fetch notifications when dropdown opens
 const handleNotificationClick = async () => {
   showNotifications.value = ! showNotifications.value
   
@@ -68,7 +66,6 @@ const handleNotificationClick = async () => {
   }
 }
 
-// ✅ Fetch notifications from API
 const fetchNotifications = async () => {
   loadingNotifications.value = true
   try {
@@ -87,7 +84,6 @@ const fetchNotifications = async () => {
   }
 }
 
-// ✅ Mark notification as read
 const handleNotificationRead = async (notification) => {
   if (! notification.is_read) {
     try {
@@ -100,7 +96,6 @@ const handleNotificationRead = async (notification) => {
   showNotifications.value = false
 }
 
-// ✅ Fetch unread count on mount
 onMounted(async () => {
   if (authStore.isAuthenticated) {
     try {
@@ -120,7 +115,6 @@ onMounted(async () => {
   <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
     <nav class="container-custom">
       <div class="flex justify-between items-center h-16">
-        <!-- Logo -->
         <div class="flex items-center">
           <RouterLink to="/" class="flex items-center space-x-3 group">
             <img 
@@ -135,7 +129,6 @@ onMounted(async () => {
           </RouterLink>
         </div>
 
-        <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center space-x-1">
           <RouterLink
             v-for="item in navigation"
@@ -147,9 +140,7 @@ onMounted(async () => {
           </RouterLink>
         </div>
 
-        <!-- Right Side -->
         <div class="flex items-center space-x-2">
-          <!-- Search -->
           <div class="hidden lg:block relative">
             <input
               v-model="searchQuery"
@@ -161,7 +152,6 @@ onMounted(async () => {
             <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           </div>
 
-          <!-- Notifications (Authenticated) -->
           <div v-if="authStore.isAuthenticated" class="relative">
             <button 
               @click="handleNotificationClick"
@@ -176,7 +166,6 @@ onMounted(async () => {
               </span>
             </button>
 
-            <!-- Notification Dropdown -->
             <Transition name="fade">
               <div 
                 v-if="showNotifications"
@@ -187,13 +176,11 @@ onMounted(async () => {
                   <h3 class="font-semibold text-gray-900">Notifications</h3>
                 </div>
                 
-                <!-- Loading State -->
                 <div v-if="loadingNotifications" class="p-8 text-center">
                   <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
                   <p class="text-sm text-gray-500 mt-2">Loading... </p>
                 </div>
 
-                <!-- Notifications List -->
                 <div v-else class="overflow-y-auto max-h-80">
                   <div v-if="notificationStore.notifications.length === 0" class="p-8 text-center text-gray-500">
                     <BellIcon class="w-12 h-12 text-gray-300 mx-auto mb-2" />
@@ -234,15 +221,12 @@ onMounted(async () => {
             </Transition>
           </div>
 
-          <!-- User Menu (Authenticated) -->
           <div v-if="authStore.isAuthenticated" class="relative">
             <button 
               @click="showUserMenu = !showUserMenu"
               class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <!-- User Avatar/Initials -->
               <div class="relative w-8 h-8 rounded-full overflow-hidden bg-primary-100 flex items-center justify-center">
-                <!-- Avatar Image -->
                 <img 
                   v-if="userAvatar"
                   :src="userAvatar" 
@@ -250,7 +234,6 @@ onMounted(async () => {
                   class="w-full h-full object-cover"
                   @error="handleImageError"
                 />
-                <!-- Fallback Initials -->
                 <span 
                   class="text-primary-600 font-semibold text-sm"
                   :style="userAvatar ? 'display: none' : 'display: flex'"
@@ -261,17 +244,14 @@ onMounted(async () => {
               <span class="hidden lg:block font-medium text-gray-900">{{ authStore.user?. first_name }}</span>
             </button>
 
-            <!-- User Dropdown -->
             <Transition name="fade">
               <div 
                 v-if="showUserMenu"
                 v-click-away="() => showUserMenu = false"
                 class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50"
               >
-                <!-- User Info Header -->
                 <div class="px-4 py-3 border-b border-gray-200">
                   <div class="flex items-center space-x-3">
-                    <!-- Avatar in dropdown -->
                     <div class="relative w-10 h-10 rounded-full overflow-hidden bg-primary-100 flex items-center justify-center flex-shrink-0">
                       <img 
                         v-if="userAvatar"
@@ -336,7 +316,6 @@ onMounted(async () => {
             </Transition>
           </div>
 
-          <!-- Auth Buttons (Guest) -->
           <div v-else class="flex items-center space-x-2">
             <RouterLink to="/auth/login" class="btn btn-ghost btn-sm">
               Login
@@ -346,7 +325,6 @@ onMounted(async () => {
             </RouterLink>
           </div>
 
-          <!-- Mobile Menu Button -->
           <button 
             @click="mobileMenuOpen = !mobileMenuOpen"
             class="md:hidden p-2 rounded-lg hover:bg-gray-100"
@@ -357,10 +335,8 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Mobile Menu -->
       <Transition name="slide">
         <div v-if="mobileMenuOpen" class="md:hidden border-t border-gray-200 py-4 space-y-1">
-          <!-- Search Mobile -->
           <div class="px-2 pb-3">
             <div class="relative">
               <input

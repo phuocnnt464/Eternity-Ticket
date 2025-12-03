@@ -2,15 +2,11 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export const useOrderStore = defineStore('order', () => {
-  // ==========================================
-  // STATE
-  // ==========================================
   const orders = ref([])
   const currentOrder = ref(null)
   const loading = ref(false)
   const error = ref(null)
   
-  // Pagination
   const pagination = ref({
     page: 1,
     limit: 10,
@@ -18,17 +14,13 @@ export const useOrderStore = defineStore('order', () => {
     totalPages: 0
   })
   
-  // Filters
   const filters = ref({
-    status: null, // pending, paid, cancelled, refunded
+    status: null,
     dateFrom: null,
     dateTo: null,
     eventId: null
   })
   
-  // ==========================================
-  // GETTERS
-  // ==========================================
   const hasOrders = computed(() => orders.value.length > 0)
   
   const pendingOrders = computed(() => {
@@ -75,34 +67,18 @@ export const useOrderStore = defineStore('order', () => {
     }, 0)
   })
   
-  // ==========================================
-  // ACTIONS
-  // ==========================================
-  
-  /**
-   * Set orders
-   */
   const setOrders = (orderList) => {
     orders.value = orderList
   }
-  
-  /**
-   * Set current order
-   */
+
   const setCurrentOrder = (order) => {
     currentOrder.value = order
   }
-  
-  /**
-   * Add order
-   */
+
   const addOrder = (order) => {
     orders.value.unshift(order)
   }
-  
-  /**
-   * Update order
-   */
+
   const updateOrder = (orderId, data) => {
     const index = orders.value.findIndex(o => o.id === orderId)
     if (index !== -1) {
@@ -113,10 +89,7 @@ export const useOrderStore = defineStore('order', () => {
       currentOrder.value = { ...currentOrder.value, ...data }
     }
   }
-  
-  /**
-   * Remove order
-   */
+
   const removeOrder = (orderId) => {
     orders.value = orders.value.filter(o => o.id !== orderId)
     
@@ -124,18 +97,12 @@ export const useOrderStore = defineStore('order', () => {
       currentOrder.value = null
     }
   }
-  
-  /**
-   * Update filters
-   */
+
   const updateFilters = (newFilters) => {
     filters.value = { ...filters.value, ...newFilters }
     pagination.value.page = 1
   }
   
-  /**
-   * Clear filters
-   */
   const clearFilters = () => {
     filters.value = {
       status: null,
@@ -145,30 +112,18 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
   
-  /**
-   * Update pagination
-   */
   const updatePagination = (paginationData) => {
     pagination.value = { ...pagination.value, ...paginationData }
   }
   
-  /**
-   * Set page
-   */
   const setPage = (page) => {
     pagination.value.page = page
   }
   
-  /**
-   * Clear current order
-   */
   const clearCurrentOrder = () => {
     currentOrder.value = null
   }
   
-  /**
-   * Clear all
-   */
   const clear = () => {
     orders.value = []
     currentOrder.value = null
@@ -176,9 +131,6 @@ export const useOrderStore = defineStore('order', () => {
     pagination.value.page = 1
   }
   
-  // ==========================================
-  // RETURN
-  // ==========================================
   return {
     // State
     orders,

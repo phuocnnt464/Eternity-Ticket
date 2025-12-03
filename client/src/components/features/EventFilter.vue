@@ -80,23 +80,20 @@ const hasActiveFilters = () => {
 
 <template>
   <div class="relative z-[60]">
-    <!-- Filter Button -->
     <Button
       variant="secondary"
       @click="showFilters = ! showFilters"
       class="relative whitespace-nowrap"
     >
-      <FunnelIcon class=" inline-flex w-5 h-5" />
+      <FunnelIcon class=" inline-flex w-5 h-5 mb-1" />
       <span class="ml-1">Filters</span>
       
-      <!-- Active Indicator -->
       <span 
         v-if="hasActiveFilters()" 
         class="absolute -top-1 -right-1 w-3 h-3 bg-primary-600 rounded-full border-2 border-white"
       ></span>
     </Button>
 
-    <!-- Backdrop -->
     <Transition
       enter-active-class="transition-opacity duration-200"
       enter-from-class="opacity-0"
@@ -112,7 +109,6 @@ const hasActiveFilters = () => {
       ></div>
     </Transition>
 
-    <!-- Filter Dropdown -->
     <Transition 
       enter-active-class="transition duration-200 ease-out"
       enter-from-class="opacity-0 scale-95"
@@ -124,7 +120,7 @@ const hasActiveFilters = () => {
       <div 
         v-if="showFilters"
         v-click-away="() => showFilters = false"
-        @click. stop
+        @click.stop
         class="
           absolute right-0 mt-2 w-[380px] 
           bg-white rounded-xl shadow-2xl border border-gray-200 
@@ -133,7 +129,6 @@ const hasActiveFilters = () => {
           origin-top-right
         "
       >
-        <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-gray-50">
           <h3 class="font-bold text-lg text-gray-900">Filter Events</h3>
           <button 
@@ -144,12 +139,10 @@ const hasActiveFilters = () => {
           </button>
         </div>
 
-        <!-- Filter Form -->
         <div class="px-5 py-4 space-y-4 overflow-y-auto max-h-[calc(100vh-280px)]">
-          <!-- Category -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1. 5">Category</label>
-            <select v-model="filters. category" class="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            <select v-model="filters.category" class="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
               <option value="" class="text-gray-900">All Categories</option>
               <option v-for="category in categories" :key="category.id" :value="category.id" class="text-gray-900">
                 {{ category.name }}
@@ -157,7 +150,6 @@ const hasActiveFilters = () => {
             </select>
           </div>
 
-          <!-- Date Range -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Date Range</label>
             <div class="grid grid-cols-2 gap-2">
@@ -174,7 +166,6 @@ const hasActiveFilters = () => {
             </div>
           </div>
 
-          <!-- Price Range -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Price Range (VND)</label>
             <div class="grid grid-cols-2 gap-2">
@@ -195,7 +186,6 @@ const hasActiveFilters = () => {
             </div>
           </div>
 
-          <!-- City -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">City</label>
             <input 
@@ -206,7 +196,6 @@ const hasActiveFilters = () => {
             />
           </div>
 
-          <!-- Sort -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Sort By</label>
             <select v-model="filters.sort" class="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
@@ -217,7 +206,6 @@ const hasActiveFilters = () => {
           </div>
         </div>
 
-        <!-- Footer Actions -->
         <div class="flex items-center gap-2 px-5 py-4 border-t border-gray-200 bg-gray-50">
           <Button 
             variant="secondary" 

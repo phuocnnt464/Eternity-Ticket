@@ -1,19 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-
-// ==========================================
-// LAYOUTS
-// ==========================================
 const DefaultLayout = () => import('@/layouts/DefaultLayout.vue')
 const AuthLayout = () => import('@/layouts/AuthLayout.vue')
 const ParticipantLayout = () => import('@/layouts/ParticipantLayout.vue')
 const OrganizerLayout = () => import('@/layouts/OrganizerLayout.vue')
 const AdminLayout = () => import('@/layouts/AdminLayout.vue')
 
-// ==========================================
+
 // PUBLIC PAGES
-// ==========================================
 const Home = () => import('@/views/Home.vue')
 const EventList = () => import('@/views/events/EventList.vue')
 const EventDetail = () => import('@/views/events/EventDetail.vue')
@@ -23,9 +18,7 @@ const MembershipPaymentResult = () => import('@/views/events/MembershipPaymentRe
 const AboutUs = () => import('@/views/AboutUs.vue')
 const ContactUs = () => import('@/views/ContactUs.vue')
 
-// ==========================================
 // AUTH PAGES
-// ==========================================
 const Login = () => import('@/views/auth/Login.vue')
 const Register = () => import('@/views/auth/Register.vue')
 const ForgotPassword = () => import('@/views/auth/ForgotPassword.vue')
@@ -33,9 +26,8 @@ const ResetPassword = () => import('@/views/auth/ResetPassword.vue')
 const VerifyEmail = () => import('@/views/auth/VerifyEmail.vue')
 const AcceptInvitation = () => import('@/views/auth/AcceptInvitation.vue')
 
-// ==========================================
+
 // PARTICIPANT PAGES
-// ==========================================
 const ParticipantProfile = () => import('@/views/participant/Profile.vue')
 const MyTickets = () => import('@/views/participant/MyTickets.vue')
 const MyOrders = () => import('@/views/participant/MyOrders.vue')
@@ -43,9 +35,7 @@ const OrderDetails = () => import('@/views/participant/OrderDetails.vue')
 const Membership = () => import('@/views/participant/Membership.vue')
 const Notifications = () => import('@/views/participant/Notifications.vue')
 
-// ==========================================
 // ORGANIZER PAGES
-// ==========================================
 const OrganizerDashboard = () => import('@/views/organizer/Dashboard.vue')
 const MyEvents = () => import('@/views/organizer/MyEvents.vue')
 const CreateEvent = () => import('@/views/organizer/CreateEvent.vue')
@@ -60,9 +50,7 @@ const CouponManagement = () => import('@/views/organizer/CouponManagement.vue')
 const EventOverview = () => import('@/views/organizer/EventOverview.vue')
 const SessionManagement = () => import('@/views/organizer/SessionManagement.vue')
 
-// ==========================================
 // ADMIN PAGES
-// ==========================================
 const AdminDashboard = () => import('@/views/admin/Dashboard.vue')
 const EventApproval = () => import('@/views/admin/EventApproval.vue')
 const UserManagement = () => import('@/views/admin/UserManagement.vue')
@@ -72,28 +60,13 @@ const AuditLogs = () => import('@/views/admin/AuditLogs.vue')
 const RefundManagement = () => import('@/views/admin/RefundManagement.vue')
 const AdminOrderManagement = () => import('@/views/admin/OrderManagement.vue')
 
-// ==========================================
 // ERROR PAGES
-// ==========================================
 const NotFound = () => import('@/views/errors/NotFound.vue')
 const Forbidden = () => import('@/views/errors/Forbidden.vue')
 const ServerError = () => import('@/views/errors/ServerError.vue')
 
-
-// ==========================================
-// ROUTES DEFINITION
-// ==========================================
 const routes = [
-  {
-    path: '/debug/vnpay',
-    name: 'VNPayDebug',
-    component: () => import('@/views/debug/VNPayDebug.vue'),
-    meta: { requiresAuth: true }
-  },
-  
-  // ==========================================
   // PUBLIC ROUTES
-  // ==========================================
   {
     path: '/',
     component: DefaultLayout,
@@ -184,9 +157,7 @@ const routes = [
     ]
   },
 
-  // ==========================================
   // AUTH ROUTES
-  // ==========================================
   {
     path: '/auth',
     component: AuthLayout,
@@ -225,9 +196,7 @@ const routes = [
     ]
   },
 
-  // ==========================================
   // PARTICIPANT ROUTES
-  // ==========================================
   {
     path: '/participant',
     component: ParticipantLayout,
@@ -275,9 +244,7 @@ const routes = [
     ]
   },
 
-  // ==========================================
   // ORGANIZER ROUTES
-  // ==========================================
   {
     path: '/organizer',
     component: OrganizerLayout,
@@ -362,7 +329,6 @@ const routes = [
         component: OrderManagement,
         meta: { title: 'Orders' }
       },
-      // ✅ THÊM CÁC ROUTES KHÁC
       {
         path: 'team',
         name: 'TeamManagement',
@@ -396,9 +362,7 @@ const routes = [
     ]
   },
 
-  // ==========================================
   // ADMIN ROUTES
-  // ==========================================
   {
     path: '/admin',
     component: AdminLayout,
@@ -466,9 +430,7 @@ const routes = [
     ]
   },
 
-  // ==========================================
   // ERROR ROUTES
-  // ==========================================
   {
     path: '/403',
     name: 'Forbidden',
@@ -489,9 +451,7 @@ const routes = [
   }
 ]
 
-// ==========================================
 // ROUTER INSTANCE
-// ==========================================
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
@@ -509,24 +469,16 @@ const router = createRouter({
   }
 })
 
-// ==========================================
 // NAVIGATION GUARDS
-// ==========================================
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
-  // Set page title
-  document.title = to.meta.title || 'Eternity Ticket'
+  document.title = to.meta.title || 'Eternity Tickets'
   
-  // Show loading (optional)
-  // You can add loading state here
-  
-  // Guest-only routes (login, register)
   if (to.meta.guestOnly && authStore.isAuthenticated) {
     return next({ name: 'Home' })
   }
   
-  // Protected routes
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return next({
       name: 'Login',
@@ -534,7 +486,6 @@ router.beforeEach(async (to, from, next) => {
     })
   }
   
-  // Role-based access
   if (to.meta.allowedRoles && authStore.isAuthenticated) {
     const userRole = authStore.user?.role
     const allowedRoles = Array.isArray(to.meta.allowedRoles) 
@@ -549,67 +500,12 @@ router.beforeEach(async (to, from, next) => {
   next()
 })
 
-// router.beforeEach(async (to, from, next) => {
-//   const authStore = useAuthStore()
-  
-//   // ✅ THÊM DEBUG LOG
-//   console.log('🛡️ Router Guard:')
-//   console.log('  From:', from.path)
-//   console. log('  To:', to.path)
-//   console.log('  User role:', authStore.user?. role)
-//   console.log('  Meta allowedRoles:', to.meta.allowedRoles)
-//   console.log('  Meta requiresAuth:', to.meta.requiresAuth)
-  
-//   // Set page title
-//   document.title = to.meta.title || 'Eternity Ticket'
-  
-//   // Guest-only routes (login, register)
-//   if (to. meta.guestOnly && authStore.isAuthenticated) {
-//     console.log('❌ Blocked: Guest only route')
-//     return next({ name: 'Home' })
-//   }
-  
-//   // Protected routes
-//   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-//     console. log('❌ Blocked: Authentication required')
-//     return next({
-//       name: 'Login',
-//       query: { redirect: to. fullPath }
-//     })
-//   }
-  
-//   // Role-based access
-//   if (to. meta.allowedRoles && authStore.isAuthenticated) {
-//     const userRole = authStore. user?.role
-//     const allowedRoles = Array.isArray(to.meta.allowedRoles) 
-//       ? to.meta.allowedRoles 
-//       : [to.meta.allowedRoles]
-    
-//     console.log('  🔍 Role check:')
-//     console.log('    User role:', userRole)
-//     console.log('    Allowed roles:', allowedRoles)
-//     console.log('    Includes? ', allowedRoles.includes(userRole))
-    
-//     if (!allowedRoles.includes(userRole)) {
-//       console. log('❌ BLOCKED: Role not in allowedRoles')
-//       console.log('  Redirecting to /403')
-//       return next({ name: 'Forbidden' })
-//     }
-//   }
-  
-//   console.log('✅ Access granted')
-//   next()
-// })
-
 router.afterEach(() => {
 })
 
-// ==========================================
 // ERROR HANDLER
-// ==========================================
 router.onError((error) => {
   console.error('Router error:', error)
-  // You can show error toast here
 })
 
 export default router

@@ -2,21 +2,16 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export const useNotificationStore = defineStore('notification', () => {
-  // ==========================================
-  // STATE
-  // ==========================================
   const notifications = ref([])
   const unreadCount = ref(0)
 
   function $reset() {
     notifications.value = []
     unreadCount.value = 0
-    // Reset tất cả state
   }
   const loading = ref(false)
   const error = ref(null)
   
-  // Pagination
   const pagination = ref({
     page: 1,
     limit: 20,
@@ -24,15 +19,11 @@ export const useNotificationStore = defineStore('notification', () => {
     hasMore: false
   })
   
-  // Filters
   const filters = ref({
-    type: null, // system, event_reminder, payment, membership, promotion
+    type: null, 
     isRead: null
   })
   
-  // ==========================================
-  // GETTERS
-  // ==========================================
   const hasUnread = computed(() => unreadCount.value > 0)
   
   const hasNotifications = computed(() => notifications.value.length > 0)
@@ -61,13 +52,6 @@ export const useNotificationStore = defineStore('notification', () => {
   
   const hasMorePages = computed(() => pagination.value.hasMore)
   
-  // ==========================================
-  // ACTIONS
-  // ==========================================
-  
-  /**
-   * Set notifications
-   */
   const setNotifications = (notificationList, append = false) => {
     if (append) {
       notifications.value = [...notifications.value, ...notificationList]
@@ -76,9 +60,6 @@ export const useNotificationStore = defineStore('notification', () => {
     }
   }
   
-  /**
-   * Add notification
-   */
   const addNotification = (notification) => {
     notifications.value.unshift(notification)
     if (!notification.is_read) {
@@ -86,25 +67,18 @@ export const useNotificationStore = defineStore('notification', () => {
     }
   }
   
-  /**
-   * Update notification
-   */
   const updateNotification = (notificationId, data) => {
     const index = notifications.value.findIndex(n => n.id === notificationId)
     if (index !== -1) {
       const wasUnread = !notifications.value[index].is_read
       notifications.value[index] = { ...notifications.value[index], ...data }
       
-      // Update unread count
       if (wasUnread && data.is_read) {
         unreadCount.value = Math.max(0, unreadCount.value - 1)
       }
     }
   }
   
-  /**
-   * Remove notification
-   */
   const removeNotification = (notificationId) => {
     const notification = notifications.value.find(n => n.id === notificationId)
     if (notification && !notification.is_read) {
@@ -113,16 +87,10 @@ export const useNotificationStore = defineStore('notification', () => {
     notifications.value = notifications.value.filter(n => n.id !== notificationId)
   }
   
-  /**
-   * Mark as read
-   */
   const markAsRead = (notificationId) => {
     updateNotification(notificationId, { is_read: true, read_at: new Date().toISOString() })
   }
   
-  /**
-   * Mark all as read
-   */
   const markAllAsRead = () => {
     notifications.value.forEach(notification => {
       if (!notification.is_read) {
@@ -132,41 +100,26 @@ export const useNotificationStore = defineStore('notification', () => {
     })
     unreadCount.value = 0
   }
-  
-  /**
-   * Set unread count
-   */
+
   const setUnreadCount = (count) => {
     unreadCount.value = count
   }
   
-  /**
-   * Update filters
-   */
   const updateFilters = (newFilters) => {
     filters.value = { ...filters.value, ...newFilters }
   }
   
-  /**
-   * Clear filters
-   */
   const clearFilters = () => {
     filters.value = {
       type: null,
       isRead: null
     }
   }
-  
-  /**
-   * Update pagination
-   */
+
   const updatePagination = (paginationData) => {
     pagination.value = { ...pagination.value, ...paginationData }
   }
   
-  /**
-   * Load more notifications
-   */
   const loadMore = () => {
     if (hasMorePages.value) {
       pagination.value.page++
@@ -175,9 +128,6 @@ export const useNotificationStore = defineStore('notification', () => {
     return false
   }
   
-  /**
-   * Clear all notifications
-   */
   const clear = () => {
     notifications.value = []
     unreadCount.value = 0
@@ -190,9 +140,6 @@ export const useNotificationStore = defineStore('notification', () => {
     clearFilters()
   }
   
-  // ==========================================
-  // RETURN
-  // ==========================================
   return {
     // State
     notifications,

@@ -12,7 +12,6 @@ import {
 const notificationStore = useNotificationStore()
 const notifications = ref([])
 
-// Watch for new notifications
 watch(
   () => notificationStore.toasts,
   (newToasts) => {

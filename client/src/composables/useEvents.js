@@ -1,16 +1,12 @@
 import { ref, computed } from 'vue'
 import { eventsAPI } from '@/api'
 
-/**
- * Events composable for event operations
- */
 export function useEvents() {
   const events = ref([])
   const currentEvent = ref(null)
   const loading = ref(false)
   const error = ref(null)
 
-  // Fetch all events
   const fetchEvents = async (params = {}) => {
     loading.value = true
     error.value = null
@@ -27,7 +23,6 @@ export function useEvents() {
     }
   }
 
-  // Fetch event by ID
   const fetchEventById = async (eventId) => {
     loading.value = true
     error.value = null
@@ -44,7 +39,6 @@ export function useEvents() {
     }
   }
 
-  // Fetch event by slug
   const fetchEventBySlug = async (slug) => {
     loading.value = true
     error.value = null
@@ -61,7 +55,6 @@ export function useEvents() {
     }
   }
 
-  // Create event
   const createEvent = async (eventData) => {
     loading.value = true
     error.value = null
@@ -77,7 +70,6 @@ export function useEvents() {
     }
   }
 
-  // Update event
   const updateEvent = async (eventId, eventData) => {
     loading.value = true
     error.value = null
@@ -93,14 +85,12 @@ export function useEvents() {
     }
   }
 
-  // Delete event
   const deleteEvent = async (eventId) => {
     loading.value = true
     error.value = null
 
     try {
       await eventsAPI.deleteEvent(eventId)
-      // Remove from events array
       events.value = events.value.filter(e => e.event_id !== eventId)
       return { success: true }
     } catch (err) {
@@ -111,22 +101,18 @@ export function useEvents() {
     }
   }
 
-  // Search events
   const searchEvents = async (searchQuery) => {
     return await fetchEvents({ search: searchQuery })
   }
 
-  // Filter events by category
   const filterByCategory = async (categoryId) => {
     return await fetchEvents({ category_id: categoryId })
   }
 
-  // Get featured events
   const getFeaturedEvents = async (limit = 6) => {
     return await fetchEvents({ featured: true, limit })
   }
 
-  // Clear current event
   const clearCurrentEvent = () => {
     currentEvent.value = null
   }

@@ -39,11 +39,11 @@ export const useAuthStore = defineStore('auth', () => {
   const membershipDiscount = computed(() => {
     switch (membershipTier.value) {
       case 'premium':
-        return 0.10 // 10%
+        return 0.10 
       case 'advanced':
-        return 0.05 // 5%
+        return 0.05 
       default:
-        return 0 // 0%
+        return 0 
     }
   })
   const isEmailVerified = computed(() => user.value?.is_email_verified || false)
@@ -52,12 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
     return `${user.value.first_name || ''} ${user.value.last_name || ''}`.trim()
   })
   
-  // Actions
-  /**
-   * Set auth data (user + tokens)
-   */
   const setAuth = (userData, tokens, membership) => {
-    // user.value = userData
     user.value = {
       ...userData,
       membership: membership || { tier: 'basic', is_active: false }
@@ -69,24 +64,15 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('refresh_token', tokens.refresh_token)
   }
   
-  /**
-   * Set access token only (after refresh)
-   */
   const setAccessToken = (token) => {
     accessToken.value = token
     localStorage.setItem('access_token', token)
   }
-  
-  /**
-   * Update user data
-   */
+
   const updateUser = (userData) => {
     user.value = { ...user.value, ...userData }
   }
 
-  /**
-   * Login
-   */
   const login = async (credentials) => {
     loading.value = true
     error.value = null
@@ -108,19 +94,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   
-  /**
-   * Register
-   */
   const register = async (data) => {
     loading.value = true
     error.value = null
     
     try {
       const response = await authAPI.register(data)
-      // const { user: userData, tokens, membership } = response.data
-      
-      // setAuth(userData, tokens, membership)
-      // return userData
       return response.data.user
     } catch (err) {
       error.value = err.response?.data?.error?.message || 'Registration failed'
@@ -130,9 +109,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   
-  /**
-   * Logout
-   */
   const logout = async () => {
     const tokenToRevoke = refreshToken.value
 
@@ -143,27 +119,24 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err) {
       console.error('Logout error:', err)
     } finally {
-      // Clear all data
       user.value = null
       accessToken.value = null
       refreshToken.value = null
       isTeamMember.value = false
       teamEventsCount.value = 0
 
-      // ✅ 3. Clear localStorage
       const keysToRemove = [
         'access_token',
         'refresh_token', 
         'user',
-        'auth' // Nếu dùng pinia-plugin-persistedstate
+        'auth' 
       ]
       
       keysToRemove.forEach(key => {
         localStorage.removeItem(key)
-        sessionStorage.removeItem(key) // Also clear sessionStorage
+        sessionStorage.removeItem(key)
       })
       
-      // ✅ Clear any persisted pinia state
       if (typeof window !== 'undefined') {
         const keys = Object.keys(localStorage)
         keys.forEach(key => {
@@ -181,7 +154,6 @@ export const useAuthStore = defineStore('auth', () => {
       queueStore.$reset()
       notificationStore.$reset()
       
-      // ✅ 6. Clear cookies (if any)
       document.cookie.split(";").forEach(c => {
         document.cookie = c.trim().split("=")[0] + 
           "=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;"
@@ -192,21 +164,16 @@ export const useAuthStore = defineStore('auth', () => {
       router.push('/')
     }
   }
-  
-  /**
-   * Fetch user profile
-   */
+
   const fetchProfile = async () => {
     loading.value = true
     error.value = null
     
     try {
       const response = await authAPI.getProfile()
-      // user.value = response.data.user
 
       const { user: userData, membership } = response.data
     
-      // Merge membership vào user
       user.value = {
         ...userData,
         membership: membership || { tier: 'basic', is_active: false }
@@ -214,7 +181,6 @@ export const useAuthStore = defineStore('auth', () => {
       return user.value
     } catch (err) {
       error.value = 'Failed to fetch profile'
-      // If unauthorized, logout
       if (err.response?.status === 401) {
         await logout()
       }
@@ -224,15 +190,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   
-  /**
-   * Update profile
-   */
   const updateProfile = async (data) => {
     loading.value = true
     error.value = null
     
     try {
-      // const response = await usersAPI.updateProfile(data)
       const response = await usersAPI.updateProfile(user.value.id, data) 
       user.value = response.data.user
       return user.value
@@ -244,9 +206,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   
-  /**
-   * Change password
-   */
   const changePassword = async (data) => {
     loading.value = true
     error.value = null
@@ -261,9 +220,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   
-  /**
-   * Forgot password
-   */
   const forgotPassword = async (email) => {
     loading.value = true
     error.value = null
@@ -278,9 +234,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   
-  /**
-   * Reset password
-   */
   const resetPassword = async (data) => {
     loading.value = true
     error.value = null
@@ -295,9 +248,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   
-  /**
-   * Verify email
-   */
   const verifyEmail = async (token) => {
     loading.value = true
     error.value = null
@@ -315,17 +265,11 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = false
     }
   }
-  
-  /**
-   * Clear error
-   */
+
   const clearError = () => {
     error.value = null
   }
 
-  /**
-   * Check team membership
-   */
   const checkTeamMembership = async () => {
     if (user.value?.role !== 'participant') {
       isTeamMember.value = false
@@ -338,9 +282,9 @@ export const useAuthStore = defineStore('auth', () => {
       const events = response.data.data?. events || response.data.events || []
       isTeamMember.value = events.length > 0
       teamEventsCount.value = events.length
-      console.log('✅ Team membership check:', isTeamMember.value, events.length, 'events')
+      console.log('Team membership check:', isTeamMember.value, events.length, 'events')
     } catch (error) {
-      console. error('❌ Failed to check team membership:', error)
+      console.error('Failed to check team membership:', error)
       isTeamMember.value = false
       teamEventsCount. value = 0
     }

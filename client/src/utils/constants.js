@@ -1,6 +1,3 @@
-// ==========================================
-// ROLE CONSTANTS
-// ==========================================
 export const USER_ROLES = {
   ADMIN: 'admin',
   SUB_ADMIN: 'sub_admin',
@@ -8,12 +5,9 @@ export const USER_ROLES = {
   PARTICIPANT: 'participant'
 }
 
-// ==========================================
-// EVENT STATUS
-// ==========================================
 export const EVENT_STATUS = {
   DRAFT: 'draft',
-  PENDING: 'pending',  // ✅ THAY ĐỔI: từ 'pending_approval' → 'pending'
+  PENDING: 'pending',  
   APPROVED: 'approved',
   REJECTED: 'rejected',
   CANCELLED: 'cancelled',
@@ -21,9 +15,6 @@ export const EVENT_STATUS = {
   COMPLETED: 'completed'
 }
 
-// ==========================================
-// ORDER STATUS
-// ==========================================
 export const ORDER_STATUS = {
   PENDING: 'pending',
   COMPLETED: 'completed',
@@ -31,9 +22,6 @@ export const ORDER_STATUS = {
   EXPIRED: 'expired'
 }
 
-// ==========================================
-// TICKET STATUS
-// ==========================================
 export const TICKET_STATUS = {
   VALID: 'valid',
   CHECKED_IN: 'checked_in',
@@ -41,9 +29,6 @@ export const TICKET_STATUS = {
   CANCELLED: 'cancelled'
 }
 
-// ==========================================
-// MEMBERSHIP TIERS
-// ==========================================
 export const MEMBERSHIP_TIERS = {
   BASIC: 'basic',
   PREMIUM: 'premium',
@@ -88,9 +73,6 @@ export const MEMBERSHIP_BENEFITS = {
   }
 }
 
-// ==========================================
-// REFUND STATUS
-// ==========================================
 export const REFUND_STATUS = {
   PENDING: 'pending',
   APPROVED: 'approved',
@@ -98,9 +80,6 @@ export const REFUND_STATUS = {
   COMPLETED: 'completed'
 }
 
-// ==========================================
-// NOTIFICATION TYPES
-// ==========================================
 export const NOTIFICATION_TYPES = {
   ORDER: 'order',
   TICKET: 'ticket',
@@ -109,9 +88,6 @@ export const NOTIFICATION_TYPES = {
   PROMOTION: 'promotion'
 }
 
-// ==========================================
-// PAYMENT METHODS
-// ==========================================
 export const PAYMENT_METHODS = {
   CREDIT_CARD: 'credit_card',
   DEBIT_CARD: 'debit_card',
@@ -120,9 +96,6 @@ export const PAYMENT_METHODS = {
   CASH: 'cash'
 }
 
-// ==========================================
-// DATE FORMATS
-// ==========================================
 export const DATE_FORMATS = {
   FULL: 'YYYY-MM-DD HH:mm:ss',
   DATE_ONLY: 'YYYY-MM-DD',
@@ -132,18 +105,12 @@ export const DATE_FORMATS = {
   DISPLAY_FULL: 'MMMM DD, YYYY HH:mm'
 }
 
-// ==========================================
-// PAGINATION
-// ==========================================
 export const PAGINATION_DEFAULTS = {
   PER_PAGE: 12,
   MAX_PER_PAGE: 100,
   MIN_PER_PAGE: 5
 }
 
-// ==========================================
-// FILE UPLOAD LIMITS
-// ==========================================
 export const UPLOAD_LIMITS = {
   IMAGE_MAX_SIZE: 5 * 1024 * 1024, // 5MB
   DOCUMENT_MAX_SIZE: 10 * 1024 * 1024, // 10MB
@@ -152,9 +119,6 @@ export const UPLOAD_LIMITS = {
   ALLOWED_DOCUMENT_TYPES: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
 }
 
-// ==========================================
-// VALIDATION RULES
-// ==========================================
 export const VALIDATION_RULES = {
   PASSWORD_MIN_LENGTH: 8,
   PASSWORD_MAX_LENGTH: 128,

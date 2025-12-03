@@ -1,16 +1,12 @@
 import { ref } from 'vue'
 import { ordersAPI } from '@/api'
 
-/**
- * Orders composable
- */
 export function useOrders() {
   const orders = ref([])
   const currentOrder = ref(null)
   const loading = ref(false)
   const error = ref(null)
 
-  // Fetch user orders
   const fetchOrders = async (params = {}) => {
     loading.value = true
     error.value = null
@@ -27,7 +23,6 @@ export function useOrders() {
     }
   }
 
-  // Fetch order by ID
   const fetchOrderById = async (orderId) => {
     loading.value = true
     error.value = null
@@ -44,7 +39,6 @@ export function useOrders() {
     }
   }
 
-  // Create order
   const createOrder = async (orderData) => {
     loading.value = true
     error.value = null
@@ -61,7 +55,6 @@ export function useOrders() {
     }
   }
 
-  // Cancel order
   const cancelOrder = async (orderId) => {
     loading.value = true
     error.value = null
@@ -69,7 +62,6 @@ export function useOrders() {
     try {
       await ordersAPI.cancelOrder(orderId)
       
-      // Update orders array
       const index = orders.value.findIndex(o => o.order_id === orderId)
       if (index !== -1) {
         orders.value[index].status = 'cancelled'
@@ -84,7 +76,6 @@ export function useOrders() {
     }
   }
 
-  // Process payment
   const processPayment = async (orderId, paymentData) => {
     loading.value = true
     error.value = null
@@ -100,7 +91,6 @@ export function useOrders() {
     }
   }
 
-  // Download tickets PDF
   const downloadTickets = async (orderId) => {
     loading.value = true
     error.value = null
@@ -108,7 +98,6 @@ export function useOrders() {
     try {
       const response = await ordersAPI.downloadTicketsPDF(orderId)
       
-      // Create blob and download
       const blob = new Blob([response.data], { type: 'application/pdf' })
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -128,7 +117,6 @@ export function useOrders() {
     }
   }
 
-  // Get order statistics
   const getOrderStats = async () => {
     try {
       const response = await ordersAPI.getOrderStatistics()
@@ -138,7 +126,6 @@ export function useOrders() {
     }
   }
 
-  // Clear current order
   const clearCurrentOrder = () => {
     currentOrder.value = null
   }
