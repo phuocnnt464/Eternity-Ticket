@@ -16,17 +16,17 @@ const startServer = async () => {
       await redisService.connect();
       console.log('Redis connected successfully');
     } catch (redisError) {
-      console.warn('⚠️ Redis connection failed - continuing with degraded mode');
-      console.warn('⚠️ Queue features will be limited');
+      console.warn('Redis connection failed - continuing with degraded mode');
+      console.warn('Queue features will be limited');
     }
     server = app.listen(PORT, () => {
-      console.log(`🚀 Eternity Ticket Server is running on port ${PORT}`);
-      console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🌐 Server URL: http://localhost:${PORT}`);
-      console.log(`🔍 Health Check: http://localhost:${PORT}/api/health`);
+      console.log(`Eternity Ticket Server is running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`Server URL: http://localhost:${PORT}`);
+      console.log(`Health Check: http://localhost:${PORT}/api/health`);
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error.message);
+    console.error('Failed to start server:', error.message);
     process.exit(1);
   }
 };

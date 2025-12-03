@@ -1,5 +1,4 @@
 const MembershipModel = require('../models/membershipModel');
-const VNPayService = require('../services/vnpayService');
 
 class MembershipController {
   static async getPricing(req, res, next) {
