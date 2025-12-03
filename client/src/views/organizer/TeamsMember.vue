@@ -20,14 +20,11 @@ const getRoleBadge = (role) => {
 }
 
 const goToEvent = (event) => {
-  console.log('🔍 Navigation Debug:')
-  console.log('  User role:', authStore.user?.role)
-  console.log('  Event:', event.title)
-  console. log('  Member role:', event.member_role)
+  // console.log('  User role:', authStore.user?.role)
+  // console.log('  Event:', event.title)
+  // console. log('  Member role:', event.member_role)
 
-  // Navigate dựa trên role
   if (event.member_role === 'checkin_staff') {
-    // Staff chỉ có quyền check-in
     const path = `/organizer/events/${event.id}/checkin`
     console.log('  → Navigating to:', path)
     router.push(path)
@@ -42,33 +39,18 @@ const fetchTeamEvents = async () => {
   loading.value = true
   try {
     const response = await eventsAPI.getMyTeamEvents()
-    console.log('✅ Team events loaded:', response.data) 
+    // console.log('Team events loaded:', response.data) 
     teamEvents.value = response.data.data?.events || response.data.events || []
-    console. log('👤 Current user role:', authStore.user?.role)
-    console.log('📊 Total events:', teamEvents.value.length)
+    // console.log('Current user role:', authStore.user?.role)
+    // console.log('Total events:', teamEvents.value.length)
     
   } catch (error) {
-    console.error('❌ Failed to fetch team events:', error)
+    console.error('Failed to fetch team events:', error)
     alert('Failed to load team events')
   } finally {
     loading. value = false
   }
 }
-
-// const roleOptions = computed(() => {
-//   if (userEventRole.value === 'manager') {
-//     // Manager chỉ thêm được Check-in Staff
-//     return [
-//       { value: 'checkin_staff', label: 'Check-in Staff', description: 'Can check-in attendees' }
-//     ]
-//   } else {
-//     // Owner thêm được Manager hoặc Check-in Staff
-//     return [
-//       { value: 'manager', label: 'Manager', description: 'Can view orders, manage team (add checkin staff), and check-in' },
-//       { value: 'checkin_staff', label: 'Check-in Staff', description: 'Can check-in attendees only' }
-//     ]
-//   }
-// })
 
 onMounted(async() => {
   await fetchTeamEvents()
@@ -85,12 +67,10 @@ onMounted(async() => {
       <p class="text-gray-600">Events where you are a team member</p>
     </div>
 
-    <!-- Loading -->
     <div v-if="loading" class="text-center py-12">
       <p class="text-gray-500">Loading... </p>
     </div>
 
-    <!-- Empty State -->
     <div v-else-if="!teamEvents || teamEvents.length === 0" class="text-center py-12">
       <UsersIcon class="w-16 h-16 mx-auto text-gray-300 mb-4" />
       <p class="text-gray-500 mb-2">You are not a member of any event teams yet.</p>
@@ -99,7 +79,6 @@ onMounted(async() => {
       </p>
     </div>
 
-    <!-- Team Events List -->
     <div v-else class="grid gap-4">
       <div
         v-for="event in teamEvents"

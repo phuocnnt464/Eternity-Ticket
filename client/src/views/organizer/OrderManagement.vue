@@ -122,7 +122,7 @@ const fetchOrders = async () => {
     pagination.value.totalPages = paginationData.total_pages || 
       Math.ceil(pagination.value.totalItems / pagination.value. perPage)
 
-    console.log('📊 Orders data:', orders.value) 
+    console.log('Orders data:', orders.value) 
   } catch (error) {
     console.error('Failed to fetch orders:', error)
   } finally {
@@ -157,7 +157,6 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
         <button
@@ -176,7 +175,6 @@ onMounted(() => {
       </Button>
     </div>
 
-    <!-- Search & Filter -->
     <Card>
       <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
         <!-- Search -->
@@ -310,7 +308,6 @@ onMounted(() => {
       </p>
     </Card>
 
-    <!-- ✅ ADD: Order Details Modal -->
     <Modal
       v-model="showOrderModal"
       title="Order Details"
@@ -341,7 +338,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Customer Info -->
         <div>
           <h3 class="font-semibold text-gray-900 mb-3 flex items-center">
             <UserIcon class="w-5 h-5 mr-2" />
@@ -365,7 +361,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Payment Info -->
         <div>
           <h3 class="font-semibold text-gray-900 mb-3 flex items-center">
             <CreditCardIcon class="w-5 h-5 mr-2" />

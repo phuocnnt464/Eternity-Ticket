@@ -84,7 +84,6 @@ const handleViewDetails = (order) => {
 const handleDownloadTickets = async (orderId) => {
   try {
     const response = await ordersAPI.downloadTicketsPDF(orderId)
-    // Handle blob download
     const url = window.URL.createObjectURL(new Blob([response.data]))
     const link = document.createElement('a')
     link.href = url
@@ -110,7 +109,6 @@ const handleCancelOrder = async (orderId) => {
 }
 
 const handleRetryPayment = async (order) => {
-  // Option 1: Navigate to checkout with order info
   router.push({
     name: 'EventDetail',
     params: { slug: order.event_slug }
@@ -193,10 +191,10 @@ onMounted(() => {
               <p><strong>Tickets:</strong> {{ order.total_quantity }} ticket(s)</p>
               <p><strong>Total:</strong> <span class="text-primary-600 font-semibold">{{ formatPrice(order.total_amount) }}</span></p>
                <p v-if="order.status === 'cancelled'" class="text-orange-600 text-xs mt-2">
-                ⏰ This order was automatically cancelled because payment was not completed within 15 minutes.
+                This order was automatically cancelled because payment was not completed within 15 minutes.
               </p>
               <p v-if="order.status === 'failed'" class="text-red-600 text-xs mt-2">
-                ❌ Payment failed. Please try again or contact support.
+                Payment failed. Please try again or contact support.
               </p>
             </div>
           </div>
@@ -252,7 +250,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Empty State -->
     <div v-else class="card text-center py-12">
       <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <ShoppingBagIcon class="w-10 h-10 text-gray-400" />

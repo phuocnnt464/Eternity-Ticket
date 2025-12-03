@@ -140,13 +140,11 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Refund Management</h1>
       <p class="text-gray-600 mt-1">Review and process refund requests</p>
     </div>
 
-    <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
       <Card>
         <div class="text-center">
@@ -201,7 +199,6 @@ onMounted(() => {
       <Spinner size="xl" />
     </div>
 
-    <!-- Refunds Table -->
     <Card v-else-if="filteredRefunds.length > 0" no-padding>
       <div class="overflow-x-auto">
         <table class="w-full">
@@ -276,20 +273,17 @@ onMounted(() => {
       </div>
     </Card>
 
-    <!-- Empty State -->
     <Card v-else class="text-center py-12">
       <CurrencyDollarIcon class="w-16 h-16 text-gray-400 mx-auto mb-4" />
       <p class="text-gray-500">No refund requests found</p>
     </Card>
 
-    <!-- Detail Modal -->
     <Modal
       v-model="showDetailModal"
       title="Refund Request Details"
       size="lg"
     >
       <div v-if="selectedRefund" class="space-y-4">
-        <!-- Customer & Order Info -->
         <div class="grid grid-cols-2 gap-4 pb-4 border-b">
           <div>
             <p class="text-sm text-gray-600">Customer</p>
@@ -302,7 +296,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Event & Amount -->
         <div class="grid grid-cols-2 gap-4 pb-4 border-b">
           <div>
             <p class="text-sm text-gray-600">Event</p>
@@ -316,7 +309,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Reason -->
         <div>
           <p class="text-sm text-gray-600 mb-2">Refund Reason</p>
           <div class="bg-gray-50 rounded-lg p-4">
@@ -324,7 +316,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Status -->
         <div class="flex items-center justify-between">
           <span class="text-sm text-gray-600">Current Status:</span>
           <Badge :variant="getStatusBadge(selectedRefund.status).variant">
@@ -332,7 +323,6 @@ onMounted(() => {
           </Badge>
         </div>
 
-        <!-- Rejection Reason Form (if pending) -->
         <div v-if="selectedRefund.status === 'pending'">
           <label class="label">Rejection Reason (if rejecting)</label>
           <textarea

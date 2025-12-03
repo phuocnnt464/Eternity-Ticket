@@ -40,7 +40,6 @@ const statusOptions = [
   { value: 'refunded', label: 'Refunded' }
 ]
 
-// ✅ FIX: Stats
 const stats = computed(() => {
   const now = new Date()
   return {
@@ -59,11 +58,9 @@ const stats = computed(() => {
   }
 })
 
-// ✅ FIX: Filtered tickets
 const filteredTickets = computed(() => {
   let result = tickets.value
 
-  // Filter by search
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(ticket =>
@@ -73,7 +70,6 @@ const filteredTickets = computed(() => {
     )
   }
 
-  // ✅ FIX: Filter by status
   if (selectedStatus.value !== 'all') {
     result = result.filter(ticket => {
       const now = new Date()
@@ -207,7 +203,6 @@ onMounted(() => {
       <Spinner size="xl" />
     </div>
 
-    <!-- Tickets Grid -->
     <div v-else-if="filteredTickets.length > 0">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <TicketCard
@@ -246,20 +241,18 @@ onMounted(() => {
       </RouterLink>
     </div>
 
-    <!-- QR Code Modal -->
     <Modal
         v-model="showQRModal"
         title="Ticket QR Code"
         size="md"
       >
         <div v-if="selectedTicket" class="space-y-4">
-          <!-- Status warnings -->
           <div 
             v-if="selectedTicket.status === 'cancelled'"
             class="bg-orange-50 border border-orange-200 rounded-lg p-3"
           >
             <p class="text-orange-800 text-sm font-semibold">
-              ⚠️ This ticket has been cancelled
+              This ticket has been cancelled
             </p>
           </div>
           
@@ -268,11 +261,10 @@ onMounted(() => {
             class="bg-green-50 border border-green-200 rounded-lg p-3"
           >
             <p class="text-green-800 text-sm">
-              ✅ Checked in: {{ new Date(selectedTicket.checked_in_at).toLocaleString() }}
+              Checked in: {{ new Date(selectedTicket.checked_in_at).toLocaleString() }}
             </p>
           </div>
           
-          <!-- Main content: Side by side -->
           <div class="flex flex-col sm:flex-row gap-4">
             <!-- QR Code -->
             <div class="flex-shrink-0 flex flex-col items-center">

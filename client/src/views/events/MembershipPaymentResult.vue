@@ -23,12 +23,11 @@ onMounted(async () => {
     txn: transactionId.value
   })
   
-  // Reload user to get updated membership status
   try {
     await authStore.fetchProfile()
-    console.log('✅ Profile refreshed, membership tier:', authStore.membershipTier)
+    console.log('Profile refreshed, membership tier:', authStore.membershipTier)
   } catch (error) {
-    console.error('❌ Failed to refresh profile:', error)
+    console.error('Failed to refresh profile:', error)
   }
 })
 
@@ -45,7 +44,6 @@ const goToHome = () => {
   <div class="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
     <div class="max-w-md w-full">
       <div class="card text-center">
-        <!-- Success -->
         <div v-if="isSuccess" class="space-y-4">
           <div class="flex justify-center">
             <CheckCircleIcon class="w-20 h-20 text-green-500" />
@@ -85,7 +83,6 @@ const goToHome = () => {
           </div>
         </div>
 
-        <!-- Failure -->
         <div v-else class="space-y-4">
           <div class="flex justify-center">
             <XCircleIcon class="w-20 h-20 text-red-500" />

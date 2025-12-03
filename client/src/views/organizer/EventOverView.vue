@@ -57,9 +57,9 @@ const fetchEventDetails = async () => {
   try {
     const response = await eventsAPI.getEventById(eventId.value)
     event.value = response.data.event || response.data.data?. event
-    console.log('✅ Event loaded:', event.value)
+    console.log('Event loaded:', event.value)
   } catch (error) {
-    console.error('❌ Failed to fetch event:', error)
+    console.error('Failed to fetch event:', error)
     if (error.response?.status === 404) {
       alert('Event not found')
       router.push('/organizer/events')
@@ -72,13 +72,11 @@ const fetchEventDetails = async () => {
   }
 }
 
-// ✅ SỬA: menuItems dựa trên role (computed)
 const menuItems = computed(() => {
   const items = []
 
   console.log('🔑 Building menu for role:', eventRole.value)
 
-  // Statistics - CHỈ OWNER
   if (canViewStatistics.value) {
     items.push({
       title: 'Statistics',
@@ -90,7 +88,6 @@ const menuItems = computed(() => {
     })
   }
 
-  // Orders - OWNER & MANAGER (Manager chỉ xem)
   if (canViewOrders.value) {
     items.push({
       title: 'Orders',
@@ -104,7 +101,6 @@ const menuItems = computed(() => {
     })
   }
 
-  // Check-in - TẤT CẢ ROLES
   if (canCheckIn.value) {
     items. push({
       title: 'Check-in',
@@ -116,7 +112,6 @@ const menuItems = computed(() => {
     })
   }
 
-  // Team - OWNER & MANAGER
   if (canManageTeam.value) {
     items.push({
       title: 'Team',
@@ -130,7 +125,6 @@ const menuItems = computed(() => {
     })
   }
 
-  // Tickets/Sessions - CHỈ OWNER
   if (canManageSessions.value) {
     items.push({
       title: 'Tickets',
@@ -142,7 +136,6 @@ const menuItems = computed(() => {
     })
   }
 
-  // Coupons - CHỈ OWNER
   if (canManageCoupons.value) {
     items.push({
       title: 'Coupons',
@@ -154,7 +147,6 @@ const menuItems = computed(() => {
     })
   }
 
-  // Settings/Edit - CHỈ OWNER
   if (canEditEvent.value) {
     items.push({
       title: 'Settings',
@@ -200,7 +192,6 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div>
       <button
         @click="router.push('/organizer/events')"
@@ -249,7 +240,6 @@ onMounted(async () => {
       <p class="text-gray-500">You do not have access to manage this event</p>
     </div>
 
-    <!-- Management Menu Grid -->
     <div v-else-if="! loading && !loadingRole" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <Card
         v-for="item in menuItems"
@@ -272,7 +262,6 @@ onMounted(async () => {
       </Card>
     </div>
 
-     <!-- Info Card for Manager -->
     <Card v-if="eventRole === 'manager'" class="bg-blue-50 border-blue-200">
       <div class="flex items-start gap-3">
         <DocumentTextIcon class="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
@@ -292,7 +281,6 @@ onMounted(async () => {
       </div>
     </Card>
 
-    <!-- Info Card for Check-in Staff -->
     <Card v-if="eventRole === 'checkin_staff'" class="bg-green-50 border-green-200">
       <div class="flex items-start gap-3">
         <QrCodeIcon class="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />

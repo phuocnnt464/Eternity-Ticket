@@ -245,14 +245,11 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-12">
       <Spinner size="xl" />
     </div>
 
-    <!-- Notifications List -->
     <div v-else-if="paginatedNotifications.length > 0" class="space-y-3">
-      <!-- Select All -->
       <div class="card !p-3 bg-gray-50">
         <label class="flex items-center space-x-2 cursor-pointer">
           <input

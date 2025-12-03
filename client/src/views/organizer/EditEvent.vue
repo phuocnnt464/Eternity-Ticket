@@ -33,23 +33,19 @@ const eventForm = ref({
   start_date: '',
   end_date: '',
   
-  // Venue Info
   venue_name: '',
   venue_address: '',
   venue_city: '',             
   venue_capacity: null,
   
-  // Organizer Info
   organizer_name: '',          
   organizer_description: '',   
   organizer_contact_email: '', 
   organizer_contact_phone: '', 
   
-  // Privacy & Settings
   privacy_type: 'public',      
   terms_and_conditions: '',    
   
-  // Images
   cover_image: null,
   thumbnail_image: null,
   logo_image: null,            
@@ -84,7 +80,6 @@ const fetchEvent = async () => {
     const event = eventResponse.data.event
     
     eventForm.value = {
-       // Basic Info
       title: event.title,
       description: event.description,
       short_description: event.short_description || '',
@@ -92,19 +87,16 @@ const fetchEvent = async () => {
       start_date: event.start_date ? new Date(event.start_date).toISOString().slice(0, 16) : '',
       end_date: event.end_date ? new Date(event.end_date).toISOString().slice(0, 16) : '',
       
-      // Venue Info
       venue_name: event.venue_name,
       venue_address: event.venue_address,
       venue_city: event.venue_city || '',
       venue_capacity: event.venue_capacity,
       
-      // Organizer Info
       organizer_name: event.organizer_name || '',
       organizer_description: event.organizer_description || '',
       organizer_contact_email: event.organizer_contact_email || '',
       organizer_contact_phone: event.organizer_contact_phone || '',
       
-      // Privacy & Settings
       privacy_type: event.privacy_type || 'public',
       terms_and_conditions: event.terms_and_conditions || '',
       
@@ -116,11 +108,9 @@ const fetchEvent = async () => {
     logoPreview.value = event.logo_image
     venueMapPreview.value = event.venue_map_image
 
-    // Load sessions
     const sessionsResponse = await sessionsAPI.getEventSessions(eventId.value)
     sessions.value = sessionsResponse.data.sessions || []
     
-    // Load ticket types for each session
     for (const session of sessions.value) {
       const ticketsResponse = await sessionsAPI.getSessionTicketTypes(session.id)
       session.ticket_types = ticketsResponse.data.ticket_types || []
@@ -276,18 +266,10 @@ const handleUpdate = async () => {
       'cover_image', 'thumbnail_image', 'logo_image', 'venue_map_image'
     ]
 
-    // Object.keys(eventForm.value).forEach(key => {
-    //   if (eventForm.value[key] && key !== 'status') {
-    //     formData.append(key, eventForm.value[key])
-    //   }
-    // })
-
     allowedFields.forEach(key => {
       const value = eventForm.value[key]
       
-      // ✅ Skip null/undefined và empty strings (trừ số 0)
       if (value !== null && value !== undefined && value !== '') {
-        // ✅ Chỉ append File objects hoặc changed values
         if (value instanceof File) {
           formData.append(key, value)
         } else if (typeof value === 'string' || typeof value === 'number') {
@@ -296,8 +278,7 @@ const handleUpdate = async () => {
       }
     })
 
-    // ✅ Debug: Log FormData contents
-    console.log('📤 FormData to send:')
+    // console.log('FormData to send:')
     for (let [key, value] of formData.entries()) {
       console.log(`  ${key}:`, value instanceof File ? `File: ${value.name}` : value)
     }
@@ -395,7 +376,6 @@ onMounted(async () => {
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Event Information -->
       <Card>
         <h2 class="text-xl font-semibold mb-6">Event Information</h2>
         

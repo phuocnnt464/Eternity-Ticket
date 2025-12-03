@@ -19,7 +19,7 @@ const cartStore = useCartStore()
 const queueStore = useQueueStore()
 
 const loading = ref(false)
-const currentStep = ref(1) // 1 = Customer Info, 2 = Payment, 3 = Processing
+const currentStep = ref(1) 
 const customerInfo = ref({
   first_name: '',
   last_name: '',
@@ -32,14 +32,12 @@ const couponApplied = ref(false)
 const validatingCoupon = ref(false)
 const couponError = ref('')
  
-// Order state
 const createdOrder = ref(null)
-const paymentMethod = ref('vnpay') // vnpay hoặc bank_transfer
+const paymentMethod = ref('vnpay') 
 const processingPayment = ref(false)
-const paymentCountdown = ref(3) // Countdown giả lập payment
+const paymentCountdown = ref(3) 
 const paymentSuccess = ref(false)
 
-// Timer state (15 phút)
 const slotExpiryTime = ref(null)
 const timeRemaining = ref(null)
 const countdownInterval = ref(null)
@@ -67,7 +65,6 @@ const checkExistingOrder = async () => {
 
     const orders = response.data.orders || []
     
-    // Find pending order for this session
     const pendingOrder = orders.find(o => 
       o.session_id === session.value.id && 
       o.status === 'pending' &&
@@ -75,23 +72,19 @@ const checkExistingOrder = async () => {
     )
 
     if (pendingOrder) {
-      console.log('⚠️ Found existing pending order:', pendingOrder.order_number)
+      console.log('Found existing pending order:', pendingOrder.order_number)
       existingOrder.value = pendingOrder
       
-      // Confirm to continue with existing order
       const confirmed = confirm(
         `You already have a pending order (${pendingOrder.order_number}) for this session.\n\n` +
         `Would you like to continue with this order instead of creating a new one?`
       )
       
       if (confirmed) {
-        // Use existing order
         createdOrder.value = pendingOrder
         
-        // Start timer from existing reserved_until
         startSlotCountdown(pendingOrder.reserved_until)
         
-        // Auto-fill customer info from existing order
         if (pendingOrder.customer_info) {
           customerInfo.value = {
             first_name: pendingOrder.customer_info.first_name || '',
@@ -101,12 +94,10 @@ const checkExistingOrder = async () => {
           }
         }
         
-        // Skip to payment step
         currentStep.value = 2
         
         return true
       } else {
-        // User wants new order → Must cancel old one first
         const cancelConfirm = confirm(
           'To create a new order, you must cancel the existing one first.\n\n' +
           'Do you want to cancel the existing order now?'
@@ -135,11 +126,10 @@ const checkExistingOrder = async () => {
   }
 }
 
-// ✅ Cancel existing order
 const cancelExistingOrder = async (orderId) => {
   try {
     await ordersAPI.cancelOrder(orderId)
-    console.log('✅ Cancelled existing order')
+    console.log('Cancelled existing order')
     existingOrder.value = null
     return true
   } catch (error) {
@@ -164,7 +154,6 @@ const formatTimeRemaining = (seconds) => {
   return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 }
 
-// ✅ Start countdown từ queue slot expiry
 const startSlotCountdown = (expiryTime) => {
   console.log('⏰ Starting slot countdown for:', expiryTime)
   slotExpiryTime.value = expiryTime
@@ -183,7 +172,7 @@ const startSlotCountdown = (expiryTime) => {
       clearInterval(countdownInterval.value)
       
       if (!paymentSuccess.value) {
-        alert('⏰ Your purchase time has expired! Please join the queue again.')
+        alert('Your purchase time has expired! Please join the queue again.')
         
         createdOrder.value = null
         cartStore.clear()
@@ -202,17 +191,16 @@ const startSlotCountdown = (expiryTime) => {
   countdownInterval.value = setInterval(updateTimeRemaining, 1000)
 }
 
-// ✅ Check queue status và lấy expires_at
 const checkQueueStatusAndStartTimer = async () => {
   try {
     const response = await queueAPI.getStatus(session.value.id)
     const apiResponse = response.data
     
     const data = apiResponse.data
-    console.log('🔍 Queue status check:', data)
+    // console.log('Queue status check:', data)
     
     if (data?.status === 'active' && data?.expires_at) {
-      console.log('✅ Active slot found, expires at:', data.expires_at)
+      console.log('Active slot found, expires at:', data.expires_at)
       startSlotCountdown(data.expires_at)
       return true
     } 
@@ -227,19 +215,15 @@ const checkQueueStatusAndStartTimer = async () => {
       return false
     } 
 
-     // in_queue = false, waiting_room_enabled = false
-    // → Không có waiting room, cho phép checkout với timer 15 phút
     if (!data?.in_queue && !data?.waiting_room_enabled) {
-      console.log('⚠️ No waiting room for this session, creating 15-minute timer')
+      console.log('No waiting room for this session, creating 15-minute timer')
       const expiryTime = new Date(Date.now() + 15 * 60 * 1000)
       startSlotCountdown(expiryTime)
       return true
     }
     
-    // in_queue = false, waiting_room_enabled = true
-    // → Có waiting room nhưng user chưa join → Redirect back
     if (!data?.in_queue && data?.waiting_room_enabled) {
-      console.warn('⚠️ Waiting room enabled but user not in queue')
+      console.warn('Waiting room enabled but user not in queue')
       alert('Please join the waiting room first.')
       router.push({
         name: 'EventDetail',
@@ -256,7 +240,6 @@ const checkQueueStatusAndStartTimer = async () => {
   }
 }
 
-// ✅ Validate coupon
 const handleValidateCoupon = async () => {
   if (!couponCode.value || couponCode.value.trim() === '') {
     return
@@ -279,7 +262,7 @@ const handleValidateCoupon = async () => {
     if (data && data.discount_amount) {
       couponDiscount.value = data.discount_amount
       couponApplied.value = true
-      console.log('✅ Coupon applied:', couponCode.value, 'Discount:', couponDiscount.value)
+      console.log('Coupon applied:', couponCode.value, 'Discount:', couponDiscount.value)
     }
   } catch (error) {
     console.error('Coupon validation error:', error)
@@ -289,7 +272,6 @@ const handleValidateCoupon = async () => {
   }
 }
 
-// ✅ Remove coupon
 const handleRemoveCoupon = () => {
   couponCode.value = ''
   couponDiscount.value = 0
@@ -297,31 +279,26 @@ const handleRemoveCoupon = () => {
   couponError.value = ''
 }
 
-// ✅ STEP 1: Submit customer info
 const handleSubmitCustomerInfo = () => {
-  // Validate
   if (!customerInfo.value.first_name || !customerInfo.value.last_name || 
       !customerInfo.value.email || !customerInfo.value.phone) {
     alert('Please fill in all required fields')
     return
   }
 
-  // Email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(customerInfo.value.email)) {
     alert('Please enter a valid email address')
     return
   }
 
-  console.log('✅ Customer info valid, moving to payment step')
+  // console.log('Customer info valid, moving to payment step')
   currentStep.value = 2
 }
 
-// ✅ STEP 2: Create order và process payment (MOCK)
 const handleCreateOrderAndPay = async () => {
-  // Check còn thời gian không
   if (slotExpiryTime.value && new Date() >= new Date(slotExpiryTime.value)) {
-    alert('⏰ Your purchase time has expired! Please join the queue again.')
+    alert('Your purchase time has expired! Please join the queue again.')
     router.push({
       name: 'EventDetail',
       params: { slug: route.params.slug }
@@ -331,7 +308,6 @@ const handleCreateOrderAndPay = async () => {
 
   loading.value = true
   try {
-    // ✅ Tạo order
     const orderData = {
       event_id: event.value.id,
       session_id: session.value.id,
@@ -348,17 +324,16 @@ const handleCreateOrderAndPay = async () => {
       coupon_code: couponCode.value || null
     }
 
-    console.log('📦 Creating order:', orderData)
+    // console.log('Creating order:', orderData)
     
     const result = await ordersAPI.createOrder(orderData)
     
     if (result.success) {
       createdOrder.value = result.data.order
-      console.log('✅ Order created:', createdOrder.value.order_number)
+      // console.log('Order created:', createdOrder.value.order_number)
       
       loading.value = false
       
-      // ✅ Chuyển sang step 3: Processing payment (mock)
       currentStep.value = 3
       processMockPayment()
     }
@@ -369,12 +344,10 @@ const handleCreateOrderAndPay = async () => {
   }
 }
 
-// ✅ MOCK PAYMENT: Giả lập thanh toán
 const processMockPayment = async () => {
   processingPayment.value = true
   paymentCountdown.value = 3
 
-  // Countdown 3 giây
   const countdownTimer = setInterval(() => {
     paymentCountdown.value--
     
@@ -385,13 +358,10 @@ const processMockPayment = async () => {
   }, 1000)
 }
 
-// ✅ Complete mock payment
 const completeMockPayment = async () => {
   try {
-    // Giả lập transaction ID
     const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     
-    // Call API để complete payment
     const response = await ordersAPI.processPayment(createdOrder.value.id, {
       payment_method: paymentMethod.value,
       payment_data: {
@@ -402,23 +372,19 @@ const completeMockPayment = async () => {
       }
     })
 
-    console.log('✅ Payment response:', response)
+    // console.log('Payment response:', response)
 
     if (response.success || response.data.success) {
       paymentSuccess.value = true
       processingPayment.value = false
       
-      // Stop timer
       if (countdownInterval.value) {
         clearInterval(countdownInterval.value)
       }
 
-      // Wait 2 seconds then redirect
       setTimeout(() => {
-        // Clear cart
         cartStore.clear()
         
-        // Redirect to success page
         router.push({
           name: 'OrderPaymentResult',
           query: {
@@ -436,12 +402,10 @@ const completeMockPayment = async () => {
     processingPayment.value = false
     alert('Payment failed. Please try again or contact support.')
     
-    // Quay lại step 2
     currentStep.value = 2
   }
 }
 
-// ✅ Cancel payment
 const handleCancelPayment = () => {
   if (confirm('Are you sure you want to cancel this payment?')) {
     processingPayment.value = false
@@ -454,10 +418,9 @@ onMounted(async () => {
 
     const wasExpired = queueStore.checkAndClearExpired()
     if (wasExpired) {
-      console.log('⚠️ Cleared expired queue store')
+      console.log('Cleared expired queue store')
     }
 
-    // Load user info
     if (authStore.user) {
       customerInfo.value = {
         first_name: authStore.user.first_name || '',
@@ -468,7 +431,7 @@ onMounted(async () => {
     }
 
     if (!session.value || !session.value.id) {
-      console.error('❌ No session found!')
+      console.error('No session found!')
       alert('Session not found. Please select tickets first.')
       router.push({
         name: 'EventDetail',
@@ -477,31 +440,22 @@ onMounted(async () => {
       return
     }
 
-    // Kiểm tra order cũ
-    // const hasExistingOrder = await checkExistingOrder()
-    
-    // if (!hasExistingOrder) {
-    //   // Không có order cũ hoặc đã cancel → Check queue status
-    //   await checkQueueStatusAndStartTimer()
-    // }
-
-    console.log('🔍 Session ID:', session.value.id)
+    console.log('Session ID:', session.value.id)
 
     if (queueStore.status === 'active' && queueStore.expiresAt) {
       const expiresAt = new Date(queueStore.expiresAt)
       const now = new Date()
       
-      console.log('🔍 Queue store check:', {
+      console.log('Queue store check:', {
         status: queueStore.status,
         expires_at: queueStore. expiresAt,
         is_expired: now >= expiresAt,
         time_remaining: Math.floor((expiresAt - now) / 1000) + 's'
       })
       
-      // ✅ CHECK if expired
       if (now >= expiresAt) {
-        console. error('❌ Queue store has EXPIRED expires_at!')
-        alert('⏰ Your purchase time has expired!  Please join the queue again.')
+        console.error('Queue store has EXPIRED expires_at!')
+        alert('Your purchase time has expired!  Please join the queue again.')
         queueStore.$reset()
         router.push({
           name: 'EventDetail',
@@ -510,37 +464,35 @@ onMounted(async () => {
         return
       }
       
-      console.log('✅ Using queue store - already active, expires:', queueStore.expiresAt)
+      console.log('Using queue store - already active, expires:', queueStore.expiresAt)
       startSlotCountdown(queueStore.expiresAt)
-      console.log('✅ EventCheckout mounted successfully (from waiting room)')
+      console.log('EventCheckout mounted successfully (from waiting room)')
       return
     }
 
-    // Kiểm tra order cũ
     let hasExistingOrder = false
     try {
       hasExistingOrder = await checkExistingOrder()
-      console.log('🔍 Has existing order:', hasExistingOrder)
+      console.log('Has existing order:', hasExistingOrder)
     } catch (orderCheckError) {
-      console.error('⚠️ Check existing order failed:', orderCheckError)
+      console.error('Check existing order failed:', orderCheckError)
     }
     
     if (!hasExistingOrder) {
-      // Check queue status
-      console.log('🔍 Calling checkQueueStatusAndStartTimer.. .')
+      // console.log('Calling checkQueueStatusAndStartTimer.. .')
       const canProceed = await checkQueueStatusAndStartTimer()
-      console. log('🔍 Can proceed:', canProceed)
+      console.log('Can proceed:', canProceed)
       
       if (!canProceed) {
-        console.warn('⚠️ Queue check failed, redirecting.. .')
+        console.warn('Queue check failed, redirecting.. .')
         return
       }
     }
     
-    console.log('✅ EventCheckout mounted successfully')
+    // console.log('EventCheckout mounted successfully')
 
   } catch (error) {
-    console.error('❌ EventCheckout onMounted error:', error)
+    console.error('EventCheckout onMounted error:', error)
     alert('Failed to initialize checkout. Please try again.')
     router.push({
       name: 'EventDetail',
@@ -557,7 +509,7 @@ onBeforeUnmount(() => {
   if (!paymentSuccess.value && session.value?. id) {
     try {
       queueAPI.leaveQueue(session.value.id)
-      console.log('✅ Left queue on checkout unmount')
+      console.log('Left queue on checkout unmount')
     } catch (error) {
       console.error('Failed to leave queue:', error)
     }
@@ -568,7 +520,6 @@ onBeforeUnmount(() => {
 <template>
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="container-custom">
-      <!-- Back Button -->
       <button
         v-if="currentStep < 3"
         @click="router.back()"
@@ -578,7 +529,6 @@ onBeforeUnmount(() => {
         Back
       </button>
 
-      <!-- ✅ COUNTDOWN TIMER -->
       <div v-if="timeRemaining !== null && !paymentSuccess" class="mb-6">
         <div class="flex justify-center">
           <div class="bg-orange-100 border-2 border-orange-500 rounded-lg px-6 py-4">
@@ -600,16 +550,13 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Left: Checkout Form -->
         <div class="lg:col-span-2">
           <div class="card">
-            <!-- ✅ STEP 1: CUSTOMER INFO + COUPON -->
             <div v-if="currentStep === 1">
               <h1 class="text-2xl font-bold mb-6">Checkout</h1>
               <h2 class="text-lg font-semibold mb-4">1. Customer Information</h2>
               
               <div class="space-y-4">
-                <!-- Customer Info -->
                 <div class="grid grid-cols-2 gap-4">
                   <Input
                     v-model="customerInfo.first_name"
@@ -642,7 +589,6 @@ onBeforeUnmount(() => {
                   required
                 />
 
-                <!-- ✅ COUPON CODE INPUT -->
                 <div class="mt-6 pt-6 border-t">
                   <label class="block text-sm font-medium text-gray-700 mb-2">
                     Discount Coupon <span class="text-gray-500">(Optional)</span>
@@ -706,13 +652,11 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <!-- ✅ STEP 2: PAYMENT METHOD -->
             <div v-else-if="currentStep === 2">
               <h1 class="text-2xl font-bold mb-6">Checkout</h1>
               <h2 class="text-lg font-semibold mb-4">2. Payment Method</h2>
               
               <div class="space-y-4">
-                <!-- Payment method selection -->
                 <div class="space-y-3">
                   <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:border-primary-500 transition"
                          :class="paymentMethod === 'vnpay' ? 'border-primary-600 bg-primary-50' : 'border-gray-200'">
@@ -783,7 +727,6 @@ onBeforeUnmount(() => {
                   </label>
                 </div>
 
-                <!-- Info box -->
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p class="text-sm text-blue-800">
                     <span class="font-medium">Note:</span> This is a simulated payment for testing purposes. No real money will be charged.
@@ -812,10 +755,8 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <!-- ✅ STEP 3: PROCESSING PAYMENT (MOCK) -->
             <div v-else-if="currentStep === 3">
               <div class="text-center py-12">
-                <!-- Processing -->
                 <div v-if="processingPayment && !paymentSuccess">
                   <div class="flex justify-center mb-6">
                     <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div>
@@ -830,7 +771,7 @@ onBeforeUnmount(() => {
                   
                   <div class="max-w-md mx-auto bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p class="text-sm text-blue-800">
-                      🔒 Your payment is being processed securely via {{ paymentMethod === 'vnpay' ? 'VNPay' : 'Bank Transfer' }}
+                      Your payment is being processed securely via {{ paymentMethod === 'vnpay' ? 'VNPay' : 'Bank Transfer' }}
                     </p>
                   </div>
 
@@ -876,7 +817,6 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <!-- Right: Order Summary -->
         <div class="lg:col-span-1">
           <OrderSummary
             :items="tickets"

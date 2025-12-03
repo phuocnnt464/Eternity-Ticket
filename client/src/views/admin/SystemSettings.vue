@@ -19,7 +19,6 @@ const saving = ref(false)
 const activeTab = ref('general')
 
 const settings = ref({
-  // Site Information
   site_name: '',
   site_description: '',
   currency_code: '',
@@ -28,15 +27,12 @@ const settings = ref({
   date_format: '',
   time_format: '',
   
-  // System Limits
   max_queue_capacity: '',
   ticket_hold_duration_minutes: '',
   max_file_size_mb: '',
   
-  // Financial Settings
   vat_rate: '',
   
-  // Membership Discounts
   premium_discount_rate: '',
   advanced_discount_rate: '',
   premium_early_access_hours: ''
@@ -47,25 +43,14 @@ const successMessage = ref('')
 
 const tabs = [
   { id: 'general', name: 'General', icon: Cog6ToothIcon },
-  // { id: 'payment', name: 'Payment', icon: CurrencyDollarIcon },
-  // { id: 'email', name: 'Email', icon: EnvelopeIcon },
-  // { id: 'notifications', name: 'Notifications', icon: BellIcon },
-  // { id: 'security', name: 'Security', icon: ShieldCheckIcon }
 ]
-
-// const paymentGateways = [
-//   { value: 'stripe', label: 'Stripe' },
-//   { value: 'paypal', label: 'PayPal' },
-//   { value: 'vnpay', label: 'VNPay' }
-// ]
 
 const fetchSettings = async () => {
   loading.value = true
   try {
     const response = await adminAPI.getSettings()
-    const settingsArray = response.data.settings // Array từ server
-    
-    // Convert array sang object
+    const settingsArray = response.data.settings 
+
     const settingsObj = {}
     settingsArray.forEach(setting => {
       settingsObj[setting.setting_key] = setting.setting_value
@@ -83,31 +68,6 @@ const fetchSettings = async () => {
 const validateSettings = () => {
   errors.value = {}
   
-  // if (activeTab.value === 'general') {
-  //   if (!settings.value.site_name) {
-  //     errors.value.site_name = 'Site name is required'
-  //   }
-  //   if (!settings.value.support_email) {
-  //     errors.value.support_email = 'Support email is required'
-  //   }
-  // }
-  
-  // if (activeTab.value === 'payment') {
-  //   if (settings.value.platform_fee_percentage < 0 || settings.value.platform_fee_percentage > 100) {
-  //     errors.value.platform_fee_percentage = 'Fee must be between 0 and 100'
-  //   }
-  // }
-  
-  // if (activeTab.value === 'email') {
-  //   if (!settings.value.smtp_host) {
-  //     errors.value.smtp_host = 'SMTP host is required'
-  //   }
-  //   if (!settings.value.smtp_from_email) {
-  //     errors.value.smtp_from_email = 'From email is required'
-  //   }
-  // }
-
-  // Validate required fields
   if (!settings.value.site_name?.trim()) {
     errors.value.site_name = 'Site name is required'
   }
@@ -116,7 +76,6 @@ const validateSettings = () => {
     errors.value.site_description = 'Site description is required'
   }
   
-  // Validate numeric fields
   const numericFields = [
     'max_queue_capacity',
     'ticket_hold_duration_minutes', 
@@ -131,7 +90,6 @@ const validateSettings = () => {
     }
   })
   
-  // Validate rate fields (0-1)
   const rateFields = ['vat_rate', 'premium_discount_rate', 'advanced_discount_rate']
   rateFields.forEach(field => {
     const value = Number(settings.value[field])
@@ -170,26 +128,6 @@ const handleSave = async () => {
       premium_early_access_hours: settings.value.premium_early_access_hours
     }
 
-    // await adminAPI.updateSettings(settings.value)
-    // for (const [key, value] of Object.entries(settings.value)) {
-    //   if (value !== '' || value !== null || value !== undefined) {
-    //     await adminAPI.updateSettings(key, { value })
-    //   }
-    // }
-
-    // Save each setting one by one
-    // for (const key of settingsToSave) {
-    //   const value = settings.value[key]
-      
-    //   // Skip if value is undefined or null
-    //   if (value === undefined || value === null || value === '') {
-    //     continue
-    //   }
-      
-    //   // Call API with correct parameters: (key, { value })
-    //   await adminAPI.updateSettings(key, { value: value })
-    // }
-
     // Remove undefined/null/empty values
     const cleanedSettings = {}
     for (const [key, value] of Object.entries(settingsToSave)) {
@@ -198,7 +136,6 @@ const handleSave = async () => {
       }
     }
 
-    // Update all settings in one request
     await adminAPI.updateSettingsBulk(cleanedSettings) 
 
     successMessage.value = 'Settings saved successfully!'
@@ -213,17 +150,6 @@ const handleSave = async () => {
   }
 }
 
-// const handleTestEmail = async () => {
-//   try {
-//     await adminAPI.testEmailSettings({
-//       to: settings.value.support_email
-//     })
-//     alert('Test email sent successfully! Please check your inbox.')
-//   } catch (error) {
-//     alert('Failed to send test email: ' + (error.response?.data?.error?.message || 'Unknown error'))
-//   }
-// }
-
 onMounted(() => {
   fetchSettings()
 })
@@ -231,13 +157,11 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900">System Settings</h1>
       <p class="text-gray-600 mt-1">Configure platform-wide settings</p>
     </div>
 
-    <!-- Success Message -->
     <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4">
       <div class="flex items-center space-x-2 text-green-800">
         <CheckCircleIcon class="w-5 h-5" />
@@ -251,7 +175,6 @@ onMounted(() => {
     </div>
 
     <div v-else class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <!-- Sidebar Tabs -->
       <div class="lg:col-span-1">
         <Card no-padding>
           <nav class="space-y-1">
@@ -273,13 +196,11 @@ onMounted(() => {
         </Card>
       </div>
 
-      <!-- Content Area -->
       <div class="lg:col-span-3">
         <Card>
           <h2 class="text-xl font-semibold mb-6">System Settings</h2>
           
           <div class="space-y-8">
-            <!-- Site Information -->
             <div class="space-y-4">
               <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Site Information</h3>
               
@@ -340,7 +261,6 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- System Limits -->
             <div class="space-y-4">
               <h3 class="text-lg font-medium text-gray-900 border-b pb-2">System Limits</h3>
               
@@ -375,7 +295,6 @@ onMounted(() => {
               />
             </div>
 
-            <!-- Financial Settings -->
             <div class="space-y-4">
               <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Financial Settings</h3>
               
@@ -391,7 +310,6 @@ onMounted(() => {
               />
             </div>
 
-            <!-- Membership Settings -->
             <div class="space-y-4">
               <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Membership Discount Rates</h3>
               
@@ -430,7 +348,6 @@ onMounted(() => {
           </div>
         </Card>
 
-        <!-- Save Button -->
         <div class="flex justify-end space-x-3 mt-6">
           <Button variant="secondary" @click="fetchSettings">
             Reset

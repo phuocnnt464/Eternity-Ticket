@@ -19,7 +19,7 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   UserIcon,
-  ArrowUturnLeftIcon,  // ✅ ADD: Undo icon
+  ArrowUturnLeftIcon,  
   ClockIcon,
   TicketIcon
 } from '@heroicons/vue/24/outline'
@@ -68,14 +68,14 @@ const fetchEventData = async () => {
     const [eventRes, statsRes, checkinsRes] = await Promise.all([
       eventsAPI.getEventById(eventId.value),
       checkinAPI.getCheckInStats(eventId.value),
-      checkinAPI.getRecentCheckins(eventId.value, { limit: 20 })  // ✅ Increase limit
+      checkinAPI.getRecentCheckins(eventId.value, { limit: 20 })  
     ])
     
     event.value = eventRes.data.event
     stats.value = statsRes.data.stats
     recentCheckIns.value = checkinsRes.data.checkins || []
     
-    console.log('✅ Checkin page data loaded:', {
+    console.log('Checkin page data loaded:', {
       eventTitle: event.value?. title,
       stats: stats.value,
       recentCount: recentCheckIns.value.length,
@@ -116,7 +116,7 @@ const handleCheckIn = async (ticketCode) => {
     ticketResult.value = response.data.ticket
     manualCode.value = ''
     
-    toast.success('✅ Check-in successful! ', {
+    toast.success('Check-in successful! ', {
       position: 'top-right',
       autoClose: 3000
     })
@@ -149,7 +149,7 @@ const viewTicketDetails = (checkin) => {
 
 const handleUndoCheckin = async (ticketCode) => {
   if (!canUndoCheckin.value) {
-    toast.error('❌ You do not have permission to undo check-in', {
+    toast.error('You do not have permission to undo check-in', {
       position: 'top-right',
       autoClose: 3000
     })
@@ -162,7 +162,7 @@ const handleUndoCheckin = async (ticketCode) => {
   try {
     await checkinAPI.undoCheckIn(ticketCode)
     
-    toast.success('✅ Check-in undone successfully!', {
+    toast.success('Check-in undone successfully!', {
       position: 'top-right',
       autoClose: 3000
     })
@@ -173,7 +173,7 @@ const handleUndoCheckin = async (ticketCode) => {
     await fetchEventData()
   } catch (error) {
     console.error('Failed to undo check-in:', error)
-    toast.error(error.response?.data?.error?. message || '❌ Failed to undo check-in', {
+    toast.error(error.response?.data?.error?. message || 'Failed to undo check-in', {
       position: 'top-right',
       autoClose: 5000
     })
@@ -212,7 +212,6 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header (unchanged) -->
     <div class="flex items-center justify-between">
       <div>
         <button
@@ -249,7 +248,6 @@ onMounted(async () => {
     </div>
 
     <div v-else>
-      <!-- Stats (unchanged) -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <div class="text-center">
@@ -273,7 +271,6 @@ onMounted(async () => {
         </Card>
       </div>
 
-      <!-- Progress (unchanged) -->
       <Card>
         <h3 class="font-semibold mb-3">Check-in Progress</h3>
         <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
@@ -286,11 +283,9 @@ onMounted(async () => {
       </Card>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Check-in Section (unchanged) -->
         <Card>
           <h3 class="text-lg font-semibold mb-4">{{ scanMode ? 'Scan QR Code' : 'Manual Entry' }}</h3>
 
-          <!-- Mode Toggle -->
           <div class="flex items-center space-x-2 mb-4">
             <Button
               :variant="scanMode ? 'primary' : 'secondary'"
@@ -310,7 +305,6 @@ onMounted(async () => {
             </Button>
           </div>
 
-          <!-- QR Scanner Mode -->
           <div v-if="scanMode">
             <QRScanner
               @scan="handleQRScan"
@@ -318,7 +312,6 @@ onMounted(async () => {
             />
           </div>
 
-          <!-- Manual Entry Mode -->
           <div v-else>
             <form @submit.prevent="handleManualCheckIn" class="space-y-4">
               <Input
@@ -342,7 +335,6 @@ onMounted(async () => {
             </form>
           </div>
 
-          <!-- Error Message -->
           <div v-if="errorMessage" class="mt-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
             <div class="flex items-center space-x-2">
               <XCircleIcon class="w-5 h-5 flex-shrink-0" />
@@ -350,7 +342,6 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Success Result -->
           <div v-if="ticketResult" class="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
             <div class="flex items-center space-x-3 mb-3">
               <CheckCircleIcon class="w-8 h-8 text-green-600" />
@@ -368,7 +359,6 @@ onMounted(async () => {
           </div>
         </Card>
 
-        <!-- ✅ ENHANCED: Recent Check-ins with Actions -->
         <Card>
           <h3 class="text-lg font-semibold mb-4">Recent Check-ins</h3>
           
@@ -387,7 +377,6 @@ onMounted(async () => {
                   <p class="font-medium text-sm text-gray-900 truncate">
                     {{ checkin.holder_name || 'Unknown' }}
                   </p>
-                  <!-- ✅ ADD: Ticket Code -->
                   <p class="text-xs text-gray-500 font-mono">
                     {{ checkin.ticket_code }}
                   </p>
@@ -419,7 +408,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Ticket Detail Modal with Undo -->
     <Modal
       v-model="showTicketDetailModal"
       title="Check-in Details"
@@ -427,7 +415,6 @@ onMounted(async () => {
       @close="() => { showTicketDetailModal = false; selectedTicket = null }"
     >
       <div v-if="selectedTicket" class="space-y-4">
-        <!-- Status Banner -->
         <div class="bg-green-50 border border-green-200 rounded-lg p-4">
           <div class="flex items-center space-x-3">
             <CheckCircleIcon class="w-8 h-8 text-green-600" />
@@ -438,7 +425,6 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- Ticket Information -->
         <div class="grid grid-cols-2 gap-4">
           <div class="col-span-2 p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600 mb-1">Ticket Code</p>

@@ -138,7 +138,6 @@ const handleCreate = async () => {
       description: couponForm.value.description
     }
 
-    // await eventsAPI.createCoupon(eventId.value, couponForm.value)
     await couponAPI.createCoupon(data)  
 
     alert('Coupon created successfully!')
@@ -165,7 +164,6 @@ const handleDelete = async (couponId, code) => {
   if (!confirm(`Delete coupon "${code}"?`)) return
   
   try {
-    // await eventsAPI.deleteCoupon(eventId.value, couponId)
     await couponAPI.deleteCoupon(couponId)
     alert('Coupon deleted')
     await fetchCoupons()
@@ -237,7 +235,6 @@ onMounted(() => {
       <Spinner size="xl" />
     </div>
 
-    <!-- Coupons Grid -->
     <div v-else-if="coupons.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <Card
         v-for="coupon in coupons"
@@ -312,7 +309,6 @@ onMounted(() => {
       </Button>
     </Card>
 
-    <!-- Create Coupon Modal -->
     <Modal
       v-model="showCreateModal"
       title="Create Discount Coupon"

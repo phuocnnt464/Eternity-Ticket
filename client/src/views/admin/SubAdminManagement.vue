@@ -32,7 +32,6 @@ const inviteForm = ref({
   email: '',
   first_name: '',
   last_name: '',
-  // password: ''
 })
 
 const errors = ref({})
@@ -49,7 +48,6 @@ watch(
       clearTimeout(emailCheckTimeout)
     }
     
-    // Reset states
     emailExists.value = false
     existingUser.value = null
     errors.value.email = ''
@@ -78,15 +76,12 @@ watch(
           existingUser.value = foundUser
           errors.value.email = `User exists: ${foundUser.first_name} ${foundUser.last_name} (${foundUser.role})`
           
-          // ← XÓA TOAST: Chỉ hiển thị warning box, không cần toast
-          console.log('⚠️ Email exists!', foundUser)
+          console.log('Email exists!', foundUser)
         } else {
-          // ← XÓA TOAST SUCCESS: Không spam mỗi lần gõ
-          console.log('✅ Email available')
+          console.log('Email available')
         }
       } catch (error) {
-        console.error('❌ Email check error:', error)
-        // ← XÓA TOAST ERROR: Không cần thông báo khi check fail
+        console.error('Email check error:', error)
       } finally {
         emailCheckLoading.value = false
       }
@@ -96,7 +91,6 @@ watch(
 
 watch(showInviteModal, (newVal) => {
   if (!newVal) {
-    // Reset tất cả states khi đóng modal
     if (emailCheckTimeout) {
       clearTimeout(emailCheckTimeout)
       emailCheckTimeout = null
@@ -138,12 +132,6 @@ const validateForm = () => {
   if (!inviteForm.value.last_name) {
     errors.value.last_name = 'Last name is required'
   }
-
-  // if (!inviteForm.value.password) {
-  //   errors.value.password = 'Password is required'
-  // } else if (inviteForm.value.password.length < 8) {
-  //   errors.value.password = 'Password must be at least 8 characters'
-  // }
   
   return Object.keys(errors.value).length === 0
 }
@@ -167,13 +155,11 @@ const handleInvite = async () => {
     }
     await adminAPI.createSubAdmin(data)
     
-    // alert('Sub-admin invitation sent successfully!')
     toast.success('Sub-admin account created successfully!', {
       position: 'top-right',
       autoClose: 3000
     })
     showInviteModal.value = false
-    // inviteForm.value = { email: '', first_name: '', last_name: '', password: '' }
     inviteForm.value = { email: '', first_name: '', last_name: '' }
     emailExists.value = false
     existingUser.value = null
@@ -183,10 +169,8 @@ const handleInvite = async () => {
     const errorMessage = error.response?.data?.error?.message || 'Failed to send invitation'
 
     if (error.response?.status === 409) {
-      // Clear general error
       errors.value.email = 'This email already exists'
       
-      // Hiển thị toast error với action button
       toast.error(
         `Email "${inviteForm.value.email}" already exists. You can change their role in User Management instead.`,
         {
@@ -213,28 +197,23 @@ const handleInvite = async () => {
 }
 
 const generatePassword = () => {
-  // Đảm bảo password có đủ: uppercase, lowercase, number, special char
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
   const lowercase = 'abcdefghijklmnopqrstuvwxyz'
   const numbers = '0123456789'
   const special = '!@#$%^&*'
   
-  // Tạo password 12 ký tự với đầy đủ yêu cầu
   let password = ''
   
-  // 1 uppercase, 1 lowercase, 1 number, 1 special
   password += uppercase.charAt(Math.floor(Math.random() * uppercase.length))
   password += lowercase.charAt(Math.floor(Math.random() * lowercase.length))
   password += numbers.charAt(Math.floor(Math.random() * numbers.length))
   password += special.charAt(Math.floor(Math.random() * special.length))
   
-  // Phần còn lại: random từ tất cả
   const allChars = uppercase + lowercase + numbers + special
   for (let i = 4; i < 12; i++) {
     password += allChars.charAt(Math.floor(Math.random() * allChars.length))
   }
   
-  // Shuffle password để không bị pattern cố định
   return password.split('').sort(() => Math.random() - 0.5).join('')
 }
 
@@ -249,7 +228,6 @@ const handleDeactivate = async (subAdminId, name) => {
     })
     await fetchSubAdmins()
   } catch (error) {
-    // alert(error.response?.data?.error?.message || 'Failed to remove sub-admin')
     toast.error(error.response?.data?.error?.message || 'Failed to deactivate sub-admin', {
       position: 'top-right',
       autoClose: 3000
@@ -264,7 +242,6 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Sub-Admin Management</h1>
@@ -290,7 +267,6 @@ onMounted(() => {
       </div>
     </Card>
 
-    <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-12">
       <Spinner size="xl" />
     </div>
@@ -346,7 +322,6 @@ onMounted(() => {
       </Card>
     </div>
 
-    <!-- Empty State -->
     <Card v-else class="text-center py-12">
       <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <ShieldCheckIcon class="w-10 h-10 text-gray-400" />
@@ -361,7 +336,6 @@ onMounted(() => {
       </Button>
     </Card>
 
-    <!-- Invite Modal -->
     <Modal
       v-model="showInviteModal"
       title="Invite Sub-Admin"
@@ -401,7 +375,6 @@ onMounted(() => {
             help-text="Make sure this email hasn't been registered yet"
             required
           />
-          <!-- ← LOADING TEXT -->
           <p v-if="emailCheckLoading" class="text-xs text-gray-500 mt-1 flex items-center">
             <svg class="animate-spin h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -410,17 +383,7 @@ onMounted(() => {
             Checking email availability...
           </p>
         </div>
-        <!-- <Input
-          v-model="inviteForm.password"
-          type="password"
-          label="Temporary Password"
-          placeholder="Enter temporary password (min 8 characters)"
-          :error="errors.password"
-          help-text="This password will be sent to the sub-admin via email"
-          required
-        /> -->
 
-        <!-- ← WARNING BOX KHI EMAIL TỒN TẠI -->
         <div v-if="emailExists && existingUser" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
           <div class="flex items-start">
             <div class="flex-shrink-0">
@@ -430,7 +393,7 @@ onMounted(() => {
             </div>
             <div class="ml-3">
               <p class="text-sm text-yellow-700">
-                <strong>⚠️ User already exists:</strong> 
+                <strong>User already exists:</strong> 
                 {{ existingUser.first_name }} {{ existingUser.last_name }} 
                 <span class="font-semibold">({{ existingUser.role }})</span>
               </p>
@@ -445,7 +408,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- ← SUCCESS INDICATOR -->
         <div v-if="!emailCheckLoading && inviteForm.email && !emailExists && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteForm.email) === false" class="bg-green-50 border-l-4 border-green-400 p-3 rounded">
           <div class="flex items-center">
             <svg class="h-5 w-5 text-green-400 mr-2" viewBox="0 0 20 20" fill="currentColor">

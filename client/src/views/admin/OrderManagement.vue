@@ -104,9 +104,9 @@ const fetchOrders = async () => {
     pagination.value.totalPages = paginationData.total_pages || Math.ceil(paginationData.total_count / pagination.value.perPage) || 1
     pagination.value.currentPage = paginationData.current_page || 1
     
-    console.log('✅ Loaded orders:', orders.value.length)
+    // console.log('Loaded orders:', orders.value.length)
   } catch (error) {
-    console.error('❌ Failed to fetch orders:', error)
+    console.error('Failed to fetch orders:', error)
     toast.error('Failed to load orders', {
       position: 'top-right',
       autoClose: 3000
@@ -124,9 +124,9 @@ const handleViewDetails = async (order) => {
   try {
     const response = await adminAPI.getOrderDetails(order.id)
     orderDetails.value = response.data?.order || null
-    console.log('✅ Order details loaded:', orderDetails.value)
+    console.log('Order details loaded:', orderDetails.value)
   } catch (error) {
-    console.error('❌ Failed to fetch order details:', error)
+    console.error('Failed to fetch order details:', error)
     toast.error('Failed to load order details', {
       position: 'top-right',
       autoClose: 3000
@@ -146,11 +146,9 @@ const handleExport = () => {
       return
     }
     
-    // CSV headers
     const headers = ['Order Number', 'Customer', 'Email', 'Event', 'Tickets', 'Amount', 'Status', 'Created At']
     const csvRows = [headers.join(',')]
-    
-    // Data rows
+
     filteredOrders.value.forEach(order => {
       const row = [
         `"${order.order_number || 'N/A'}"`,
@@ -165,12 +163,10 @@ const handleExport = () => {
       csvRows.push(row.join(','))
     })
     
-    // Create CSV
     const csvContent = csvRows.join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = window.URL.createObjectURL(blob)
     
-    // Download
     const link = document.createElement('a')
     link.href = url
     link.setAttribute('download', `orders-eternity-${new Date().toISOString().split('T')[0]}.csv`)
@@ -184,7 +180,7 @@ const handleExport = () => {
       autoClose: 2000
     })
   } catch (error) {
-    console.error('❌ Export error:', error)
+    console.error('Export error:', error)
     toast.error('Failed to export orders', {
       position: 'top-right',
       autoClose: 3000
@@ -224,7 +220,6 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Order Management</h1>
@@ -236,7 +231,6 @@ onMounted(() => {
       </Button>
     </div>
 
-    <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
       <Card>
         <div class="text-center">
@@ -302,12 +296,10 @@ onMounted(() => {
       </div>
     </Card>
 
-    <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-12">
       <Spinner size="xl" />
     </div>
 
-    <!-- Orders Table -->
     <Card v-else-if="filteredOrders.length > 0" no-padding>
       <div class="overflow-x-auto">
         <table class="w-full">
@@ -408,7 +400,6 @@ onMounted(() => {
       </p>
     </Card>
 
-    <!-- Order Detail Modal -->
     <Modal
       v-model="showDetailModal"
       title="Order Details"
@@ -434,7 +425,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Customer Info -->
         <div>
           <h4 class="font-semibold text-gray-900 mb-3 flex items-center space-x-2">
             <UserIcon class="w-5 h-5" />
@@ -456,7 +446,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Event Info -->
         <div>
           <h4 class="font-semibold text-gray-900 mb-3 flex items-center space-x-2">
             <CalendarIcon class="w-5 h-5" />
@@ -474,7 +463,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Tickets -->
         <div v-if="orderDetails.items && orderDetails.items.length > 0">
           <h4 class="font-semibold text-gray-900 mb-3 flex items-center space-x-2">
             <TicketIcon class="w-5 h-5" />
@@ -497,7 +485,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Payment Info -->
         <div>
           <h4 class="font-semibold text-gray-900 mb-3 flex items-center space-x-2">
             <CreditCardIcon class="w-5 h-5" />
@@ -527,7 +514,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Timestamps -->
         <div class="bg-gray-50 rounded-lg p-4 space-y-2">
           <div class="flex justify-between">
             <span class="text-sm text-gray-600">Created At:</span>

@@ -14,7 +14,6 @@ const success = ref(false)
 const error = ref('')
 
 onMounted(async () => {
-  // const token = route.params.token
   const token = route.query.token
   
   if (!token) {

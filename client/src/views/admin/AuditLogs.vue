@@ -143,8 +143,6 @@ const fetchLogs = async () => {
 
     logs.value = response.data.logs || []
 
-    // pagination.value.totalItems = response.data.pagination?.total_count || 0
-    // pagination.value.totalPages = Math.ceil(pagination.value.totalItems / pagination.value.perPage)
     const paginationData = response.data.pagination || {}
 
     pagination.value.totalItems = paginationData.total_count || 0  
@@ -167,13 +165,6 @@ const handleExport = async () => {
   try {
     const timestamp = Date.now()
 
-    // const response = await adminAPI.exportAuditLogs({
-    //   start_date: dateFrom.value,
-    //   end_date: dateTo.value,
-    //   action: selectedAction.value !== 'all' ? selectedAction.value : undefined,
-    //   _t: timestamp // Cache buster
-    // })
-
     let response
     if (activeTab.value === 'audit') {
       response = await adminAPI.exportAuditLogs({
@@ -183,7 +174,6 @@ const handleExport = async () => {
         _t: timestamp
       })
     } else {
-      // ✅ THÊM: Export activity logs
       response = await adminAPI.exportActivityLogs({
         start_date: dateFrom.value,
         end_date: dateTo.value,
@@ -203,7 +193,6 @@ const handleExport = async () => {
     const url = window.URL.createObjectURL(response.data)
     const link = document.createElement('a')
     link.href = url
-    // link.setAttribute('download', `audit-logs-eternity-${new Date().toISOString().split('T')[0]}.csv`)
     const fileName = activeTab.value === 'audit' 
       ? `audit-logs-eternity-${new Date().toISOString().split('T')[0]}.csv`
       : `activity-logs-eternity-${new Date().toISOString().split('T')[0]}.csv`
@@ -225,66 +214,6 @@ const handleExport = async () => {
     })
   }
 }
-
-// const handleExport = () => {
-//   try {
-//     if (filteredLogs.value.length === 0) {
-//       toast.error('No logs to export', {
-//         position: 'top-right',
-//         autoClose: 2000
-//       })
-//       return
-//     }
-    
-//     console.log(`📊 Exporting ${filteredLogs.value.length} logs...`)
-    
-//     // CSV headers
-//     const headers = ['Timestamp', 'Admin Name', 'Admin Email', 'Action', 'Target Type', 'Target ID', 'Description', 'IP Address']
-//     const csvRows = [headers.join(',')]
-    
-//     // Data rows
-//     filteredLogs.value.forEach(log => {
-//       const row = [
-//         `"${formatDate(log.created_at)}"`,
-//         `"${log.admin_name || log.user_name || 'System'}"`,
-//         `"${log.admin_email || log.user_email || 'N/A'}"`,
-//         `"${log.action || 'N/A'}"`,
-//         `"${log.target_type || 'N/A'}"`,
-//         `"${log.target_id || 'N/A'}"`,
-//         `"${(log.description || '').replace(/"/g, '""')}"`,
-//         `"${log.ip_address || 'N/A'}"`
-//       ]
-//       csvRows.push(row.join(','))
-//     })
-    
-//     // Create CSV
-//     const csvContent = csvRows.join('\n')
-//     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-//     const url = window.URL.createObjectURL(blob)
-    
-//     // Download
-//     const link = document.createElement('a')
-//     link.href = url
-//     link.setAttribute('download', `audit-logs-${new Date().toISOString().split('T')[0]}.csv`)
-//     document.body.appendChild(link)
-//     link.click()
-//     link.remove()
-//     window.URL.revokeObjectURL(url)
-    
-//     console.log('✅ Exported:', csvContent.length, 'bytes')
-    
-//     toast.success(`Exported ${filteredLogs.value.length} logs successfully!`, {
-//       position: 'top-right',
-//       autoClose: 2000
-//     })
-//   } catch (error) {
-//     console.error('❌ Export error:', error)
-//     toast.error('Failed to export logs', {
-//       position: 'top-right',
-//       autoClose: 3000
-//     })
-//   }
-// }
 
 const handlePageChange = (page) => {
   pagination.value.currentPage = page
@@ -311,7 +240,6 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Audit Logs</h1>
@@ -438,12 +366,10 @@ onMounted(() => {
       </div>
     </Card>
 
-    <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-12">
       <Spinner size="xl" />
     </div>
 
-    <!-- Logs Table -->
     <Card v-else-if="filteredLogs.length > 0" no-padding>
       <div class="overflow-x-auto">
         <table class="w-full">
@@ -454,7 +380,6 @@ onMounted(() => {
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP Address</th>
-              <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User Agent</th> -->
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
@@ -470,8 +395,6 @@ onMounted(() => {
                 <div class="flex items-center space-x-2">
                   <UserIcon class="w-4 h-4 text-gray-400" />
                   <div class="text-sm">
-                    <!-- <p class="font-medium text-gray-900">{{ log.user_name || 'System' }}</p>
-                    <p class="text-gray-500">{{ log.user_email }}</p> -->
                     <p class="font-medium text-gray-900">
                       {{ activeTab === 'audit' 
                         ? (log.admin_name || 'System') 
@@ -500,11 +423,6 @@ onMounted(() => {
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="text-sm font-mono text-gray-600">{{ log.ip_address || 'N/A' }}</span>
               </td>
-              <!-- <td class="px-6 py-4">
-                <span class="text-xs text-gray-500 line-clamp-2">
-                  {{ log.user_agent || 'N/A' }}
-                </span>
-              </td> -->
             </tr>
           </tbody>
         </table>
@@ -520,7 +438,6 @@ onMounted(() => {
       </div>
     </Card>
 
-    <!-- Empty State -->
     <Card v-else class="text-center py-12">
       <DocumentTextIcon class="w-16 h-16 text-gray-400 mx-auto mb-4" />
       <h3 class="text-xl font-semibold text-gray-900 mb-2">No logs found</h3>

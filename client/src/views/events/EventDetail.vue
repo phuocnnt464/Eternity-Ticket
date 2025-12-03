@@ -1,5 +1,4 @@
 <script setup>
-// ...  existing script (giữ nguyên toàn bộ)
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { eventsAPI } from '@/api/events.js'
@@ -30,7 +29,6 @@ import {
   FireIcon
 } from '@heroicons/vue/24/outline'
 
-// ...  rest of existing script
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -127,7 +125,6 @@ const checkEarlyAccess = () => {
         ticket.isEarlyAccess = false
     }
   }
-  // earlyAccessInfo.value = null
 }
 
 const canPurchase = computed(() => {
@@ -160,7 +157,6 @@ const buyButtonText = computed(() => {
     if (userTier === 'premium') {
       return 'Early Access - Buy Now'
     } else {
-      // ✅ Tìm ticket early access được chọn
       const earlyTicket = selectedTickets.value.find(selected => {
         const ticketType = ticketTypes.value.find(t => t.id === selected.ticket_type_id)
         return ticketType?.isEarlyAccess
@@ -230,7 +226,6 @@ const handlePurchase = async () => {
   })
   
   if (hasSelectedEarlyAccessTicket && userTier !== 'premium') {
-    // Tìm ticket early access được chọn
     const earlyTicket = selectedTickets.value.find(selected => {
       const ticketType = ticketTypes.value.find(t => t.id === selected.ticket_type_id)
       return ticketType?.isEarlyAccess === true
@@ -268,7 +263,7 @@ const handlePurchase = async () => {
 
     const queueStore = useQueueStore()
     queueStore.$reset()
-    console.log('✅ Queue store reset before joining')
+    console.log('Queue store reset before joining')
 
     cartStore.setEventAndSession(event.value, selectedSession.value)
     
@@ -311,7 +306,7 @@ const handlePurchase = async () => {
     if (data.can_purchase) {
       if (data.expires_at) {
         queueStore.expiresAt = data.expires_at
-        console.log('✅ Set expires_at from joinQueue:', data.expires_at)
+        console.log('Set expires_at from joinQueue:', data.expires_at)
       }
 
       router.push({
@@ -390,11 +385,10 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="min-h-screen bg-white">
-    <!-- WAITING ROOM MODAL -->
     <Teleport to="body">
       <div 
         v-if="showWaitingRoom" 
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 bg-opacity-75 backdrop-blur-sm"
       >
         <WaitingRoom
           :session-id="selectedSession?.id"

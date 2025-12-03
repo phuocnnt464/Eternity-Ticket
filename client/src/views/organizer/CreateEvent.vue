@@ -25,58 +25,50 @@ const currentStep = ref(1)
 const loading = ref(false)
 const categories = ref([])
 
-// Event Form
 const eventForm = ref({
-  // Basic Info
   title: '',
   description: '',
   category_id: '',
   start_date: '',
   end_date: '',
   
-  // Venue Info
   venue_name: '',
   venue_address: '',
   venue_city: '',
   venue_capacity: null,
   
-  // Organizer Info
   organizer_name: '',
   organizer_description: '',
   organizer_contact_email: '',
   organizer_contact_phone: '',
   
-  // Privacy
   privacy_type: true,
   
-  // Payment Info
   payment_account_name: '',
   payment_account_number: '',
   payment_bank_name: '',
   payment_bank_branch: '',
   
-  // Images
   cover_image: null,
   thumbnail_image: null,
   logo_image: null,
   venue_map_image: null
 })
 
-// ✅ ĐÚNG: Sessions với min/max tickets per order CỦA SESSION
 const sessions = ref([
   {
     title: '',
     start_time: '',
     end_time: '',
-    min_tickets_per_order: 1,    // ✅ Min tổng vé cho mỗi đơn hàng
-    max_tickets_per_order: 10,   // ✅ Max tổng vé cho mỗi đơn hàng
+    min_tickets_per_order: 1,   
+    max_tickets_per_order: 10, 
     ticket_types: [
       {
         name: '',
         price: 0,
         total_quantity: 0,
-        min_quantity_per_order: 1,          // ✅ Min của LOẠI VÉ này
-        max_quantity_per_order: 10,         // ✅ Max của LOẠI VÉ này (phải <= session max)
+        min_quantity_per_order: 1,       
+        max_quantity_per_order: 10,        
         sale_start_time: '',
         sale_end_time: ''
       }
@@ -120,7 +112,6 @@ const canProceed = computed(() => {
            eventForm.value.payment_bank_name
   }
    if (currentStep.value === 5) {
-    // ✅ Check not have validation errors
     return sessions.value.length > 0 && sessionValidationErrors.value.length === 0
   }
   return true
@@ -259,12 +250,10 @@ const touchedFields = ref({
   sessions: {}
 })
 
-// Computed để validate sessions
 const sessionValidationErrors = computed(() => {
   const errors = []
   
   sessions.value.forEach((session, index) => {
-    // ✅ Kiểm tra session time
     if (session.start_time && session.end_time) {
       const start = new Date(session.start_time).getTime()
       const end = new Date(session.end_time).getTime()
@@ -275,7 +264,6 @@ const sessionValidationErrors = computed(() => {
         errors.push(`Session ${index + 1}: End time cannot be the same as start time`)
       }
       
-      // Kiểm tra session nằm trong event time
       if (eventForm.value.start_date && eventForm.value.end_date) {
         const eventStart = new Date(eventForm.value.start_date).getTime()
         const eventEnd = new Date(eventForm.value.end_date).getTime()
@@ -291,7 +279,6 @@ const sessionValidationErrors = computed(() => {
       errors.push(`Session ${index + 1}: Start and end times are required`)
     }
     
-    // ticket types
     session.ticket_types.forEach((ticket, ticketIndex) => {
       if (!ticket.name) {
         errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Name is required`)
@@ -315,7 +302,6 @@ const sessionValidationErrors = computed(() => {
         errors.push(`Session ${index + 1}, Ticket ${ticketIndex + 1}: Price cannot be negative`)
       }
 
-      // ticket sale time (if provided)
       if (ticket.sale_start_time && ticket.sale_end_time) {
         const saleStart = new Date(ticket.sale_start_time).getTime()
         const saleEnd = new Date(ticket.sale_end_time).getTime()
@@ -352,7 +338,6 @@ const getSessionError = (sessionIndex, field) => {
 const getTicketError = (sessionIndex, ticketIndex, field) => {
   const fieldKey = `ticket_${sessionIndex}_${ticketIndex}_${field}`
   
-  // Chưa touch → không hiện lỗi
   if (!touchedFields.value.sessions[fieldKey]) {
     return null
   }
@@ -379,10 +364,8 @@ const markTouched = (sessionIndex, ticketIndex, field) => {
 
 const handleSubmit = async (status = 'draft') => {
   if (status === 'pending') {
-    // Validate payment info khi submit for approval
     if (!eventForm.value.payment_account_name) {
       alert('Please enter payment account name before submitting for approval')
-      currentStep.value = 4 // Chuyển về step Payment Info
       return
     }
     if (!eventForm.value.payment_account_number) {
@@ -406,9 +389,6 @@ const handleSubmit = async (status = 'draft') => {
   try {
     const formData = new FormData()
     
-    // ✅ CHỈ GỬI CÁC FIELDS CÓ TRONG EVENTS TABLE
-    
-    // Basic Info
     if (eventForm.value.title) formData.append('title', eventForm.value.title)
     if (eventForm.value.description) formData.append('description', eventForm.value.description)
     if (eventForm.value.category_id) formData.append('category_id', eventForm.value.category_id)
@@ -416,30 +396,24 @@ const handleSubmit = async (status = 'draft') => {
     if (eventForm.value.start_date) formData.append('start_date', eventForm.value.start_date)
     if (eventForm.value.end_date) formData.append('end_date', eventForm.value.end_date)
     
-    // Venue Info
     if (eventForm.value.venue_name) formData.append('venue_name', eventForm.value.venue_name)
     if (eventForm.value.venue_address) formData.append('venue_address', eventForm.value.venue_address)
     if (eventForm.value.venue_city) formData.append('venue_city', eventForm.value.venue_city)
     
-    // Organizer Info
     if (eventForm.value.organizer_name) formData.append('organizer_name', eventForm.value.organizer_name)
     if (eventForm.value.organizer_description) formData.append('organizer_description', eventForm.value.organizer_description)
     if (eventForm.value.organizer_contact_email) formData.append('organizer_contact_email', eventForm.value.organizer_contact_email)
     if (eventForm.value.organizer_contact_phone) formData.append('organizer_contact_phone', eventForm.value.organizer_contact_phone)
     if (eventForm.value.terms_and_conditions) formData.append('terms_and_conditions', eventForm.value.terms_and_conditions)
     
-    // ✅ Privacy: Chuyển is_public thành privacy_type
     formData.append('privacy_type', eventForm.value.privacy_type ? 'public' : 'private')
     
-    // ✅ Payment Info: Gộp thành JSONB object
     const paymentInfo = {
       account_name: eventForm.value.payment_account_name || '',
       account_number: eventForm.value.payment_account_number || '',
       bank_name: eventForm.value.payment_bank_name || '',
       bank_branch: eventForm.value.payment_bank_branch || ''
     }
-
-    // formData.append('payment_account_info', JSON.stringify(paymentInfo))
 
     if (status === 'pending' || 
         (eventForm.value.payment_account_name && 
@@ -454,7 +428,6 @@ const handleSubmit = async (status = 'draft') => {
       formData.append('payment_account_info', JSON.stringify(paymentInfo))
     }
 
-    // Images
     if (eventForm.value.cover_image instanceof File) {
       formData.append('cover_image', eventForm.value.cover_image)
     }
@@ -468,7 +441,6 @@ const handleSubmit = async (status = 'draft') => {
       formData.append('venue_map_image', eventForm.value.venue_map_image)
     }
     
-    // Status
     formData.append('status', status)
 
     console.log('📤 FormData contents:')
@@ -483,18 +455,17 @@ const handleSubmit = async (status = 'draft') => {
                     eventResponse.data.id 
 
     if (!eventId) {
-      console.error('❌ Cannot find event ID in response:', eventResponse.data)
+      console.error('Cannot find event ID in response:', eventResponse.data)
       throw new Error('Event ID not found in response')
     }
 
-    console.log('✅ Event created with ID:', eventId)
+    console.log('Event created with ID:', eventId)
 
-    // ✅ CHỈ TẠO SESSIONS KHI KHÔNG PHẢI DRAFT
     if (status !== 'draft') {
-      console.log('✅ Creating sessions and tickets...')
+      // console.log('Creating sessions and tickets...')
 
       for (const session of sessions.value) {
-        console.log(`  Creating session: ${session.title}`)
+        // console.log(`Creating session: ${session.title}`)
         
         const sessionResponse = await sessionsAPI.createSession(eventId, {
           title: session.title,
@@ -510,13 +481,12 @@ const handleSubmit = async (status = 'draft') => {
                           sessionResponse.data.session?.id
 
         if (!sessionId) {
-          console.error('❌ Session ID not found:', sessionResponse.data)
+          console.error('Session ID not found:', sessionResponse.data)
           throw new Error('Session ID not found in response')
         }
 
-        console.log(`  ✅ Session created with ID: ${sessionId}`)
+        // console.log(`Session created with ID: ${sessionId}`)
 
-        // Create tickets for this session
         for (const ticket of session.ticket_types) {
           const ticketData = {
             name: ticket.name,
@@ -529,21 +499,21 @@ const handleSubmit = async (status = 'draft') => {
           }
           
           await sessionsAPI.createTicketType(sessionId, ticketData)
-          console.log(`    ✅ Ticket created: ${ticket.name}`)
+          // console.log(`Ticket created: ${ticket.name}`)
         }
       }
       
-      console.log('✅ All sessions and tickets created!')
+      // console.log('All sessions and tickets created!')
     } else {
-      console.log('ℹ️ Draft mode: Skipping sessions and tickets creation')
+      console.log('ℹDraft mode: Skipping sessions and tickets creation')
     }
 
     alert(status === 'draft' ? 'Event saved as draft!' : 'Event submitted for approval!')
     router.push('/organizer/events')
     
   } catch (error) {
-    console.error('❌ Create event error:', error)
-    console.error('❌ Error response:', error.response?.data)
+    console.error('Create event error:', error)
+    console.error('Error response:', error.response?.data)
     
     const errorMessage = error.response?.data?.message || 
                         error.response?.data?.meta?.errors ||

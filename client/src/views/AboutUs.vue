@@ -176,7 +176,7 @@ const achievements = [
     </section>
 
     <!-- Journey Timeline -->
-    <section class="py-20 bg-gradient-to-br from-gray-50 to-primary-50">
+    <!-- <section class="py-20 bg-gradient-to-br from-gray-50 to-primary-50">
       <div class="container-custom">
         <div class="text-center mb-16">
           <h2 class="text-4xl font-bold text-gray-900 mb-4">Our Journey</h2>
@@ -185,7 +185,6 @@ const achievements = [
 
         <div class="max-w-4xl mx-auto">
           <div class="relative">
-            <!-- Timeline line -->
             <div class="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-primary-200 hidden md:block"></div>
 
             <div class="space-y-12">
@@ -215,7 +214,7 @@ const achievements = [
           </div>
         </div>
       </div>
-    </section>
+    </section> -->
 
     <!-- CTA Section -->
     <section class="py-24 bg-gradient-to-br from-accent-900 via-primary-900 to-dark-900 text-white relative overflow-hidden">

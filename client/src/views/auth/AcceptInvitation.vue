@@ -49,7 +49,6 @@ const handleAccept = async () => {
     
     successMessage.value = response.data.message || 'Successfully joined the team!'
     
-    // Redirect to organizer events after 2 seconds
     setTimeout(() => {
       router.push({ name: 'MyEvents' })
     }, 2000)
@@ -77,7 +76,6 @@ onMounted(() => {
         <p class="text-gray-600 mt-4">Loading invitation...</p>
       </div>
 
-      <!-- Success -->
       <div v-else-if="successMessage" class="text-center py-8">
         <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircleIcon class="w-10 h-10 text-green-600" />
@@ -87,7 +85,6 @@ onMounted(() => {
         <p class="text-sm text-gray-500">Redirecting to your events...</p>
       </div>
 
-      <!-- Error -->
       <div v-else-if="errorMessage" class="text-center py-8">
         <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <XCircleIcon class="w-10 h-10 text-red-600" />

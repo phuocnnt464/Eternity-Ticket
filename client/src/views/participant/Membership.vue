@@ -32,7 +32,7 @@ const upgrading = ref(false)
 const cancellingMembership = ref(false) 
 const cancellingImmediately = ref(false) 
 
-const currentStep = ref(1) // 1 = Confirm, 2 = Processing
+const currentStep = ref(1) 
 const paymentMethod = ref('vnpay')
 const processingPayment = ref(false)
 const paymentCountdown = ref(3)
@@ -123,7 +123,6 @@ const canUpgrade = (tierValue) => {
   return targetIndex > currentIndex
 }
 
-// ✅ FIX: Dùng getCurrentMembership thay vì getMembershipStatus
 const fetchMembershipData = async () => {
   loading.value = true
   try {
@@ -131,10 +130,9 @@ const fetchMembershipData = async () => {
 
     membershipData.value = response.data
     
-    console.log('✅ Fetched membership data:', membershipData.value)
+    // console.log('Fetched membership data:', membershipData.value)
   } catch (error) {
-    console.error('❌ Failed to fetch membership data:', error)
-    // Don't show error to user if they just don't have membership
+    console.error('Failed to fetch membership data:', error)
     if (error.response?.status !== 404) {
       toast.error('Failed to load membership data', {
         position: 'top-right',
@@ -155,26 +153,23 @@ const handleUpgrade = (tier) => {
   paymentMethod.value = 'vnpay'
 }
 
-// ✅ FIX: Thêm tier vào request
 const confirmUpgrade = async () => {
   if (!selectedPlan.value) return
   
   upgrading.value = true
   try {
-    console.log('📤 Creating membership order for tier:', selectedPlan.value)
+    console.log('Creating membership order for tier:', selectedPlan.value)
     
-    // Step 1: Create membership order
     const orderResponse = await membershipAPI.createOrder({
       tier: selectedPlan.value.value, 
       billing_period: 'monthly',
       return_url: window.location.origin + '/membership/payment/result'
     })
     
-    console.log('✅ Membership order created:', orderResponse.data)
+    // console.log('Membership order created:', orderResponse.data)
     
     const orderData = orderResponse.data
     
-    // If free tier (no payment required)
     if (!orderData.payment_required) {
       toast.success('Membership activated successfully!', {
         position: 'top-right',
@@ -189,14 +184,13 @@ const confirmUpgrade = async () => {
 
      createdOrder.value = orderData. order
     
-    // Move to step 2: Processing payment
     upgrading.value = false
     currentStep.value = 2
     processMockPayment()
     
   } catch (error) {
-    console.error('❌ Order creation error:', error)
-    console.error('❌ Error details:', error.response?.data)
+    console.error('Order creation error:', error)
+    console.error('Error details:', error.response?.data)
     
     const errorMsg = error.response?.data?.error?.message || 'Failed to create membership order'
     toast.error(errorMsg, {
@@ -208,12 +202,10 @@ const confirmUpgrade = async () => {
   }
 }
 
-// ✅ STEP 2: Process mock payment (GIỐNG EVENT CHECKOUT)
 const processMockPayment = async () => {
   processingPayment.value = true
   paymentCountdown.value = 3
 
-  // Countdown 3 giây
   const countdownTimer = setInterval(() => {
     paymentCountdown.value--
     
@@ -224,13 +216,10 @@ const processMockPayment = async () => {
   }, 1000)
 }
 
-// ✅ STEP 3: Complete mock payment (CALL processPayment API)
 const completeMockPayment = async () => {
   try {
-    // transaction ID
     const transactionId = `MEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     
-    // ✅ Call processPayment API (GIỐNG ORDER)
     const response = await membershipAPI.processPayment(createdOrder.value.order_number, {
       payment_method: paymentMethod.value,
       payment_data: {
@@ -241,7 +230,7 @@ const completeMockPayment = async () => {
       }
     })
 
-    console.log('✅ Payment response:', response)
+    // console.log('Payment response:', response)
 
     if (response.success || response.data?. success) {
       paymentSuccess.value = true
@@ -249,15 +238,12 @@ const completeMockPayment = async () => {
       
       toast.success('Payment successful! Membership activated.')
 
-      // Wait 2 seconds then redirect
       setTimeout(async () => {
         showUpgradeModal.value = false
         
-        // Refresh profile
         await authStore.fetchProfile()
         await fetchMembershipData()
         
-        // Redirect to result page
         router.push({
           path: '/events/membership/payment/result',
           query: {
@@ -271,11 +257,10 @@ const completeMockPayment = async () => {
       throw new Error('Payment failed')
     }
   } catch (error) {
-    console.error('❌ Payment error:', error)
+    console.error('Payment error:', error)
     processingPayment.value = false
     toast.error('Payment failed.  Please try again.')
     
-    // Quay lại step 1
     currentStep.value = 1
   }
 }
@@ -297,7 +282,7 @@ const handleCancelMembership = async () => {
   
   try {
     const response = await membershipAPI.cancelMembership()
-    console.log('✅ Cancel response:', response)
+    console.log('Cancel response:', response)
 
     await authStore.fetchProfile()
     await fetchMembershipData()
@@ -307,13 +292,11 @@ const handleCancelMembership = async () => {
       autoClose: 3000
     })
   } catch (error) {
-    console.error('❌ Cancel membership error:', error)
+    console.error('Cancel membership error:', error)
 
-    console.error('❌ Error response:', error.response?.data)
-    console.error('❌ Error status:', error.response?.status)
+    console.error('Error response:', error.response?.data)
+    console.error('Error status:', error.response?.status)
   
-    
-    // const errorMsg = error.response?.data?.error?.message || 'Failed to cancel membership'
     let errorMsg = 'Failed to cancel membership'
     
     if (error.response?.status === 404) {
@@ -336,8 +319,8 @@ const handleCancelMembership = async () => {
 const handleCancelImmediately = async () => {
   if (! confirm(
     'Cancel your membership immediately?\n\n' +
-    '⚠️ You will lose all benefits right now.\n' +
-    `⚠️ No refund for remaining ${Math.ceil((new Date(membershipData.value?.end_date) - new Date()) / (1000 * 60 * 60 * 24))} days.\n\n` +
+    'You will lose all benefits right now.\n' +
+    `No refund for remaining ${Math.ceil((new Date(membershipData.value?.end_date) - new Date()) / (1000 * 60 * 60 * 24))} days.\n\n` +
     'This action cannot be undone.'
   )) {
     return
@@ -352,7 +335,7 @@ const handleCancelImmediately = async () => {
       cancel_immediately: true
     })
     
-    console.log('✅ Immediate cancel response:', response)
+    console.log('Immediate cancel response:', response)
 
     await authStore.fetchProfile()
     await fetchMembershipData()
@@ -363,7 +346,7 @@ const handleCancelImmediately = async () => {
     })
     
   } catch (error) {
-    console.error('❌ Immediate cancel error:', error)
+    console.error('Immediate cancel error:', error)
     
     let errorMsg = 'Failed to cancel membership'
     
@@ -433,12 +416,6 @@ onMounted(() => {
                 <CalendarIcon class="w-4 h-4" />
                 <span>Expires: {{ new Date(membershipData.end_date).toLocaleDateString() }}</span>
               </div>
-              
-              <!-- ✅ FIX: Use Heroicon component instead of SVG path -->
-              <!-- <div v-if="membershipData?.cancelled_at" class="flex items-start space-x-2 text-orange-600 font-medium pt-2">
-                <ExclamationTriangleIcon class="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>Cancelled on {{ new Date(membershipData.cancelled_at).toLocaleDateString() }}</span>
-              </div> -->
             </div>
           </div>
 
@@ -448,7 +425,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Cancel button section -->
         <div v-if="currentTier !== 'basic' && ! membershipData?.cancelled_at" class="mt-4 pt-4 border-t border-primary-100">
           <p class="text-sm text-gray-600 mb-2">
             Cancel auto-renewal. You'll keep access until {{ membershipData?.end_date ?  new Date(membershipData.end_date).toLocaleDateString() : 'end of period' }}
@@ -464,10 +440,7 @@ onMounted(() => {
           </Button>
         </div>
 
-        
-        <!-- ✅ UPDATE: Show message + option to cancel immediately if already cancelled -->
         <div v-else-if="membershipData?.cancelled_at && membershipData?.is_active" class="mt-4 pt-4 border-t space-y-3">
-          <!-- Warning message -->
           <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
             <div class="flex items-start space-x-3">
               <ExclamationTriangleIcon class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
@@ -484,7 +457,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- ✅ ADD: Option to cancel immediately -->
           <div class="bg-red-50 border border-red-200 rounded-lg p-4">
             <div class="flex items-start space-x-3">
               <XCircleIcon class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -510,7 +482,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- ✅ Show if membership already deactivated -->
         <div v-else-if="membershipData?.cancelled_at && !membershipData?.is_active" class="mt-4 pt-4 border-t bg-gray-50 rounded-lg p-4">
           <div class="flex items-start space-x-3">
             <XCircleIcon class="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
@@ -525,22 +496,6 @@ onMounted(() => {
         </div>
       </div> 
 
-        <!-- ✅ FIX: Use Heroicon in warning box too -->
-        <!-- <div v-else-if="membershipData?.cancelled_at" class="mt-4 pt-4 border-t bg-orange-50 rounded-lg p-4">
-          <div class="flex items-start space-x-3">
-            <ExclamationCircleIcon class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p class="text-sm font-medium text-orange-900">Auto-Renewal Cancelled</p>
-              <p class="text-sm text-orange-700 mt-1">
-                Your membership will remain active until {{ new Date(membershipData.end_date).toLocaleDateString() }}.
-                It will not renew automatically.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div> -->
-
-      <!-- Membership Benefits (Current Plan) -->
       <div v-if="currentTier !== 'basic'" class="card">
         <h3 class="text-lg font-semibold mb-4">Your Benefits</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -555,7 +510,6 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Membership Plans -->
       <div>
         <h2 class="text-xl font-bold mb-6">Choose Your Plan</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -594,10 +548,8 @@ onMounted(() => {
               />
             </div>
 
-            <!-- Plan Name -->
             <h3 class="text-2xl font-bold mb-2">{{ tier.name }}</h3>
 
-            <!-- Price -->
             <div class="mb-6">
               <div class="flex items-baseline">
                 <span class="text-4xl font-bold">{{ tier.price === 0 ? 'Free' : formatPrice(tier.price) }}</span>
@@ -605,7 +557,6 @@ onMounted(() => {
               <p class="text-sm text-gray-600">{{ tier.period }}</p>
             </div>
 
-            <!-- Features -->
             <ul class="space-y-3 mb-6">
               <li
                 v-for="(feature, index) in tier.features"
@@ -631,7 +582,6 @@ onMounted(() => {
               </li>
             </ul>
 
-            <!-- CTA Button -->
             <Button
               v-if="currentTier === tier.value"
               variant="secondary"
@@ -686,13 +636,11 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Upgrade Confirmation Modal -->
     <Modal
       v-model="showUpgradeModal"
       :title="currentStep === 1 ? 'Upgrade Membership' : 'Processing Payment'"
       size="md"
     >
-      <!-- STEP 1: CONFIRM -->
       <div v-if="currentStep === 1" class="space-y-4">
         <div v-if="selectedPlan" class="bg-gray-50 rounded-lg p-4">
           <div class="flex items-center justify-between mb-3">
@@ -720,7 +668,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Payment Method Selection -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
             Payment Method
@@ -794,7 +741,7 @@ onMounted(() => {
           
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-sm mx-auto">
             <p class="text-sm text-blue-800">
-              🔒 Your payment is being processed securely
+              Your payment is being processed securely
             </p>
           </div>
 

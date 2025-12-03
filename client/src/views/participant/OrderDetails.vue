@@ -45,9 +45,9 @@ const fetchOrderDetails = async () => {
   try {
     const response = await ordersAPI.getOrder(route.params.orderId)
     order.value = response.data.order
-    console.log('✅ Order details loaded:', order.value)
+    console.log('Order details loaded:', order.value)
   } catch (err) {
-    console.error('❌ Failed to load order:', err)
+    console.error('Failed to load order:', err)
     error.value = err.response?.data?.message || 'Failed to load order details'
   } finally {
     loading.value = false

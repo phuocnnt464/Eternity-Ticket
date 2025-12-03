@@ -70,7 +70,6 @@ const fetchDashboardData = async () => {
   try {
     const [statsRes, eventsRes] = await Promise.all([
       eventsAPI.getOrganizerStats(),
-      // eventsAPI.getOrganizerEvents({ limit: 5, sort: 'created_at_desc' })
       eventsAPI.getMyEvents({ limit: 5, sort: 'created_at_desc' }) 
     ])
     
@@ -115,7 +114,6 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -133,7 +131,6 @@ onMounted(() => {
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Stats Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card
           v-for="stat in statCards"
@@ -167,7 +164,6 @@ onMounted(() => {
         </Card>
       </div>
 
-      <!-- Pending Approval Alert -->
       <div v-if="stats.pending_approval > 0" class="card bg-yellow-50 border-yellow-200">
         <div class="flex items-start space-x-3">
           <ClockIcon class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
@@ -183,9 +179,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Recent Events & Quick Actions -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Recent Events -->
         <div class="lg:col-span-2">
           <Card>
             <div class="flex items-center justify-between mb-4">
@@ -238,7 +232,6 @@ onMounted(() => {
           </Card>
         </div>
 
-        <!-- Quick Actions -->
         <div class="lg:col-span-1">
           <Card>
             <h2 class="text-lg font-semibold mb-4">Quick Actions</h2>

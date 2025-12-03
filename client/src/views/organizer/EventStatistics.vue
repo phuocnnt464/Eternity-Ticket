@@ -101,8 +101,6 @@ const fetchStatistics = async () => {
   } catch (error) {
     console.error('Failed to fetch statistics:', error)
     console.error('Error details:', error.response?.data)
-    // alert('Failed to load statistics')
-    // router.push('/organizer/events')
   } finally {
     loading.value = false
   }
@@ -225,7 +223,6 @@ onMounted(() => {
 
       <!-- Sales by Ticket Type -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- ✅ Sales by Ticket Type -->
         <Card>
           <h3 class="text-lg font-semibold mb-4">Sales by Ticket Type</h3>
           <div v-if="statistics.sales_by_ticket_type && statistics.sales_by_ticket_type.length > 0" class="space-y-3">
@@ -274,7 +271,6 @@ onMounted(() => {
           </div>
         </Card>
 
-        <!-- ✅ Sales Trend -->
         <Card>
           <h3 class="text-lg font-semibold mb-4">Sales Trend (Last 30 Days)</h3>
           <div v-if="statistics.sales_trend && statistics.sales_trend.length > 0" class="space-y-2">
@@ -306,7 +302,6 @@ onMounted(() => {
         </Card>
       </div>
 
-      <!-- Quick Actions -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Button
           variant="secondary"

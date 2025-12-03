@@ -8,7 +8,6 @@ import Pagination from '@/components/common/Pagination.vue'
 import Spinner from '@/components/common/Spinner.vue'
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
-// ...  rest of script giữ nguyên như trước
 const route = useRoute()
 const router = useRouter()
 
@@ -78,7 +77,6 @@ const fetchEvents = async () => {
     
     console.log('📊 Events from API:', eventsList[0])
     
-    // CLIENT-SIDE FILTERING
     if (filters.value.dateFrom) {
       eventsList = eventsList.filter(e => {
         const eventDate = new Date(e.start_date)
@@ -109,7 +107,6 @@ const fetchEvents = async () => {
       })
     }
     
-    // Sort
     if (filters.value.sort) {
       switch (filters.value.sort) {
         case 'date_asc':
@@ -227,14 +224,11 @@ watch(() => route.query. search, (newSearch) => {
 
 <template>
   <div class="min-h-screen bg-white">
-    <!-- Compact Hero Section -->
     <section class="relative bg-gradient-to-br from-dark-900 via-primary-900 to-black text-white py-10 overflow-visible">
-      <!-- Background Pattern -->
       <div class="absolute inset-0 opacity-10">
         <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;"></div>
       </div>
 
-      <!-- Decorative blobs -->
       <div class="absolute top-0 right-0 w-72 h-72 bg-primary-500 rounded-full blur-3xl opacity-20"></div>
       <div class="absolute bottom-0 left-0 w-72 h-72 bg-accent-500 rounded-full blur-3xl opacity-20"></div>
 
@@ -249,7 +243,6 @@ watch(() => route.query. search, (newSearch) => {
           </p>
         </div>
 
-        <!-- Search + Filter Row -->
         <div class="flex flex-col md:flex-row gap-3 mb-4">
           <!-- Search Bar -->
           <div class="flex-1 flex gap-2">
@@ -273,7 +266,6 @@ watch(() => route.query. search, (newSearch) => {
             </button>
           </div>
 
-          <!-- Filter Button -->
           <EventFilter
             v-model="filters"
             :categories="categories"
@@ -282,10 +274,9 @@ watch(() => route.query. search, (newSearch) => {
         </div>
 
         <p v-if="searchQuery && searchQuery.length < 2" class="text-sm text-amber-600 mb-4">
-          ⚠️ Please enter at least 2 characters to search
+          Please enter at least 2 characters to search
         </p>
 
-        <!-- Active Filters Pills - MOVED OUTSIDE SEARCH ROW -->
         <div v-if="hasActiveFilters" class="flex flex-wrap gap-2">
           <span v-if="searchQuery" class="inline-flex items-center bg-white/20 backdrop-blur-sm text-white px-3 py-1. 5 rounded-full text-sm font-medium">
             Search: "{{ searchQuery }}"

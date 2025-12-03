@@ -56,29 +56,6 @@ const statusOptions = [
   { value: 'inactive', label: 'Inactive' }
 ]
 
-// const filteredUsers = computed(() => {
-//   let result = users.value
-
-//   if (searchQuery.value) {
-//     const query = searchQuery.value.toLowerCase()
-//     result = result.filter(user =>
-//       user.first_name?.toLowerCase().includes(query) ||
-//       user.last_name?.toLowerCase().includes(query) ||
-//       user.email?.toLowerCase().includes(query)
-//     )
-//   }
-
-//   if (selectedRole.value !== 'all') {
-//     result = result.filter(user => user.role === selectedRole.value)
-//   }
-
-//   if (selectedStatus.value !== 'all') {
-//     result = result.filter(user => user.is_active === (selectedStatus.value === 'active'))
-//   }
-
-//   return result
-// })
-
 const getRoleBadge = (role) => {
   const badges = {
     admin: { variant: 'danger', text: 'Admin' },
@@ -98,7 +75,6 @@ const getMembershipBadge = (tier) => {
   return badges[tier] || badges.basic
 }
 
-// Search handler with debounce
 let searchTimeout = null
 const handleSearchInput = (event) => {
   const query = event.target.value
@@ -115,27 +91,19 @@ const handleSearchInput = (event) => {
     return
   }
   
-  // if (query.length >= 2) {
-  //   searchUsers(query)
-  // } else {
-  //   users.value = []
-  // }
-
   if (query.trim().length < 2) {
     searching.value = false
     users.value = []
     return
   }
   
-  // ✅ Debounce 400ms
-  searching.value = true // Show loading
+  searching.value = true 
   searchTimeout = setTimeout(() => {
     searchUsers(query.trim())
   }, 400)
 }
 
 const searchUsers = async (query) => {
-  // searching.value = true
   try {
     const response = await adminAPI.searchUsers({ q: query, limit: 50 })
     users.value = response.data.users || []
@@ -166,12 +134,10 @@ const fetchUsers = async () => {
       limit: pagination.value.perPage
     }
     
-    // Apply role filter
     if (selectedRole.value !== 'all') {
       params.role = selectedRole.value
     }
     
-    // Apply status filter
     if (selectedStatus.value !== 'all') {
       params.is_active = selectedStatus.value === 'active'
     }
@@ -185,23 +151,21 @@ const fetchUsers = async () => {
     pagination.value.totalPages = paginationData.pages || Math.ceil(paginationData.total / pagination.value.perPage)
     pagination.value.currentPage = paginationData.page || 1
     
-    console.log(`✅ Fetch complete: ${users.value.length} users loaded`)
+    console.log(`Fetch complete: ${users.value.length} users loaded`)
   } catch (error) {
-    console.error('❌ Fetch error:', error)
+    console.error('Fetch error:', error)
     users.value = []
   } finally {
     loading.value = false
   }
 }
 
-// Clear search function
 const clearSearch = () => {
-  console.log('🧹 Clearing search')
+  console.log('Clearing search')
   searchQuery.value = ''
   fetchUsers()
 }
 
-// Watch filters to reload - only when NOT searching
 watch([selectedRole, selectedStatus], () => {
   if (!searchQuery.value) {
     pagination.value.currentPage = 1
@@ -291,13 +255,11 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900">User Management</h1>
       <p class="text-gray-600 mt-1">Manage all users in the system</p>
     </div>
 
-    <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
       <Card>
         <div class="text-center">
@@ -331,47 +293,6 @@ onMounted(() => {
       </Card>
     </div>
 
-    <!-- Search & Filters -->
-    <!-- <Card>
-      <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4"> -->
-        <!-- Search -->
-        <!-- <div class="flex-1 max-w-md">
-          <div class="relative">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search by name or email..."
-              class="input pl-10"
-            />
-            <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          </div>
-        </div> -->
-
-        <!-- Filters -->
-        <!-- <div class="flex items-center space-x-2">
-          <FunnelIcon class="w-5 h-5 text-gray-400" />
-          <select v-model="selectedRole" class="select">
-            <option
-              v-for="option in roleOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-          <select v-model="selectedStatus" class="select">
-            <option
-              v-for="option in statusOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
-      </div>
-    </Card> -->
-
     <Card>
       <div class="space-y-4">
         <!-- Search Bar -->
@@ -397,7 +318,6 @@ onMounted(() => {
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
           
-          <!-- Clear button -->
           <button
             v-else-if="searchQuery"
             @click="clearSearch"
@@ -416,7 +336,7 @@ onMounted(() => {
         </p>
         
         <p v-if="searchQuery && users.length > 0" class="text-sm text-green-600">
-          ✅ Found {{ users.length }} users matching "{{ searchQuery }}"
+          Found {{ users.length }} users matching "{{ searchQuery }}"
         </p>
 
         <!-- Filters Row -->
@@ -451,9 +371,7 @@ onMounted(() => {
       <Spinner size="xl" />
     </div>
 
-    <!-- Users Table -->
-    <!-- <Card v-else-if="filteredUsers.length > 0" no-padding> -->
-     <Card v-else-if="users.length > 0" no-padding>
+    <Card v-else-if="users.length > 0" no-padding>
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50 border-b">
@@ -468,11 +386,6 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <!-- <tr
-              v-for="user in filteredUsers"
-              :key="user.id"
-              class="hover:bg-gray-50"
-            > -->
             <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50">
               <td class="px-6 py-4">
                 <div class="flex items-center space-x-3">
@@ -523,8 +436,6 @@ onMounted(() => {
         </table>
       </div>
 
-      <!-- Pagination -->
-      <!-- <div v-if="pagination.totalPages > 1" class="p-6 border-t"> -->
       <div v-if="!searchQuery && pagination.totalPages > 1" class="p-6 border-t">
         <Pagination
           v-model:current-page="pagination.currentPage"
@@ -534,10 +445,8 @@ onMounted(() => {
       </div>
     </Card>
 
-    <!-- Empty State -->
     <Card v-else class="text-center py-12">
       <UserIcon class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-      <!-- <p class="text-gray-500">No users found</p> -->
       <h3 class="text-xl font-semibold text-gray-900 mb-2">
         {{ searchQuery ? 'No users found' : 'No users yet' }}
       </h3>
@@ -552,14 +461,12 @@ onMounted(() => {
       </Button>
     </Card>
 
-    <!-- User Detail Modal -->
     <Modal
       v-model="showDetailModal"
       title="User Details"
       size="lg"
     >
       <div v-if="selectedUser" class="space-y-4">
-        <!-- User Info -->
         <div class="flex items-center space-x-4 pb-4 border-b">
           <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
             <span class="text-primary-600 font-bold text-2xl">
@@ -582,7 +489,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Details -->
         <div class="grid grid-cols-2 gap-4">
           <div>
             <p class="text-sm text-gray-600">Phone</p>
@@ -606,7 +512,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Stats (if organizer) -->
         <div v-if="selectedUser.role === 'organizer'" class="pt-4 border-t">
           <h4 class="font-semibold mb-3">Organizer Stats</h4>
           <div class="grid grid-cols-3 gap-4">
@@ -630,7 +535,6 @@ onMounted(() => {
 
       <template #footer>
         <div class="flex flex-col space-y-2">
-          <!-- Change Role Button -->
           <Button
             v-if="selectedUser?.role !== 'admin'"
             variant="primary"
@@ -642,7 +546,6 @@ onMounted(() => {
             Change Role
           </Button>
 
-           <!-- Deactivate Button (chỉ hiện cho active users, không phải admin) -->
           <Button
             v-if="selectedUser?.is_active && selectedUser?.role !== 'admin'"
             variant="danger"
@@ -654,7 +557,6 @@ onMounted(() => {
             Deactivate Account
           </Button>
 
-          <!-- Reactivate Button (chỉ hiện cho inactive users) -->
           <Button
             v-if="!selectedUser?.is_active && selectedUser?.role !== 'admin'"
             variant="success"
@@ -669,7 +571,6 @@ onMounted(() => {
       </template>
     </Modal>
 
-    <!-- Change Role Modal -->
     <Modal
       v-model="showChangeRoleModal"
       title="Change User Role"
@@ -702,7 +603,7 @@ onMounted(() => {
 
         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
           <p class="text-sm text-yellow-800">
-            ⚠️ Changing user role will affect their access permissions immediately.
+            Changing user role will affect their access permissions immediately.
           </p>
         </div>
       </div>

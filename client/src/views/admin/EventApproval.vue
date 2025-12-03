@@ -8,7 +8,6 @@ import Badge from '@/components/common/Badge.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import Spinner from '@/components/common/Spinner.vue'
 import Modal from '@/components/common/Modal.vue'
-// import { useImageUrl } from '@/composables/useImageUrl' 
 import {
   CheckCircleIcon,
   XCircleIcon,
@@ -33,8 +32,6 @@ const sessionDetails = ref([])
 
 const completingEvents = ref(false)
 
-// const { getImageUrl } = useImageUrl() // ✅ Use composable
-
 const pagination = ref({
   currentPage: 1,
   totalPages: 1,
@@ -49,7 +46,6 @@ const statusOptions = [
   { value: 'completed', label: 'Completed' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'draft', label: 'Draft' },
-  // { value: 'active', label: 'Active' },
   { value: 'cancelled', label: 'Cancelled' }
 ]
 
@@ -77,7 +73,6 @@ const getStatusBadge = (status) => {
     pending: { variant: 'warning', text: 'Pending', icon: ClockIcon },
     rejected: { variant: 'danger', text: 'Rejected', icon: XCircleIcon },
     draft: { variant: 'secondary', text: 'Draft', icon: NoSymbolIcon },
-    // active: { variant: 'success', text: 'Active', icon: CheckCircleIcon },
     completed: { variant: 'accent', text: 'Completed', icon: CheckCircleIcon },
     cancelled: { variant: 'danger', text: 'Cancelled', icon: XCircleIcon }
   }
@@ -117,7 +112,6 @@ const handleViewDetails = async (event) => {
     const response = await sessionsAPI.getEventSessions(event.id)
     sessionDetails.value = response.data.sessions || []
     
-    // Load ticket types for each session
     for (const session of sessionDetails.value) {
       const ticketsRes = await sessionsAPI.getSessionTicketTypes(session.id)
       session.ticket_types = ticketsRes.data.ticket_types || []
@@ -200,7 +194,6 @@ const handleCancelEvent = async (eventId) => {
   }
 }
 
-// Complete past events manually
 const handleCompletePastEvents = async () => {
   if (!confirm('Complete all past events? This will change status of approved events that have ended.')) {
     return
@@ -212,10 +205,10 @@ const handleCompletePastEvents = async () => {
     const count = response.data.completed_count || 0
     
     if (count > 0) {
-      alert(`✅ Successfully completed ${count} past events!`)
+      alert(`Successfully completed ${count} past events!`)
       await fetchEvents() // Refresh list
     } else {
-      alert('ℹ️ No events to complete')
+      alert('No events to complete')
     }
   } catch (error) {
     alert(error.response?.data?.message || 'Failed to complete events')
@@ -242,14 +235,12 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Event Approval</h1>
         <p class="text-gray-600 mt-1">Review and approve event submissions</p>
       </div>
 
-       <!-- Complete Past Events Button -->
       <Button 
         variant="secondary" 
         @click="handleCompletePastEvents"
@@ -292,12 +283,10 @@ onMounted(() => {
       </div>
     </Card>
 
-    <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-12">
       <Spinner size="xl" />
     </div>
 
-    <!-- Events Table -->
     <Card v-else-if="filteredEvents.length > 0" no-padding>
       <div class="overflow-x-auto">
         <table class="w-full">
@@ -371,7 +360,6 @@ onMounted(() => {
         </table>
       </div>
 
-      <!-- Pagination -->
       <div v-if="pagination.totalPages > 1" class="p-6 border-t">
         <Pagination
           v-model:current-page="pagination.currentPage"
@@ -381,19 +369,16 @@ onMounted(() => {
       </div>
     </Card>
 
-    <!-- Empty State -->
     <Card v-else class="text-center py-12">
       <p class="text-gray-500">No events found</p>
     </Card>
 
-    <!-- Detail Modal -->
     <Modal
       v-model="showDetailModal"
       title="Event Review"
       size="lg"
     >
       <div v-if="selectedEvent" class="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
-        <!-- Event Cover Image -->
         <div class="relative">
           <img
             v-if="selectedEvent.cover_image"
@@ -407,7 +392,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Basic Info -->
         <div class="bg-gray-50 p-4 rounded-lg">
           <h3 class="text-xl font-bold mb-2 text-gray-900">{{ selectedEvent.title }}</h3>
           <div class="flex items-center gap-2 mb-3">
@@ -422,9 +406,7 @@ onMounted(() => {
           <p class="text-gray-700 whitespace-pre-line leading-relaxed">{{ selectedEvent.description }}</p>
         </div>
 
-        <!-- Event Details Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Date & Time -->
           <div class="bg-white border border-gray-200 p-4 rounded-lg">
             <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
               <ClockIcon class="w-5 h-5 mr-2 text-blue-600" />
@@ -442,7 +424,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Venue -->
           <div class="bg-white border border-gray-200 p-4 rounded-lg">
             <h4 class="font-semibold text-gray-900 mb-3">Venue Information</h4>
             <div class="space-y-2">
@@ -465,7 +446,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Organizer -->
           <div class="bg-white border border-gray-200 p-4 rounded-lg">
             <h4 class="font-semibold text-gray-900 mb-3">Organizer Information</h4>
             <div class="space-y-2">
@@ -493,7 +473,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Sessions & Tickets -->
           <div class="bg-white border border-gray-200 p-4 rounded-lg">
             <h4 class="font-semibold text-gray-900 mb-3">Sessions & Tickets</h4>
             <div v-if="sessionDetails.length > 0" class="space-y-3">
@@ -528,7 +507,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Payment Information (if available) -->
         <div v-if="selectedEvent.payment_account_info" class="bg-green-50 border border-green-200 p-4 rounded-lg">
           <h4 class="font-semibold text-green-900 mb-3">Payment Information</h4>
           <div class="grid grid-cols-2 gap-3 text-sm">
@@ -551,7 +529,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Images -->
         <div class="space-y-3">
           <h4 class="font-semibold text-gray-900">Additional Images</h4>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -608,13 +585,11 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Terms & Conditions (if available) -->
         <div v-if="selectedEvent.terms_and_conditions" class="bg-gray-50 border border-gray-200 p-4 rounded-lg">
           <h4 class="font-semibold text-gray-900 mb-2">Terms & Conditions</h4>
           <p class="text-sm text-gray-700 whitespace-pre-line">{{ selectedEvent.terms_and_conditions }}</p>
         </div>
 
-        <!-- Rejection Reason Input (if pending) -->
         <div v-if="selectedEvent.status === 'pending'" class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
           <label class="block text-sm font-medium text-gray-900 mb-2">
             Rejection Reason (if rejecting)
@@ -627,7 +602,6 @@ onMounted(() => {
           ></textarea>
         </div>
 
-        <!-- Rejection Reason Display (if rejected) -->
         <div v-if="selectedEvent.status === 'rejected' && selectedEvent.rejection_reason" 
             class="bg-red-50 border border-red-200 p-4 rounded-lg">
           <p class="text-sm font-medium text-red-900 mb-1">Rejection Reason:</p>

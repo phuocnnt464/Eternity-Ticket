@@ -22,17 +22,14 @@ const eventId = ref(route.params.id)
 const event = ref(null)
 const loading = ref(true)
 
-// Scanner state
 const showScanner = ref(true)
 const manualCode = ref('')
 const scanning = ref(false)
 
-// ✅ NEW: Verification state (2-step process)
-const verificationStep = ref('scan') // 'scan' | 'verify' | 'result'
+const verificationStep = ref('scan')
 const ticketToVerify = ref(null)
 const verifying = ref(false)
 
-// Result state
 const lastResult = ref(null)
 const resultType = ref(null)
 const resultMessage = ref('')
@@ -51,18 +48,16 @@ const loadEvent = async () => {
   }
 }
 
-// ✅ STEP 1: Verify ticket (not check-in yet)
 const handleScan = async (ticketCode) => {
   if (scanning.value || !ticketCode) return
   
   scanning. value = true
   
   try {
-    // ✅ Call VERIFY endpoint (not check-in)
     const response = await checkinAPI.verifyTicket(ticketCode)
     
     ticketToVerify.value = response.data?. data?.ticket || response.data?.ticket
-    verificationStep.value = 'verify' // ✅ Show verification page
+    verificationStep.value = 'verify' 
     
   } catch (error) {
     console.error('Verify error:', error)
@@ -74,7 +69,6 @@ const handleScan = async (ticketCode) => {
     
     playFeedback('error')
     
-    // Auto reset after 5 seconds
     setTimeout(() => {
       resetScanner()
     }, 5000)
@@ -84,7 +78,6 @@ const handleScan = async (ticketCode) => {
   }
 }
 
-// ✅ STEP 2: Confirm check-in
 const confirmCheckin = async () => {
   if (!ticketToVerify. value) return
   
@@ -93,7 +86,6 @@ const confirmCheckin = async () => {
   try {
     const response = await checkinAPI.checkIn(ticketToVerify. value. ticket_code)
     
-    // Success
     lastResult.value = response.data?. data?. ticket || response.data?.ticket
     resultType.value = 'success'
     resultMessage.value = 'Check-in successful!'
@@ -101,7 +93,6 @@ const confirmCheckin = async () => {
     
     playFeedback('success')
     
-    // Auto reset after 3 seconds
     setTimeout(() => {
       resetScanner()
     }, 3000)
@@ -132,12 +123,10 @@ const confirmCheckin = async () => {
   }
 }
 
-// ✅ Cancel verification
 const cancelVerification = () => {
   resetScanner()
 }
 
-// ✅ Reset to scan mode
 const resetScanner = () => {
   verificationStep.value = 'scan'
   ticketToVerify.value = null
@@ -162,7 +151,6 @@ const playFeedback = (type) => {
       }
     }
   } catch (e) {
-    // Ignore
   }
 }
 
@@ -182,7 +170,6 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
     <div class="bg-white shadow-sm sticky top-0 z-10">
       <div class="max-w-4xl mx-auto px-4 py-4">
         <div class="flex items-center justify-between">
@@ -211,12 +198,9 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Main Content -->
     <div class="max-w-4xl mx-auto px-4 py-6 space-y-4">
       
-      <!-- ✅ STEP 1: SCAN MODE -->
       <div v-if="verificationStep === 'scan'">
-        <!-- QR Scanner Mode -->
         <Card v-if="showScanner">
           <div class="text-center space-y-4">
             <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto">
@@ -251,7 +235,6 @@ onMounted(() => {
           </div>
         </Card>
 
-        <!-- Manual Input Mode -->
         <Card v-else>
           <div class="text-center space-y-4">
             <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto">
@@ -288,7 +271,6 @@ onMounted(() => {
           </div>
         </Card>
 
-        <!-- Instructions -->
         <Card class="bg-blue-50 border-blue-200">
           <div class="text-sm text-blue-900 space-y-2">
             <p class="font-semibold">Quick Tips:</p>
@@ -302,7 +284,6 @@ onMounted(() => {
         </Card>
       </div>
 
-      <!-- ✅ STEP 2: VERIFICATION PAGE (NEW!) -->
       <div v-else-if="verificationStep === 'verify' && ticketToVerify">
         <Card class="border-2 border-blue-500">
           <div class="text-center space-y-6">
@@ -315,7 +296,6 @@ onMounted(() => {
               <p class="text-gray-600">Please confirm the ticket details before check-in</p>
             </div>
 
-            <!-- Ticket Details -->
             <div class="bg-gray-50 rounded-lg p-6 text-left space-y-3">
               <div class="flex justify-between">
                 <span class="text-gray-600">Ticket Code:</span>
@@ -373,7 +353,6 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- Validation Issues -->
             <div v-if="ticketToVerify.validation_issues?. length > 0" class="bg-red-50 border border-red-200 rounded-lg p-4">
               <p class="font-semibold text-red-900 mb-2">⚠️ Validation Issues:</p>
               <ul class="list-disc list-inside text-sm text-red-800 space-y-1">
@@ -383,7 +362,6 @@ onMounted(() => {
               </ul>
             </div>
 
-            <!-- Action Buttons -->
             <div class="flex space-x-3">
               <Button
                 variant="secondary"
@@ -409,7 +387,6 @@ onMounted(() => {
         </Card>
       </div>
 
-      <!-- ✅ STEP 3: RESULT -->
       <div v-else-if="verificationStep === 'result'">
         <Card 
           :class="[

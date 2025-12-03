@@ -88,23 +88,9 @@ const alertCards = computed(() => [
 const fetchDashboardData = async () => {
   loading.value = true
   try {
-    // const [statsRes, eventsRes, usersRes] = await Promise.all([
-    //   adminAPI.getSystemStats(),
-    //   adminAPI.getRecentEvents({ limit: 5 }),
-    //   adminAPI.getRecentUsers({ limit: 5 })
-    // ])
-    
     const response = await adminAPI.getDashboardStats() 
-
-    // if (response.success) {
-    //   stats.value = response.data.stats || {}
-    //   recentEvents.value = response.data.recent_events || []
-    //   recentUsers.value = response.data.recent_users || []
-    // }
-
       const data = response.data || {}
     
-    // Map server data to stats
     stats.value = {
       total_events: data.events?.total || 0,
       pending_events: data.events?.pending || 0,
@@ -158,19 +144,16 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
       <p class="text-gray-600 mt-1">System overview and management</p>
     </div>
 
-    <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-12">
       <Spinner size="xl" />
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Alert Cards -->
       <div v-if="stats.pending_events > 0 || stats.pending_refunds > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <Card
           v-for="alert in alertCards.filter(a => a.value > 0)"
@@ -220,7 +203,6 @@ onMounted(() => {
         </Card>
       </div>
 
-      <!-- Stats Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card
           v-for="stat in statCards"
@@ -254,9 +236,7 @@ onMounted(() => {
         </Card>
       </div>
 
-      <!-- Recent Activity -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <!-- Recent Events -->
         <Card>
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Recent Events</h2>
@@ -289,7 +269,6 @@ onMounted(() => {
           </div>
         </Card>
 
-        <!-- Recent Users -->
         <Card>
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Recent Users</h2>
@@ -330,7 +309,6 @@ onMounted(() => {
         </Card>
       </div>
 
-      <!-- Quick Actions -->
       <Card>
         <h2 class="text-lg font-semibold mb-4">Quick Actions</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">

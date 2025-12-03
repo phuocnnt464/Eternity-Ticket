@@ -147,7 +147,6 @@ onMounted(() => {
       </Button>
     </div>
 
-    <!-- Info Card -->
     <Card class="bg-blue-50 border-blue-200">
       <div class="flex items-start space-x-3">
         <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -163,12 +162,10 @@ onMounted(() => {
       </div>
     </Card>
 
-    <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-12">
       <Spinner size="xl" />
     </div>
 
-    <!-- Team Members List -->
     <div v-else>
       <Card v-if="teamMembers.length > 0">
         <div class="divide-y divide-gray-200">
@@ -231,7 +228,6 @@ onMounted(() => {
         </div>
       </Card>
 
-      <!-- Empty State -->
       <Card v-else class="text-center py-12">
         <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <UserIcon class="w-10 h-10 text-gray-400" />
@@ -247,7 +243,6 @@ onMounted(() => {
       </Card>
     </div>
 
-    <!-- Invite Modal -->
     <Modal
       v-model="showInviteModal"
       title="Invite Team Member"

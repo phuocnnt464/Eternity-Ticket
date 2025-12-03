@@ -88,13 +88,10 @@ const loadProfile = async () => {
       address: user.address || ''
     }
     
-    // Add API base URL if needed
     if (user.avatar_url) {
-      // Check if it's a relative or absolute URL
       if (user. avatar_url.startsWith('http')) {
         avatarPreview.value = user.avatar_url
       } else {
-        // Prepend API base URL
         const baseUrl = 'http://localhost:3000'
         avatarPreview.value = `${baseUrl}${user.avatar_url}` 
       }
@@ -102,7 +99,7 @@ const loadProfile = async () => {
       avatarPreview.value = null
     }
 
-    console.log('✅ Profile loaded, avatar:', avatarPreview.value)
+    console.log('Profile loaded, avatar:', avatarPreview.value)
   } catch (error) {
     console.error('Failed to load profile:', error)
     console.error('Error response:', error.response?.data)
@@ -113,7 +110,6 @@ const handleAvatarChange = (event) => {
   const file = event.target.files[0]
   if (!file) return
   
-  // Validate file
   if (!file.type.startsWith('image/')) {
     errors.value.avatar = 'Please select an image file'
     return
@@ -127,7 +123,6 @@ const handleAvatarChange = (event) => {
   avatarFile.value = file
   errors.value.avatar = ''
   
-  // Create preview
   const reader = new FileReader()
   reader.onload = (e) => {
     avatarPreview.value = e.target.result
@@ -151,38 +146,31 @@ const uploadAvatar = async () => {
       throw new Error('User ID not found')
     }
     
-    // 1. Upload avatar
     const uploadResponse = await usersAPI.uploadAvatar(userId, avatarFile. value)
-    console.log('✅ Upload response:', uploadResponse. data)
+    console.log('Upload response:', uploadResponse. data)
     
-    // 2. Get new avatar URL from response
     const newAvatarUrl = uploadResponse.data.avatar_url
     
-    // 3. Update preview immediately
     if (newAvatarUrl) {
       avatarPreview.value = newAvatarUrl
       
-      // 4. Update auth store immediately (without fetching)
       authStore.updateUser({ avatar_url: newAvatarUrl })
     }
     
-    // 5. Optionally fetch full profile to ensure sync
     await authStore.fetchProfile()
     
-    // 6. Reset file input AFTER everything completes
     avatarFile.value = null
     errors.value.avatar = ''
     
     console.log('✅ Avatar updated successfully')
-    // alert('Avatar updated successfully!')
     toast.success('Avatar updated successfully! ', {
       position: 'top-right',
       autoClose: 3000
     })
     
   } catch (error) {
-    console.error('❌ Upload avatar error:', error)
-    console.error('❌ Error details:', error.response?.data)
+    console.error('Upload avatar error:', error)
+    console.error('Error details:', error.response?.data)
     
     errors.value.avatar = error.response?.data?.error?.message || 'Failed to upload avatar'
      toast.error(errors.value.avatar, {
@@ -195,21 +183,17 @@ const uploadAvatar = async () => {
 }
 
 const handleImageError = (e) => {
-  console.error('❌ Failed to load avatar image:', avatarPreview.value)
-  // Fallback to default avatar
+  console.error('Failed to load avatar image:', avatarPreview.value)
   avatarPreview.value = null
 }
 
-// ✅ THÊM: Computed để build full avatar URL
 const avatarUrl = computed(() => {
   if (!avatarPreview. value) return null
   
-  // If already absolute URL
   if (avatarPreview. value.startsWith('http')) {
     return avatarPreview. value
   }
   
-  // Build full URL
   const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
   return `${baseUrl}${avatarPreview.value}`
 })
@@ -242,9 +226,7 @@ const handleUpdateProfile = async () => {
     const userId = authStore.user?.id
     await usersAPI.updateProfile(userId, form.value)
     
-    // Reload user data
     await authStore.fetchProfile()
-    // alert('Profile updated successfully!')
     toast.success('Profile updated successfully!', {
       position: 'top-right',
       autoClose: 3000
@@ -287,14 +269,12 @@ const handleChangePassword = async () => {
   try {
     await authStore.changePassword(passwordForm.value)
     
-    // Reset form
     passwordForm.value = {
       current_password: '',
       new_password: '',
       confirm_password: ''
     }
     showPasswordForm.value = false
-    // alert('Password changed successfully!')
     toast.success('Password changed successfully!', {
       position: 'top-right',
       autoClose: 3000
@@ -339,7 +319,6 @@ const confirmDeactivate = async () => {
       autoClose: 3000
     })
 
-    // Close modal
     showDeactivateModal.value = false
 
     authStore.user = null
@@ -349,9 +328,7 @@ const confirmDeactivate = async () => {
     localStorage.clear()
     sessionStorage.clear()
 
-    // Logout and redirect
     setTimeout(async () => {
-      // await authStore.logout()
       router.push({
         path: '/auth/login',
         query: { 
@@ -362,8 +339,7 @@ const confirmDeactivate = async () => {
     }, 2000)
 
   } catch (error) {
-    console.error('❌ Deactivate account error:', error)
-    // deactivateError.value = error.response?.data?.error?. message || 'Failed to deactivate account'
+    console.error('Deactivate account error:', error)
     
     if (error.response?. status === 400) {
       deactivateError.value = 'Incorrect password'
@@ -395,13 +371,11 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900">My Profile</h1>
       <p class="text-gray-600 mt-1">Manage your personal information</p>
     </div>
 
-    <!-- Membership Status -->
     <div class="card bg-gradient-to-br from-primary-50 to-accent-50">
       <div class="flex items-center justify-between">
         <div>
@@ -411,18 +385,15 @@ onMounted(() => {
               {{ membershipBadge.text }}
             </Badge>
             
-            <!-- ✅ FIX: Use membershipData computed -->
             <span v-if="membershipTier !== 'basic' && membershipData?. is_active" class="text-xs text-gray-600">
               {{ membershipData.is_active ? 'Active' : 'Expired' }}
             </span>
           </div>
           
-          <!-- ✅ FIX: Show expiry date from membershipData -->
           <p v-if="membershipTier !== 'basic' && membershipData?.end_date" class="text-xs text-gray-600 mt-1">
             Expires: {{ new Date(membershipData.end_date).toLocaleDateString('vi-VN') }}
           </p>
           
-          <!-- ✅ ADD: Show start date -->
           <p v-if="membershipTier !== 'basic' && membershipData?.start_date" class="text-xs text-gray-500 mt-0.5">
             Started: {{ new Date(membershipData.start_date).toLocaleDateString('vi-VN') }}
           </p>
@@ -437,7 +408,6 @@ onMounted(() => {
       </div>
     </div>
     
-    <!-- Avatar -->
     <div class="card">
       <h2 class="text-lg font-semibold mb-4">Profile Picture</h2>
       

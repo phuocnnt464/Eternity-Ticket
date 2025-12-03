@@ -68,12 +68,10 @@ const handleSubmit = async () => {
     </div>
 
 
-    <!-- Decorative blobs -->
     <div class="absolute top-20 right-20 w-96 h-96 bg-primary-500 rounded-full blur-3xl opacity-20"></div>
     <div class="absolute bottom-20 left-20 w-96 h-96 bg-accent-500 rounded-full blur-3xl opacity-20"></div>
 
     <div class="max-w-md w-full relative z-10">
-       <!-- Back to Home Button -->
       <div class="mb-6">
         <RouterLink 
           to="/" 
@@ -84,7 +82,6 @@ const handleSubmit = async () => {
         </RouterLink>
       </div>
 
-      <!-- Logo -->
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-60 h-16 bg-gradient-to-br from-primary-500 to-accent-600 rounded-2xl mb-4">
           <img src="/logo_w.svg" alt="Logo" class="w-10 h-10 mr-2" />
@@ -94,9 +91,7 @@ const handleSubmit = async () => {
         <p class="text-gray-300">Sign in to your Eternity Tickets account</p>
       </div>
 
-      <!-- Form Card -->
       <div class="bg-white rounded-2xl shadow-2xl p-8">
-        <!-- Error Messages -->
         <div v-if="errors.general" class="bg-red-50 border-2 border-red-500 text-red-800 px-4 py-3 rounded-xl mb-6">
           <p class="font-medium">{{ errors.general }}</p>
         </div>
@@ -166,13 +161,12 @@ const handleSubmit = async () => {
         </div>
       </div>
 
-      <!-- Trust Badge -->
-      <div class="mt-6 text-center">
+      <!-- <div class="mt-6 text-center">
         <p class="text-sm text-gray-400 flex items-center justify-center">
           <ShieldCheckIcon class="w-4 h-4 mr-1" />
           Protected by 256-bit encryption
         </p>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
