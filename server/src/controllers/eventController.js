@@ -18,7 +18,7 @@ class EventController {
         status = 'approved'
       } = req.query;
 
-      console.log(`🔍 Getting events - Page: ${page}, Limit: ${limit}, Category: ${category}, Search: ${search}`);
+      // console.log(`Getting events - Page: ${page}, Limit: ${limit}, Category: ${category}, Search: ${search}`);
 
       const filters = {
         category_id: category,

@@ -19,13 +19,13 @@ export function useEventPermissions(eventId) {
     error. value = null
     
     try {
-      console.log('🔍 Fetching event role for event:', eventId.value)
+      // console.log('Fetching event role for event:', eventId.value)
 
       const response = await eventsAPI.getTeamMembers(eventId.value)
       const members = response.data.data?.members || response.data.members || []
       
-      console.log('👥 Team members:', members)
-      console.log('👤 Current user:', authStore.user?.id)
+      // console.log('Team members:', members)
+      // console.log('Current user:', authStore.user?.id)
       
       const currentMember = members.find(m => m.user_id === authStore.user?.id)
       

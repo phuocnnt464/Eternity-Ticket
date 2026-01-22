@@ -157,7 +157,7 @@ class EventModel {
       const { page, limit } = pagination;
       const offset = (page - 1) * limit;
 
-      console.log(`🔍 EventModel.findMany called with filters:`, filters);
+      // console.log(`EventModel.findMany called with filters:`, filters);
 
       let whereConditions = [];
       let queryParams = [];

@@ -6,7 +6,7 @@ require('dotenv').config({
 
 const { Pool } = require('pg');
 
-// console.log('🔍 Loading environment variables...');
+// console.log('Loading environment variables...');
 // console.log('DB_HOST:', process.env.DB_HOST || 'NOT SET');
 // console.log('DB_PORT:', process.env.DB_PORT || 'NOT SET');
 // console.log('DB_NAME:', process.env.DB_NAME || 'NOT SET');

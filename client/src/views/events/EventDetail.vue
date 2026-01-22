@@ -249,7 +249,7 @@ const handlePurchase = async () => {
     return
   }
 
-  if (! selectedTickets.value || selectedTickets.value.length === 0) {
+  if (!selectedTickets.value || selectedTickets.value.length === 0) {
     alert('Please select at least one ticket')
     return
   }
@@ -272,7 +272,7 @@ const handlePurchase = async () => {
         t => t.id === ticket.ticket_type_id
       )
       
-      if (! ticketType) {
+      if (!ticketType) {
         console.error(`Ticket type not found: ${ticket.ticket_type_id}`)
         return
       }
@@ -295,7 +295,7 @@ const handlePurchase = async () => {
     
     const data = response.data
 
-    if (! data.waiting_room_enabled) {
+    if (!data.waiting_room_enabled) {
       router.push({
         name: 'EventCheckout',
         params: { slug: route.params.slug }
@@ -409,7 +409,6 @@ onBeforeUnmount(() => {
     <div v-else-if="event">
       <!-- Hero Section - Fixed Opacity -->
       <section class="relative h-[500px] bg-gradient-to-br from-dark-900 via-primary-900 to-black overflow-hidden">
-        <!-- Background Image with LIGHTER Overlay -->
         <div class="absolute inset-0">
           <img
             v-if="event.cover_image"
@@ -417,11 +416,9 @@ onBeforeUnmount(() => {
             :alt="event.title"
             class="w-full h-full object-cover opacity-70"
           />
-          <!-- ✅ LIGHTER gradient - from 30% to transparent -->
           <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-black/30 to-transparent"></div>
         </div>
 
-        <!-- Decorative Elements - REDUCED opacity -->
         <div class="absolute top-0 right-0 w-96 h-96 bg-primary-500 rounded-full blur-3xl opacity-10"></div>
         <div class="absolute bottom-0 left-0 w-96 h-96 bg-accent-500 rounded-full blur-3xl opacity-10"></div>
         
@@ -437,7 +434,7 @@ onBeforeUnmount(() => {
         <div class="absolute inset-0 flex items-end">
           <div class="container-custom pb-12 relative z-10 w-full">
             <div class="max-w-4xl">
-              <!-- ✅ IMPROVED Category Badge - More Visible -->
+              <!-- IMPROVED Category Badge - More Visible -->
               <div v-if="event.category_name" class="mb-4">
                 <div class="inline-flex items-center bg-primary-600 text-white px-5 py-2 rounded-full shadow-lg border-2 border-white/30 backdrop-blur-sm">
                   <span class="font-bold text-sm uppercase tracking-wider">{{ event.category_name }}</span>
@@ -753,7 +750,7 @@ onBeforeUnmount(() => {
                           {{ buyButtonText }}
                         </Button>
 
-                        <p v-if="! canPurchase && selectedTickets.length > 0" 
+                        <p v-if="!canPurchase && selectedTickets.length > 0" 
                            class="text-sm text-center text-orange-600 font-medium mt-2">
                           {{ earlyAccessInfo?.isActive && ! earlyAccessInfo?.isPremium 
                              ? '⏰ Upgrade to Premium to buy now' 

@@ -75,26 +75,10 @@ class MembershipController {
         });
       }
 
-      const ipAddr = req.headers['x-forwarded-for'] || 
-                     req.connection.remoteAddress || 
-                     req.socket.remoteAddress ||
-                     req.ip;
-
-      const paymentUrl = VNPayService.createPaymentUrl({
-        orderId: order.order_number,
-        amount: order.total_amount,
-        orderInfo: `Membership ${tier} - ${billing_period}`,
-        orderType: 'membership',
-        ipAddr,
-        returnUrl: return_url || `${process.env.FRONTEND_URL}/membership/payment/result`
-        // returnUrl: return_url || process.env.VNPAY_RETURN_URL
-      });
-
       res.json({
         success: true,
         data: {
           order,
-          payment_url: paymentUrl,
           payment_required: true
         }
       });

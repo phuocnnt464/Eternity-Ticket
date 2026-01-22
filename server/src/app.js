@@ -55,11 +55,11 @@ app.use(cors({
 
 app.use(compression());
 
-if (process.env.NODE_ENV === 'production') {
-  app.use(morgan('combined'));
-} else {
-  app.use(morgan('dev'));
-}
+// if (process.env.NODE_ENV === 'production') {
+//   app.use(morgan('combined'));
+// } else {
+//   app.use(morgan('dev'));
+// }
 
 app.use(express.json({ 
   limit: process.env.MAX_JSON_SIZE || '10mb',
@@ -74,7 +74,7 @@ app.use(express.urlencoded({
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] ${req.method} ${req.path}`);
+    // console.log(`[${timestamp}] ${req.method} ${req.path}`);
     
     if (req.body && Object.keys(req.body).length > 0) {
       console.log('Body:', JSON.stringify(req.body, null, 2));

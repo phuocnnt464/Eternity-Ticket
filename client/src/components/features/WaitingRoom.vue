@@ -169,9 +169,9 @@ const handleProceed = () => {
 const pollStatus = async () => {
   try {
     const response = await queueAPI.getStatus(props.sessionId)
-    const data = response.data. data || response.data
+    const data = response.data.data || response.data
     
-    console.log('🔄 Poll status:', data.status, 'Position:', data.queue_position)
+    console.log('Poll status:', data.status, 'Position:', data.queue_position)
     
     
     if (data.expires_at) {
@@ -179,7 +179,7 @@ const pollStatus = async () => {
       queueStore.expiresAt = data.expires_at
       
       if (oldExpires !== data.expires_at) {
-        console.log('✅ Updated expires_at:', {
+        console.log('Updated expires_at:', {
           old: oldExpires,
           new: data.expires_at
         })

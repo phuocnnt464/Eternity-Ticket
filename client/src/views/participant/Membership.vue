@@ -145,7 +145,7 @@ const fetchMembershipData = async () => {
 }
 
 const handleUpgrade = (tier) => {
-  if (!canUpgrade(tier. value)) return
+  if (!canUpgrade(tier.value)) return
   
   selectedPlan.value = tier
   showUpgradeModal.value = true
@@ -182,7 +182,7 @@ const confirmUpgrade = async () => {
       return
     }
 
-     createdOrder.value = orderData. order
+     createdOrder.value = orderData.order
     
     upgrading.value = false
     currentStep.value = 2
@@ -232,7 +232,7 @@ const completeMockPayment = async () => {
 
     // console.log('Payment response:', response)
 
-    if (response.success || response.data?. success) {
+    if (response.success || response.data?.success) {
       paymentSuccess.value = true
       processingPayment.value = false
       

@@ -48,7 +48,7 @@ class QueueProcessor {
   start() {
     if (this.isRunning) return;
 
-    console.log(`🚀 Starting queue processor (interval: ${this.interval}ms)`);
+    console.log(`Starting queue processor (interval: ${this.interval}ms)`);
     this.isRunning = true;
 
     this.processAllQueues().catch(err => {
@@ -89,7 +89,7 @@ class QueueProcessor {
 
       if (sessionIds.length === 0) return;
 
-      console.log(`🔄 Processing ${sessionIds.length} queues...`);
+      // console.log(`Processing ${sessionIds.length} queues...`);
 
       for (const sessionId of sessionIds) {
         try {
