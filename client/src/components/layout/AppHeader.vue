@@ -11,6 +11,7 @@ import {
   UserCircleIcon,
   MagnifyingGlassIcon,
   ArrowRightOnRectangleIcon,
+  UserGroupIcon,
   Cog6ToothIcon,
   TicketIcon
 } from '@heroicons/vue/24/outline'
@@ -301,6 +302,16 @@ onMounted(async () => {
                 >
                   <UserCircleIcon class="w-4 h-4" />
                   <span>Membership</span>
+                </RouterLink>
+
+                <RouterLink 
+                  v-if="authStore.isParticipant"
+                  to="/organizer/teams"
+                  class="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  @click="showUserMenu = false"
+                >
+                  <UserGroupIcon class="w-4 h-4" />
+                  <span>Event Teams</span>
                 </RouterLink>
                 
                 <div class="border-t border-gray-200 mt-2 pt-2">
