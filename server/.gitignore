@@ -24,7 +24,7 @@ build/
 *.swp
 *.swo
 
-*.sql
+*.sql 
 
 # OS
 .DS_Store
