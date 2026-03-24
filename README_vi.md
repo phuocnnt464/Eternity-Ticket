@@ -432,4 +432,4 @@ Base URL: `http://localhost:3000/api`
 - **Logs**: Log ứng dụng lưu tại `server/logs/app.log` (tự tạo khi chạy)
 - **Port mặc định**: Backend `3000`, Frontend `5173` — đảm bảo hai port này không bị chiếm
 - **Redis không bắt buộc**: Nếu không cài Redis, đặt `WAITING_ROOM_ENABLED=false` trong `.env`
-- **VNPay sandbox**: D��ng thẻ test của VNPay để thử thanh toán, không trừ tiền thật
+- **VNPay sandbox**: Dùng thẻ test của VNPay để thử thanh toán, không trừ tiền thật
