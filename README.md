@@ -1,10 +1,10 @@
-# 🎟️ Eternity Ticket
+# Eternity Tickets
 
 A full-stack online event managing and ticketing system with comprehensive features: user authentication, **VNPay** payment integration, smart queue management, email notifications, QR code check-in, PDF ticket export, and admin dashboard.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Tech Stack](#tech-stack)
 - [System Requirements](#system-requirements)
@@ -16,7 +16,7 @@ A full-stack online event managing and ticketing system with comprehensive featu
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend (`client/`)
 | Library | Version | Purpose |
@@ -54,7 +54,7 @@ A full-stack online event managing and ticketing system with comprehensive featu
 
 ---
 
-## ⚙️ System Requirements
+## System Requirements
 
 | Tool | Minimum Version | Notes |
 |---|---|---|
@@ -66,7 +66,7 @@ A full-stack online event managing and ticketing system with comprehensive featu
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Eternity-Ticket/
@@ -123,7 +123,7 @@ Eternity-Ticket/
 
 ---
 
-## 🚀 Installation & Setup
+## Installation & Setup
 
 ### Step 1 — Clone the repository
 
@@ -175,8 +175,8 @@ npm start
 npm test
 ```
 
-✅ Server running at: `http://localhost:3000`  
-✅ Health check: `http://localhost:3000/api/health`
+Server running at: `http://localhost:3000`  
+Health check: `http://localhost:3000/api/health`
 
 ---
 
@@ -195,7 +195,7 @@ npm install
 npm run dev
 ```
 
-✅ Frontend running at: `http://localhost:5173`
+Frontend running at: `http://localhost:5173`
 
 **Build for production:**
 
@@ -211,11 +211,11 @@ npm run preview
 
 ---
 
-## 🌍 Environment Variables
+## Environment Variables
 
 All environment variables are stored in `server/.env` (copied from `server/.env.example`):
 
-### 🗄️ Database (PostgreSQL)
+### Database (PostgreSQL)
 | Variable | Default | Description |
 |---|---|---|
 | `DB_HOST` | `localhost` | PostgreSQL host |
@@ -226,7 +226,7 @@ All environment variables are stored in `server/.env` (copied from `server/.env.
 | `DB_POOL_MIN` | `10` | Minimum connections in pool |
 | `DB_POOL_MAX` | `50` | Maximum connections in pool |
 
-### 🔐 JWT Authentication
+### JWT Authentication
 | Variable | Description |
 |---|---|
 | `JWT_SECRET` | Access token secret key (minimum 32 characters) |
@@ -234,7 +234,7 @@ All environment variables are stored in `server/.env` (copied from `server/.env.
 | `JWT_REFRESH_SECRET` | Refresh token secret key |
 | `JWT_REFRESH_EXPIRES_IN` | Refresh token expiry (e.g. `7d`) |
 
-### 🌐 Server
+### Server
 | Variable | Default | Description |
 |---|---|---|
 | `NODE_ENV` | `development` | Runtime environment |
@@ -243,7 +243,7 @@ All environment variables are stored in `server/.env` (copied from `server/.env.
 | `FRONTEND_URL` | `http://localhost:5173` | Frontend URL |
 | `ALLOWED_ORIGINS` | `http://localhost:5173` | Allowed CORS origins |
 
-### 📧 Email (Gmail)
+### Email (Gmail)
 | Variable | Description |
 |---|---|
 | `EMAIL_USER` | Gmail address used for sending emails |
@@ -251,9 +251,9 @@ All environment variables are stored in `server/.env` (copied from `server/.env.
 | `EMAIL_FROM_NAME` | Display name shown in sent emails |
 | `SUPPORT_EMAIL` | Customer support email address |
 
-> ⚠️ How to get a Gmail App Password: Enable 2FA → go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) → create an app password.
+> How to get a Gmail App Password: Enable 2FA → go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) → create an app password.
 
-### 💳 VNPay (Sandbox)
+### VNPay (Sandbox)
 | Variable | Description |
 |---|---|
 | `VNPAY_TMN_CODE` | Terminal code from VNPay sandbox |
@@ -263,7 +263,7 @@ All environment variables are stored in `server/.env` (copied from `server/.env.
 
 > Register a sandbox account at [sandbox.vnpayment.vn](https://sandbox.vnpayment.vn).
 
-### 🟥 Redis (Optional)
+### Redis (Optional)
 | Variable | Default | Description |
 |---|---|---|
 | `REDIS_URL` | `redis://localhost:6379` | Redis connection URL |
@@ -273,7 +273,7 @@ All environment variables are stored in `server/.env` (copied from `server/.env.
 
 > If Redis is not installed, set `WAITING_ROOM_ENABLED=false`. The server will still start in degraded mode.
 
-### ⚙️ Queue System & Other Settings
+### Queue System & Other Settings
 | Variable | Default | Description |
 |---|---|---|
 | `WAITING_ROOM_ENABLED` | `true` | Enable/disable waiting room |
@@ -287,7 +287,7 @@ All environment variables are stored in `server/.env` (copied from `server/.env.
 
 ---
 
-## 💻 Useful Commands
+## Useful Commands
 
 ### Backend (`server/`)
 
@@ -402,7 +402,7 @@ redis-cli flushall
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
 Base URL: `http://localhost:3000/api`
 
@@ -425,7 +425,7 @@ Base URL: `http://localhost:3000/api`
 
 ---
 
-## 📝 Additional Notes
+## Additional Notes
 
 - **Uploads**: Uploaded images are stored in `server/uploads/` (auto-created at runtime, already in `.gitignore`)
 - **Logs**: Application logs are written to `server/logs/app.log` (auto-created at runtime)

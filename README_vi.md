@@ -1,10 +1,10 @@
-# 🎟️ Eternity Ticket
+# Eternity Tickets
 
 Hệ thống đặt vé và quản trị sự kiện trực tuyến full-stack với đầy đủ tính năng: xác thực người dùng, thanh toán qua **VNPay**, hàng đợi thông minh, gửi email, quét QR check-in, xuất vé PDF và quản trị admin.
 
 ---
 
-## 📋 Mục lục
+## Mục lục
 
 - [Tech Stack](#tech-stack)
 - [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
@@ -17,7 +17,7 @@ Hệ thống đặt vé và quản trị sự kiện trực tuyến full-stack v
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend (`client/`)
 | Thư viện | Phiên bản | Mục đích |
@@ -67,7 +67,7 @@ Hệ thống đặt vé và quản trị sự kiện trực tuyến full-stack v
 
 ---
 
-## 📁 Cấu trúc dự án
+## Cấu trúc dự án
 
 ```
 Eternity-Ticket/
@@ -124,7 +124,7 @@ Eternity-Ticket/
 
 ---
 
-## 🚀 Cài đặt & Chạy dự án
+## Cài đặt & Chạy dự án
 
 ### Bước 1 — Clone repo
 
@@ -176,8 +176,8 @@ npm start
 npm test
 ```
 
-✅ Server chạy tại: `http://localhost:3000`  
-✅ Health check: `http://localhost:3000/api/health`
+Server chạy tại: `http://localhost:3000`  
+Health check: `http://localhost:3000/api/health`
 
 ---
 
@@ -196,7 +196,7 @@ npm install
 npm run dev
 ```
 
-✅ Frontend chạy tại: `http://localhost:5173`
+Frontend chạy tại: `http://localhost:5173`
 
 **Build cho production:**
 
@@ -212,11 +212,11 @@ npm run preview
 
 ---
 
-## 🌍 Biến môi trường
+## Biến môi trường
 
 Tất cả biến môi trường đặt trong file `server/.env` (copy từ `server/.env.example`):
 
-### 🗄️ Database (PostgreSQL)
+### Database (PostgreSQL)
 | Biến | Mặc định | Mô tả |
 |---|---|---|
 | `DB_HOST` | `localhost` | Host PostgreSQL |
@@ -227,7 +227,7 @@ Tất cả biến môi trường đặt trong file `server/.env` (copy từ `ser
 | `DB_POOL_MIN` | `10` | Số connection tối thiểu trong pool |
 | `DB_POOL_MAX` | `50` | Số connection tối đa trong pool |
 
-### 🔐 Xác thực JWT
+### Xác thực JWT
 | Biến | Mô tả |
 |---|---|
 | `JWT_SECRET` | Secret key access token (tối thiểu 32 ký tự) |
@@ -244,7 +244,7 @@ Tất cả biến môi trường đặt trong file `server/.env` (copy từ `ser
 | `FRONTEND_URL` | `http://localhost:5173` | URL frontend |
 | `ALLOWED_ORIGINS` | `http://localhost:5173` | Danh sách origin CORS cho phép |
 
-### 📧 Email (Gmail)
+### Email (Gmail)
 | Biến | Mô tả |
 |---|---|
 | `EMAIL_USER` | Địa chỉ Gmail dùng để gửi mail |
@@ -252,7 +252,7 @@ Tất cả biến môi trường đặt trong file `server/.env` (copy từ `ser
 | `EMAIL_FROM_NAME` | Tên hiển thị khi gửi mail |
 | `SUPPORT_EMAIL` | Email hỗ trợ khách hàng |
 
-> ⚠️ Cách lấy Gmail App Password: Bật 2FA → truy cập [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) → tạo mật khẩu ứng dụng.
+> Cách lấy Gmail App Password: Bật 2FA → truy cập [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) → tạo mật khẩu ứng dụng.
 
 ### 💳 VNPay (Sandbox)
 | Biến | Mô tả |
@@ -264,7 +264,7 @@ Tất cả biến môi trường đặt trong file `server/.env` (copy từ `ser
 
 > Đăng ký tài khoản sandbox tại [sandbox.vnpayment.vn](https://sandbox.vnpayment.vn).
 
-### 🟥 Redis (Tùy chọn)
+### Redis (Tùy chọn)
 | Biến | Mặc định | Mô tả |
 |---|---|---|
 | `REDIS_URL` | `redis://localhost:6379` | URL kết nối Redis |
@@ -288,7 +288,7 @@ Tất cả biến môi trường đặt trong file `server/.env` (copy từ `ser
 
 ---
 
-## 💻 Các lệnh hữu ích
+## Các lệnh hữu ích
 
 ### Backend (`server/`)
 
@@ -403,7 +403,7 @@ redis-cli flushall
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
 Base URL: `http://localhost:3000/api`
 
@@ -426,7 +426,7 @@ Base URL: `http://localhost:3000/api`
 
 ---
 
-## 📝 Ghi chú thêm
+## Ghi chú thêm
 
 - **Uploads**: File ảnh upload lưu tại `server/uploads/` (tự tạo khi chạy, đã có trong `.gitignore`)
 - **Logs**: Log ứng dụng lưu tại `server/logs/app.log` (tự tạo khi chạy)
