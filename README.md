@@ -1,6 +1,6 @@
 # 🎟️ Eternity Ticket
 
-A full-stack online event ticketing system with comprehensive features: user authentication, **VNPay** payment integration, smart queue management, email notifications, QR code check-in, PDF ticket export, and admin dashboard.
+A full-stack online event managing and ticketing system with comprehensive features: user authentication, **VNPay** payment integration, smart queue management, email notifications, QR code check-in, PDF ticket export, and admin dashboard.
 
 ---
 
