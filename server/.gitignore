@@ -24,8 +24,8 @@ build/
 *.swp
 *.swo
 
+schema.sql
+
 # OS
 .DS_Store
 Thumbs.db
-
-.sql
